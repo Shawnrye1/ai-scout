@@ -22,13 +22,11 @@ function Logo({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect width="40" height="40" rx="8" fill="#0f2d52" />
-      <path
-        d="M20 10L28 26H12L20 10Z"
-        fill="white"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
+      {/* Football/Play diagram icon */}
+      <circle cx="20" cy="16" r="4" stroke="white" strokeWidth="2" fill="none" />
+      <path d="M12 28L20 20L28 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="28" r="2" fill="white" />
+      <circle cx="28" cy="28" r="2" fill="white" />
     </svg>
   );
 }
@@ -88,7 +86,7 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             <p className="mt-2 text-center text-base text-gray-500">
               {mode === 'signin'
                 ? 'Welcome back! Please enter your details.'
-                : 'Start your 30-day free trial.'}
+                : 'Start analyzing game film with AI.'}
             </p>
           </div>
 
