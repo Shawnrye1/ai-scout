@@ -1,13 +1,24 @@
 import { Suspense } from 'react';
-import { Zap } from 'lucide-react';
+import { Play } from 'lucide-react';
 import Link from 'next/link';
 import { LoginForm } from '@/components/ui/login-form';
 
 function Logo({ className }: { className?: string }) {
   return (
-    <div className={className}>
-      <Zap className="size-4" />
-    </div>
+    <svg
+      className={className}
+      width="24"
+      height="24"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="40" height="40" rx="8" fill="#0f2d52" />
+      <circle cx="20" cy="16" r="4" stroke="white" strokeWidth="2" fill="none" />
+      <path d="M12 28L20 20L28 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="28" r="2" fill="white" />
+      <circle cx="28" cy="28" r="2" fill="white" />
+    </svg>
   );
 }
 
@@ -19,8 +30,8 @@ export default function SignInPage() {
         <div className="flex flex-col gap-4 p-6 md:p-10">
           <div className="flex justify-center gap-2 md:justify-start">
             <Link href="/" className="flex items-center gap-2 font-medium">
-              <Logo className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground" />
-              Outreach Engine
+              <Logo className="size-6" />
+              AI Scout
             </Link>
           </div>
           <div className="flex flex-1 items-center justify-center">
@@ -30,16 +41,16 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* Right side - Motivational image/message */}
+        {/* Right side - Sports quote */}
         <div className="relative hidden bg-muted lg:block">
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/90 via-neutral-900/70 to-neutral-800/90" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0f2d52]/95 via-[#0f2d52]/80 to-[#1a4a7a]/90" />
 
-          {/* Background pattern */}
+          {/* Background pattern - field lines */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1'%3E%3Cpath d='M0 50h100M50 0v100'/%3E%3Ccircle cx='50' cy='50' r='20'/%3E%3C/g%3E%3C/svg%3E")`,
             }}
           />
 
@@ -48,33 +59,33 @@ export default function SignInPage() {
             <div className="max-w-md text-center">
               {/* Icon */}
               <div className="mx-auto mb-8 flex size-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-                <Zap className="size-8 text-white" />
+                <Play className="size-8 text-white" />
               </div>
 
               {/* Quote */}
               <blockquote className="mb-6">
                 <p className="text-2xl font-medium leading-relaxed">
-                  "The best time to plant a tree was 20 years ago. The second best time is now."
+                  "The difference between ordinary and extraordinary is that little extra."
                 </p>
               </blockquote>
 
               <p className="text-lg text-white/70">
-                — Chinese Proverb
+                — Jimmy Johnson
               </p>
 
-              {/* Stats or features */}
+              {/* Stats */}
               <div className="mt-12 grid grid-cols-3 gap-6 border-t border-white/10 pt-8">
                 <div>
-                  <div className="text-2xl font-bold">Email</div>
-                  <div className="text-sm text-white/60">Outreach</div>
+                  <div className="text-2xl font-bold">Players</div>
+                  <div className="text-sm text-white/60">Tracked</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">Phone</div>
-                  <div className="text-sm text-white/60">AI Calls</div>
+                  <div className="text-2xl font-bold">Games</div>
+                  <div className="text-sm text-white/60">Analyzed</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">SMS</div>
-                  <div className="text-sm text-white/60">Messaging</div>
+                  <div className="text-2xl font-bold">Reports</div>
+                  <div className="text-sm text-white/60">Generated</div>
                 </div>
               </div>
             </div>

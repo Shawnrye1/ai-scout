@@ -3,15 +3,27 @@ import { db } from '@/lib/db/drizzle';
 import { games } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { eq } from 'drizzle-orm';
-import { getPublicUrl } from '@/lib/storage/r2';
+import { getPublicUrl, getDownloadPresignedUrl } from '@/lib/storage/r2';
 import { z } from 'zod';
+import { triggerModalProcessing } from '@/lib/processing/modal';
 
-const completeSchema = z.object({
+// Schema for file uploads
+const fileUploadSchema = z.object({
   gameId: z.string().uuid(),
   key: z.string().min(1),
   fileSize: z.number().positive(),
   duration: z.number().positive().optional(),
 });
+
+// Schema for URL-based uploads (Hudl, YouTube, etc.)
+const urlUploadSchema = z.object({
+  gameId: z.string().uuid(),
+  videoUrl: z.string().url(),
+  videoSource: z.enum(['hudl', 'youtube', 'vimeo', 'direct']),
+});
+
+// Combined schema - either file OR url
+const completeSchema = z.union([fileUploadSchema, urlUploadSchema]);
 
 // POST /api/upload/complete - Mark upload as complete and trigger processing
 export async function POST(request: NextRequest) {
@@ -37,33 +49,75 @@ export async function POST(request: NextRequest) {
       where: (tm, { eq }) => eq(tm.userId, user.id),
     });
 
-    if (game.teamId !== teamResult?.teamId) {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!isDev && game.teamId !== teamResult?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Get public URL for the video
-    const videoUrl = await getPublicUrl(data.key);
+    // Check if this is a URL-based or file-based upload
+    const isUrlUpload = 'videoUrl' in data && 'videoSource' in data;
 
-    // Update game with video info and set status to queued
-    const [updatedGame] = await db.update(games)
-      .set({
-        videoKey: data.key,
-        videoUrl: typeof videoUrl === 'string' ? videoUrl : null,
-        videoSizeBytes: data.fileSize,
-        videoDurationSeconds: data.duration,
-        status: 'queued',
-        processingProgress: 0,
-        updatedAt: new Date(),
-      })
-      .where(eq(games.id, data.gameId))
-      .returning();
+    let updatedGame;
+    let downloadUrl: string;
 
-    // TODO: Trigger Modal processing job
-    // await triggerModalProcessing(updatedGame.id, videoUrl);
+    if (isUrlUpload) {
+      // URL-based upload (Hudl, YouTube, Vimeo, direct link)
+      const urlData = data as z.infer<typeof urlUploadSchema>;
+
+      [updatedGame] = await db.update(games)
+        .set({
+          videoUrl: urlData.videoUrl,
+          videoSource: urlData.videoSource,
+          status: 'queued',
+          processingProgress: 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(games.id, data.gameId))
+        .returning();
+
+      // For URL-based uploads, use the URL directly
+      downloadUrl = urlData.videoUrl;
+    } else {
+      // File-based upload (R2)
+      const fileData = data as z.infer<typeof fileUploadSchema>;
+
+      // Get public URL for the video
+      const videoUrl = await getPublicUrl(fileData.key);
+
+      [updatedGame] = await db.update(games)
+        .set({
+          videoKey: fileData.key,
+          videoUrl: typeof videoUrl === 'string' ? videoUrl : null,
+          videoSizeBytes: fileData.fileSize,
+          videoDurationSeconds: fileData.duration,
+          status: 'queued',
+          processingProgress: 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(games.id, data.gameId))
+        .returning();
+
+      // Get a presigned URL for Modal to download the video
+      downloadUrl = await getDownloadPresignedUrl(fileData.key, 3600 * 4); // 4 hour expiry
+    }
+
+    // Trigger Modal processing job
+    try {
+      await triggerModalProcessing({
+        gameId: updatedGame.id,
+        videoUrl: downloadUrl,
+        sport: updatedGame.sport || undefined,
+      });
+    } catch (processingError) {
+      console.error('Failed to trigger processing:', processingError);
+      // Don't fail the request - processing can be retried later
+    }
 
     return NextResponse.json({
       game: updatedGame,
-      message: 'Upload complete. Processing will begin shortly.',
+      message: isUrlUpload
+        ? 'Video URL received. Processing will begin shortly.'
+        : 'Upload complete. Processing will begin shortly.',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

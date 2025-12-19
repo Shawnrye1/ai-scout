@@ -44,6 +44,9 @@ const createGameSchema = z.object({
   opponent: z.string().optional(),
   gameDate: z.string().optional(),
   sport: z.enum(['football', 'basketball']).optional(),
+  // For URL-based video uploads
+  videoUrl: z.string().url().optional(),
+  videoSource: z.enum(['hudl', 'youtube', 'vimeo', 'direct']).optional(),
 });
 
 // POST /api/games - Create a new game
@@ -66,6 +69,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No team found' }, { status: 404 });
     }
 
+    // If video URL is provided, set status to 'queued' for URL-based uploads
+    const isUrlUpload = !!data.videoUrl;
+
     const [game] = await db.insert(games).values({
       teamId: teamResult.teamId,
       userId: user.id,
@@ -73,7 +79,9 @@ export async function POST(request: NextRequest) {
       opponent: data.opponent,
       gameDate: data.gameDate ? new Date(data.gameDate) : null,
       sport: data.sport,
-      status: 'uploading',
+      videoUrl: data.videoUrl,
+      videoSource: data.videoSource,
+      status: isUrlUpload ? 'queued' : 'uploading',
     }).returning();
 
     return NextResponse.json({ game });

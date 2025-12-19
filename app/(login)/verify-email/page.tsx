@@ -24,10 +24,10 @@ function VerifyEmailContent() {
       formData.append('token', token);
       const result = await verifyEmail({ error: '' }, formData);
 
-      if (result.success) {
+      if ('success' in result && result.success) {
         setStatus('success');
         setMessage(result.success);
-      } else if (result.error) {
+      } else if ('error' in result && result.error) {
         setStatus('error');
         setMessage(result.error);
       }

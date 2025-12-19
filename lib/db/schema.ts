@@ -182,11 +182,13 @@ export const games = pgTable('games', {
   userId: integer('user_id')
     .notNull()
     .references(() => users.id),
+  name: varchar('name', { length: 255 }), // display name
   title: varchar('title', { length: 255 }),
   description: text('description'),
   sport: varchar('sport', { length: 20 }), // auto-detected or user-specified
   sportConfidence: decimal('sport_confidence', { precision: 3, scale: 2 }),
   videoUrl: text('video_url'),
+  videoSource: varchar('video_source', { length: 20 }), // 'hudl', 'youtube', 'vimeo', 'direct', 'upload'
   videoKey: text('video_key'), // R2 object key
   videoDurationSeconds: integer('video_duration_seconds'),
   videoSizeBytes: integer('video_size_bytes'),
@@ -244,6 +246,8 @@ export const detectedPlays = pgTable('detected_plays', {
   playNumber: integer('play_number'),
   startTimestamp: decimal('start_timestamp', { precision: 10, scale: 2 }),
   endTimestamp: decimal('end_timestamp', { precision: 10, scale: 2 }),
+  startTime: integer('start_time'), // alias for easier access
+  endTime: integer('end_time'),
   // Football specific
   formation: varchar('formation', { length: 50 }),
   playType: varchar('play_type', { length: 50 }), // 'run', 'pass', 'scramble', 'sack', 'penalty'
@@ -260,6 +264,8 @@ export const detectedPlays = pgTable('detected_plays', {
   // General
   thumbnailUrl: text('thumbnail_url'),
   confidence: decimal('confidence', { precision: 3, scale: 2 }),
+  needsReview: boolean('needs_review').default(false), // flagged for admin review
+  flagReason: text('flag_reason'), // why it was flagged
   rawData: jsonb('raw_data'), // store additional ML output
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
@@ -328,6 +334,20 @@ export const playerPlayInvolvement = pgTable('player_play_involvement', {
     .references(() => detectedPlays.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 50 }), // 'ball_carrier', 'receiver', 'blocker', 'tackler', etc.
   metrics: jsonb('metrics'), // play-specific metrics for this player
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Admin corrections for model fine-tuning
+export const corrections = pgTable('corrections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  playId: uuid('play_id').references(() => detectedPlays.id, { onDelete: 'cascade' }),
+  gameId: uuid('game_id').references(() => games.id, { onDelete: 'cascade' }),
+  originalData: jsonb('original_data'), // what the AI detected
+  correctedData: jsonb('corrected_data'), // what it should have been
+  correctedBy: varchar('corrected_by', { length: 100 }), // admin who made the correction
+  correctionType: varchar('correction_type', { length: 50 }), // 'play_type', 'formation', 'player', etc.
+  notes: text('notes'),
+  usedForTraining: boolean('used_for_training').default(false), // has this been exported for training
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -439,3 +459,5 @@ export type PlayerAnalysisType = typeof playerAnalysis.$inferSelect;
 export type NewPlayerAnalysis = typeof playerAnalysis.$inferInsert;
 export type KeyMoment = typeof keyMoments.$inferSelect;
 export type NewKeyMoment = typeof keyMoments.$inferInsert;
+export type Correction = typeof corrections.$inferSelect;
+export type NewCorrection = typeof corrections.$inferInsert;

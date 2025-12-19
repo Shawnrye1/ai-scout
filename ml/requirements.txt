@@ -1,0 +1,33 @@
+# AI Scout ML Pipeline Requirements
+# These are installed in the Modal container via the Image definition
+
+# Core ML
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+
+# Detection & Tracking (Cutting Edge)
+ultralytics>=8.0.200      # YOLOv8 - State of the art object detection
+supervision>=0.17.0       # Roboflow supervision library for tracking
+
+# Pose Estimation (Cutting Edge)
+mmpose>=1.2.0            # ViTPose support
+mmcv>=2.1.0
+mmdet>=3.2.0
+
+# OCR
+paddlepaddle>=2.5.0
+paddleocr>=2.7.0
+
+# Video processing
+ffmpeg-python>=0.2.0
+av>=11.0.0
+
+# API & Utils
+httpx>=0.25.0
+anthropic>=0.8.0
+pydantic>=2.5.0
+
+# Modal
+modal>=0.56.0

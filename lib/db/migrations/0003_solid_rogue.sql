@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "video_source" varchar(20);

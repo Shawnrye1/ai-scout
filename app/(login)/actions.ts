@@ -27,6 +27,7 @@ import {
 } from '@/lib/auth/middleware';
 import { generateToken, getTokenExpiry } from '@/lib/auth/tokens';
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email/resend';
+import { getDefaultRoleForEmail } from '@/lib/auth/roles';
 
 async function logActivity(
   teamId: number | null | undefined,
@@ -99,7 +100,7 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     return createCheckoutSession({ team: foundTeam, priceId });
   }
 
-  redirect('/dashboard');
+  redirect('/home');
 });
 
 const signUpSchema = z.object({
@@ -129,10 +130,13 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const verificationToken = generateToken();
   const verificationExpires = getTokenExpiry(24); // 24 hours
 
+  // Assign role based on email (admin for specific emails, coach for others)
+  const defaultRole = getDefaultRoleForEmail(email);
+
   const newUser: NewUser = {
     email,
     passwordHash,
-    role: 'owner', // Default role, will be overridden if there's an invitation
+    role: defaultRole,
     emailVerificationToken: verificationToken,
     emailVerificationExpires: verificationExpires,
   };
@@ -148,7 +152,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   }
 
   let teamId: number;
-  let userRole: string;
+  let teamMemberRole: string;
   let createdTeam: typeof teams.$inferSelect | null = null;
 
   if (inviteId) {
@@ -167,7 +171,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
     if (invitation) {
       teamId = invitation.teamId;
-      userRole = invitation.role;
+      teamMemberRole = invitation.role;
 
       await db
         .update(invitations)
@@ -201,7 +205,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     }
 
     teamId = createdTeam.id;
-    userRole = 'owner';
+    teamMemberRole = 'owner';
 
     await logActivity(teamId, createdUser.id, ActivityType.CREATE_TEAM);
   }
@@ -209,7 +213,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const newTeamMember: NewTeamMember = {
     userId: createdUser.id,
     teamId: teamId,
-    role: userRole
+    role: teamMemberRole
   };
 
   await Promise.all([
@@ -230,7 +234,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     return createCheckoutSession({ team: createdTeam, priceId });
   }
 
-  redirect('/dashboard');
+  redirect('/home');
 });
 
 export async function signOut() {

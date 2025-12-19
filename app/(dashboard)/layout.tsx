@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Video, Settings, Users, BarChart3 } from 'lucide-react';
+import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,9 +63,27 @@ function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="flex flex-col gap-1">
         <DropdownMenuItem className="cursor-pointer">
+          <Link href="/home" className="flex w-full items-center">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Link href="/games" className="flex w-full items-center">
             <Video className="mr-2 h-4 w-4" />
             <span>Games</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
+          <Link href="/players" className="flex w-full items-center">
+            <Users className="mr-2 h-4 w-4" />
+            <span>Players</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
+          <Link href="/reports" className="flex w-full items-center">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            <span>Reports</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer">
@@ -127,6 +145,8 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 }
 
 function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
@@ -136,20 +156,73 @@ function Header() {
             <span className="ml-2 text-xl font-bold text-gray-900">AI Scout</span>
           </Link>
 
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
+            <NavLink href="/home" icon={LayoutDashboard}>Dashboard</NavLink>
             <NavLink href="/games" icon={Video}>Games</NavLink>
-            <NavLink href="/dashboard" icon={Settings}>Settings</NavLink>
+            <NavLink href="/players" icon={Users}>Players</NavLink>
+            <NavLink href="/reports" icon={BarChart3}>Reports</NavLink>
           </nav>
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
           </Suspense>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <nav className="md:hidden border-t border-gray-100 px-4 py-3 bg-white">
+          <div className="flex flex-col gap-1">
+            <MobileNavLink href="/home" icon={LayoutDashboard} onClick={() => setMobileMenuOpen(false)}>
+              Dashboard
+            </MobileNavLink>
+            <MobileNavLink href="/games" icon={Video} onClick={() => setMobileMenuOpen(false)}>
+              Games
+            </MobileNavLink>
+            <MobileNavLink href="/players" icon={Users} onClick={() => setMobileMenuOpen(false)}>
+              Players
+            </MobileNavLink>
+            <MobileNavLink href="/reports" icon={BarChart3} onClick={() => setMobileMenuOpen(false)}>
+              Reports
+            </MobileNavLink>
+            <MobileNavLink href="/dashboard" icon={Settings} onClick={() => setMobileMenuOpen(false)}>
+              Settings
+            </MobileNavLink>
+          </div>
+        </nav>
+      )}
     </header>
+  );
+}
+
+function MobileNavLink({ href, children, icon: Icon, onClick }: { href: string; children: React.ReactNode; icon: any; onClick: () => void }) {
+  const pathname = usePathname();
+  const isActive = pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        isActive
+          ? 'bg-[#0f2d52]/10 text-[#0f2d52]'
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
+    >
+      <Icon className="h-5 w-5" />
+      {children}
+    </Link>
   );
 }
 

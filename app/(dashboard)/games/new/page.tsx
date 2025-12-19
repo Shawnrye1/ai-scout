@@ -3,23 +3,38 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Video, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 type UploadState = 'idle' | 'creating' | 'uploading' | 'completing' | 'done' | 'error';
+type UploadMethod = 'file' | 'url';
 
 export default function NewGamePage() {
   const router = useRouter();
+  const [uploadMethod, setUploadMethod] = useState<UploadMethod>('file');
   const [title, setTitle] = useState('');
   const [opponent, setOpponent] = useState('');
   const [gameDate, setGameDate] = useState('');
   const [sport, setSport] = useState<'football' | 'basketball' | ''>('');
   const [file, setFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+
+  // Detect video source from URL
+  const getVideoSource = (url: string): 'hudl' | 'youtube' | 'vimeo' | 'direct' | null => {
+    if (!url) return null;
+    if (url.includes('hudl.com')) return 'hudl';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('vimeo.com')) return 'vimeo';
+    if (url.match(/\.(mp4|mov|avi|webm)$/i)) return 'direct';
+    return null;
+  };
+
+  const videoSource = getVideoSource(videoUrl);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -59,7 +74,11 @@ export default function NewGamePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title) return;
+
+    // Validate based on upload method
+    if (uploadMethod === 'file' && !file) return;
+    if (uploadMethod === 'url' && !videoUrl) return;
+    if (!title) return;
 
     setError('');
 
@@ -74,6 +93,8 @@ export default function NewGamePage() {
           opponent: opponent || undefined,
           gameDate: gameDate || undefined,
           sport: sport || undefined,
+          // If URL method, include the video URL directly
+          ...(uploadMethod === 'url' && { videoUrl, videoSource }),
         }),
       });
 
@@ -83,14 +104,41 @@ export default function NewGamePage() {
 
       const { game } = await createRes.json();
 
+      // If URL method, skip upload steps and go straight to processing
+      if (uploadMethod === 'url') {
+        setUploadState('completing');
+
+        // Complete with URL
+        const completeRes = await fetch('/api/upload/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: game.id,
+            videoUrl,
+            videoSource,
+          }),
+        });
+
+        if (!completeRes.ok) {
+          throw new Error('Failed to process video URL');
+        }
+
+        setUploadState('done');
+        setTimeout(() => {
+          router.push(`/game/${game.id}`);
+        }, 1500);
+        return;
+      }
+
+      // File upload flow
       // Step 2: Get presigned upload URL
       const presignedRes = await fetch('/api/upload/presigned', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameId: game.id,
-          filename: file.name,
-          contentType: file.type,
+          filename: file!.name,
+          contentType: file!.type,
         }),
       });
 
@@ -112,7 +160,7 @@ export default function NewGamePage() {
 
       await new Promise<void>((resolve, reject) => {
         xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.setRequestHeader('Content-Type', file!.type);
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve();
@@ -132,7 +180,7 @@ export default function NewGamePage() {
         body: JSON.stringify({
           gameId: game.id,
           key,
-          fileSize: file.size,
+          fileSize: file!.size,
         }),
       });
 
@@ -168,43 +216,113 @@ export default function NewGamePage() {
         <p className="text-gray-500 mb-6">Upload your game footage and our AI will analyze every player.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* File Upload Area */}
+          {/* Upload Method Toggle */}
           <div>
             <Label className="block text-sm font-medium text-gray-700 mb-2">
-              Video File
+              Upload Method
             </Label>
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-[#0f2d52]'
-              }`}
-            >
-              <input
-                id="video-upload"
-                type="file"
-                accept="video/mp4,video/quicktime,video/x-msvideo,video/webm"
-                onChange={handleFileSelect}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setUploadMethod('file')}
                 disabled={isUploading}
-              />
-              {file ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Video className="w-8 h-8 text-green-600" />
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">{file.name}</p>
-                    <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-1">Drag and drop your video here, or click to browse</p>
-                  <p className="text-sm text-gray-400">MP4, MOV, AVI, WebM up to 5GB</p>
-                </>
-              )}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  uploadMethod === 'file'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <FileVideo className="w-4 h-4" />
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMethod('url')}
+                disabled={isUploading}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  uploadMethod === 'url'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Link2 className="w-4 h-4" />
+                Paste URL
+              </button>
             </div>
           </div>
+
+          {/* File Upload Area */}
+          {uploadMethod === 'file' && (
+            <div>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
+                Video File
+              </Label>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                  file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-[#0f2d52]'
+                }`}
+              >
+                <input
+                  id="video-upload"
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/x-msvideo,video/webm"
+                  onChange={handleFileSelect}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={isUploading}
+                />
+                {file ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <Video className="w-8 h-8 text-green-600" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">{file.name}</p>
+                      <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600 mb-1">Drag and drop your video here, or click to browse</p>
+                    <p className="text-sm text-gray-400">MP4, MOV, AVI, WebM up to 5GB</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* URL Input */}
+          {uploadMethod === 'url' && (
+            <div>
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
+                Video URL
+              </Label>
+              <Input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://www.hudl.com/video/... or YouTube/direct video link"
+                disabled={isUploading}
+                className="mb-2"
+              />
+              {videoSource && (
+                <div className={`flex items-center gap-2 text-sm ${
+                  videoSource === 'hudl' ? 'text-orange-600' :
+                  videoSource === 'youtube' ? 'text-red-600' :
+                  videoSource === 'vimeo' ? 'text-blue-600' : 'text-green-600'
+                }`}>
+                  <CheckCircle className="w-4 h-4" />
+                  {videoSource === 'hudl' && 'Hudl video detected'}
+                  {videoSource === 'youtube' && 'YouTube video detected'}
+                  {videoSource === 'vimeo' && 'Vimeo video detected'}
+                  {videoSource === 'direct' && 'Direct video link detected'}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Supported: Hudl, YouTube, Vimeo, or direct video links (.mp4, .mov, etc.)
+              </p>
+            </div>
+          )}
 
           {/* Game Details */}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -315,18 +433,28 @@ export default function NewGamePage() {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={!file || !title || isUploading || uploadState === 'done'}
+            disabled={
+              (uploadMethod === 'file' && !file) ||
+              (uploadMethod === 'url' && !videoUrl) ||
+              !title ||
+              isUploading ||
+              uploadState === 'done'
+            }
             className="w-full bg-[#0f2d52] hover:bg-[#1a4a7a] py-3 text-base"
           >
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
+                {uploadMethod === 'url' ? 'Processing...' : 'Uploading...'}
               </>
             ) : (
               <>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload & Analyze
+                {uploadMethod === 'url' ? (
+                  <Link2 className="w-4 h-4 mr-2" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                {uploadMethod === 'url' ? 'Import & Analyze' : 'Upload & Analyze'}
               </>
             )}
           </Button>
