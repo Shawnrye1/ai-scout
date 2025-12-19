@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X, CreditCard } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +87,12 @@ function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer">
+          <Link href="/dashboard/billing" className="flex w-full items-center">
+            <CreditCard className="mr-2 h-4 w-4" />
+            <span>Billing</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Link href="/dashboard" className="flex w-full items-center">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
@@ -162,6 +168,7 @@ function Header() {
             <NavLink href="/games" icon={Video}>Games</NavLink>
             <NavLink href="/players" icon={Users}>Players</NavLink>
             <NavLink href="/reports" icon={BarChart3}>Reports</NavLink>
+            <NavLink href="/dashboard/billing" icon={CreditCard}>Billing</NavLink>
           </nav>
         </div>
 
@@ -195,6 +202,9 @@ function Header() {
             </MobileNavLink>
             <MobileNavLink href="/reports" icon={BarChart3} onClick={() => setMobileMenuOpen(false)}>
               Reports
+            </MobileNavLink>
+            <MobileNavLink href="/dashboard/billing" icon={CreditCard} onClick={() => setMobileMenuOpen(false)}>
+              Billing
             </MobileNavLink>
             <MobileNavLink href="/dashboard" icon={Settings} onClick={() => setMobileMenuOpen(false)}>
               Settings
