@@ -194,6 +194,7 @@ export const games = pgTable('games', {
   videoSizeBytes: integer('video_size_bytes'),
   thumbnailUrl: text('thumbnail_url'),
   status: varchar('status', { length: 20 }).notNull().default('uploading'),
+  annotationStatus: varchar('annotation_status', { length: 20 }).default('pending'), // pending, in_progress, reviewed
   processingProgress: integer('processing_progress').default(0),
   processingError: text('processing_error'),
   modalJobId: varchar('modal_job_id', { length: 255 }),

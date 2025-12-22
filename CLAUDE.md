@@ -276,6 +276,11 @@ Reports should sound like a real scout:
 # Start dev server
 npm run dev
 
+# Start ngrok tunnel (REQUIRED for Modal webhooks)
+ngrok http 3000
+# Update BASE_URL in .env with the ngrok URL
+# Verify tunnel is active: curl http://localhost:4040/api/tunnels
+
 # Database commands
 npm run db:generate  # Generate migrations
 npm run db:migrate   # Run migrations
@@ -288,6 +293,15 @@ modal deploy main.py # Deploy to Modal
 # Build
 npm run build
 ```
+
+## Development Checklist
+Before testing video uploads:
+1. ✅ Dev server running (`npm run dev`)
+2. ✅ ngrok tunnel active (`ngrok http 3000`)
+3. ✅ BASE_URL in .env matches ngrok URL
+4. ✅ Verify ngrok is forwarding: `curl -s http://localhost:4040/api/tunnels`
+
+**Common Issue**: If Modal webhooks aren't working, check if ngrok tunnel died (ERR_NGROK_3200). Restart with `ngrok http 3000`.
 
 ## Pricing Tiers
 - **Starter**: $49/mo - 10 games/month

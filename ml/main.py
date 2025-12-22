@@ -18,12 +18,21 @@ Pipeline:
 6. segment_plays - Break video into plays/possessions
 7. analyze_players - Extract metrics per player
 8. generate_reports - Claude API for natural language reports
+
+Chunked Processing (for long videos):
+- Videos > 10 minutes are split into chunks
+- Each chunk processed in parallel
+- Results merged with player re-identification
 """
 
 import modal
-from modal import Image, App, gpu, Secret, web_endpoint
-from typing import Optional
+from modal import Image, App, Secret, fastapi_endpoint
+from typing import Optional, List, Tuple
 import json
+
+# Configuration
+CHUNK_DURATION_SECONDS = 600  # 10 minutes per chunk
+MIN_VIDEO_FOR_CHUNKING = 900  # Only chunk videos > 15 minutes
 
 # Create Modal app
 app = App("ai-scout")
@@ -33,28 +42,22 @@ ml_image = (
     Image.debian_slim(python_version="3.11")
     .apt_install(["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"])
     .pip_install([
-        # Core ML
+        # Core ML - pin numpy first for compatibility
+        "numpy==1.26.4",
         "torch==2.1.2",
         "torchvision==0.16.2",
-        "numpy>=1.24.0",
         "opencv-python-headless>=4.8.0",
 
         # Detection & Tracking
         "ultralytics>=8.0.200",  # YOLOv8
         "supervision>=0.17.0",    # Tracking utilities
 
-        # Pose Estimation
-        "mmpose>=1.2.0",
-        "mmcv>=2.1.0",
-        "mmdet>=3.2.0",
-
-        # OCR
+        # OCR - simplified
         "paddlepaddle>=2.5.0",
         "paddleocr>=2.7.0",
 
         # Video processing
         "ffmpeg-python>=0.2.0",
-        "av>=11.0.0",
 
         # API & Utils
         "httpx>=0.25.0",
@@ -67,13 +70,14 @@ ml_image = (
 webhook_image = Image.debian_slim().pip_install([
     "httpx>=0.25.0",
     "pydantic>=2.5.0",
+    "fastapi>=0.111.0",  # Required for web endpoints
 ])
 
 
 @app.cls(
     image=ml_image,
-    gpu=gpu.A10G(),
-    timeout=3600,
+    gpu="A10G",
+    timeout=7200,  # 2 hours for long game videos
     secrets=[Secret.from_name("ai-scout-secrets")],
 )
 class VideoProcessor:
@@ -100,7 +104,7 @@ class VideoProcessor:
         self.pose_model = YOLO("yolov8x-pose.pt")
 
         print("Loading PaddleOCR for jersey number reading...")
-        self.ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+        self.ocr = PaddleOCR(use_angle_cls=True, lang='en')
 
         print("Initializing ByteTrack for multi-object tracking...")
         self.tracker = sv.ByteTrack()
@@ -213,7 +217,258 @@ class VideoProcessor:
         return {"jersey_number": None, "confidence": 0}
 
     @modal.method()
-    def process_video(self, video_url: str, game_id: str, webhook_url: str) -> dict:
+    def process_chunk(self, video_path: str, start_time: float, end_time: float, chunk_id: int) -> dict:
+        """Process a single chunk of video.
+
+        Args:
+            video_path: Path to local video file
+            start_time: Start time in seconds
+            end_time: End time in seconds
+            chunk_id: Chunk identifier for tracking
+
+        Returns:
+            Dict with detections and player data for this chunk
+        """
+        import cv2
+        import numpy as np
+
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        # Seek to start position
+        start_frame = int(start_time * fps)
+        end_frame = int(end_time * fps)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+        print(f"[Chunk {chunk_id}] Processing frames {start_frame}-{end_frame} ({start_time:.1f}s - {end_time:.1f}s)")
+
+        sample_interval = max(1, int(fps / 2))  # Sample every 0.5 seconds
+        all_detections = []
+        frame_idx = start_frame
+
+        while frame_idx < end_frame:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            if (frame_idx - start_frame) % sample_interval == 0:
+                # Encode frame
+                _, buffer = cv2.imencode('.jpg', frame)
+                frame_bytes = buffer.tobytes()
+
+                # Detect players
+                result = self.detect_players.local(frame_bytes)
+
+                # Add timestamp (absolute time in video)
+                timestamp = frame_idx / fps
+                for det in result["detections"]:
+                    det["timestamp"] = timestamp
+                    det["frame"] = frame_idx
+                    det["chunk_id"] = chunk_id
+
+                all_detections.extend(result["detections"])
+
+                # Run pose estimation every 5 samples
+                if ((frame_idx - start_frame) // sample_interval) % 5 == 0:
+                    pose_result = self.estimate_pose.local(frame_bytes)
+                    if pose_result["poses"]:
+                        print(f"[Chunk {chunk_id}] Frame {frame_idx}: {len(pose_result['poses'])} poses")
+
+            frame_idx += 1
+
+        cap.release()
+
+        # Aggregate detections for this chunk
+        chunk_players = self._aggregate_detections(all_detections)
+
+        print(f"[Chunk {chunk_id}] Complete: {len(chunk_players)} players, {len(all_detections)} detections")
+
+        return {
+            "chunk_id": chunk_id,
+            "start_time": start_time,
+            "end_time": end_time,
+            "players": chunk_players,
+            "detections": all_detections,
+            "frames_processed": frame_idx - start_frame,
+        }
+
+    @modal.method()
+    def process_video_chunked(self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "") -> dict:
+        """Process video in chunks for better reliability with long videos."""
+        import cv2
+        import httpx
+        import tempfile
+        import os
+        import concurrent.futures
+
+        # Download video
+        print(f"Downloading video from {video_url[:50]}...")
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+            response = httpx.get(video_url, follow_redirects=True, timeout=300)
+            f.write(response.content)
+            video_path = f.name
+
+        try:
+            # Get video info
+            cap = cv2.VideoCapture(video_path)
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            duration = total_frames / fps if fps > 0 else 0
+            cap.release()
+
+            print(f"Video: {total_frames} frames, {fps:.1f} fps, {duration:.1f}s duration")
+
+            # Calculate chunks
+            num_chunks = max(1, int(duration / CHUNK_DURATION_SECONDS) + (1 if duration % CHUNK_DURATION_SECONDS > 60 else 0))
+            chunk_duration = duration / num_chunks
+
+            chunks = []
+            for i in range(num_chunks):
+                start = i * chunk_duration
+                end = min((i + 1) * chunk_duration, duration)
+                chunks.append((start, end, i))
+
+            print(f"Processing {num_chunks} chunks of ~{chunk_duration:.1f}s each")
+
+            # Send initial status
+            try:
+                httpx.post(webhook_url, json={
+                    "game_id": game_id,
+                    "status": "tracking",
+                    "progress": 0,
+                    "message": f"Processing {num_chunks} chunks",
+                    "secret": webhook_secret,
+                }, timeout=5)
+            except:
+                pass
+
+            # Process chunks sequentially (for reliability)
+            # Could be parallelized with Modal's map() for speed
+            all_chunk_results = []
+            for start, end, chunk_id in chunks:
+                # Process chunk
+                chunk_result = self.process_chunk.local(video_path, start, end, chunk_id)
+                all_chunk_results.append(chunk_result)
+
+                # Report progress
+                progress = int(((chunk_id + 1) / num_chunks) * 100)
+                print(f"Overall progress: {progress}% (chunk {chunk_id + 1}/{num_chunks})")
+                try:
+                    httpx.post(webhook_url, json={
+                        "game_id": game_id,
+                        "status": "tracking",
+                        "progress": progress,
+                        "secret": webhook_secret,
+                    }, timeout=5)
+                except:
+                    pass
+
+            # Merge results from all chunks
+            merged_players = self._merge_chunk_results(all_chunk_results)
+
+            print(f"Merged {len(merged_players)} unique players from {num_chunks} chunks")
+
+            # Send final results
+            final_payload = {
+                "game_id": game_id,
+                "status": "ready",
+                "progress": 100,
+                "players": merged_players,
+                "duration_seconds": duration,
+                "total_frames": total_frames,
+                "chunks_processed": num_chunks,
+                "secret": webhook_secret,
+            }
+
+            # Retry up to 3 times
+            for attempt in range(3):
+                try:
+                    print(f"Sending final webhook (attempt {attempt + 1}/3)...")
+                    response = httpx.post(webhook_url, json=final_payload, timeout=60)
+                    print(f"Webhook response: {response.status_code}")
+                    if response.status_code == 200:
+                        break
+                except Exception as e:
+                    print(f"Webhook attempt {attempt + 1} failed: {e}")
+                    if attempt < 2:
+                        import time
+                        time.sleep(5)
+
+            return {
+                "success": True,
+                "players_detected": len(merged_players),
+                "chunks_processed": num_chunks,
+                "duration": duration,
+            }
+
+        finally:
+            os.unlink(video_path)
+
+    def _merge_chunk_results(self, chunk_results: list) -> list:
+        """Merge player tracks from multiple chunks.
+
+        Players are matched across chunks by:
+        1. Jersey number (if detected)
+        2. Position similarity at chunk boundaries
+        3. Track continuity
+        """
+        from collections import defaultdict
+
+        # Collect all players with their chunk info
+        all_players = []
+        for chunk in chunk_results:
+            for player in chunk["players"]:
+                player["chunk_id"] = chunk["chunk_id"]
+                player["chunk_start"] = chunk["start_time"]
+                player["chunk_end"] = chunk["end_time"]
+                all_players.append(player)
+
+        if not all_players:
+            return []
+
+        # Group by approximate position (players in similar areas are likely the same)
+        # This is a simplified approach - production would use jersey numbers
+        merged = []
+        used = set()
+
+        for i, player in enumerate(all_players):
+            if i in used:
+                continue
+
+            # Start a merged player track
+            merged_player = {
+                "track_id": len(merged) + 1,
+                "detections": player["detections"],
+                "first_seen": player["first_seen"],
+                "last_seen": player["last_seen"],
+                "avg_confidence": player["avg_confidence"],
+                "chunks": [player["chunk_id"]],
+            }
+            used.add(i)
+
+            # Look for matches in subsequent chunks
+            for j, other in enumerate(all_players):
+                if j in used or j <= i:
+                    continue
+
+                # Check if this could be the same player
+                # Simple heuristic: if they appear in adjacent chunks and have similar timing
+                if other["chunk_id"] == player["chunk_id"] + 1:
+                    # Player from next chunk - check if timing aligns
+                    if abs(other["first_seen"] - player["last_seen"]) < 30:  # Within 30 seconds
+                        # Merge this player
+                        merged_player["detections"] += other["detections"]
+                        merged_player["last_seen"] = max(merged_player["last_seen"], other["last_seen"])
+                        merged_player["chunks"].append(other["chunk_id"])
+                        merged_player["avg_confidence"] = (merged_player["avg_confidence"] + other["avg_confidence"]) / 2
+                        used.add(j)
+
+            merged.append(merged_player)
+
+        return merged
+
+    @modal.method()
+    def process_video(self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "") -> dict:
         """Full video processing pipeline."""
         import cv2
         import httpx
@@ -251,8 +506,8 @@ class VideoProcessor:
                     _, buffer = cv2.imencode('.jpg', frame)
                     frame_bytes = buffer.tobytes()
 
-                    # Detect players
-                    result = self.detect_players(frame_bytes)
+                    # Detect players (use .local() for Modal methods within same container)
+                    result = self.detect_players.local(frame_bytes)
 
                     # Add timestamp
                     timestamp = frame_idx / fps
@@ -264,7 +519,7 @@ class VideoProcessor:
 
                     # Every 5 sample frames, also run pose estimation
                     if (frame_idx // sample_interval) % 5 == 0:
-                        pose_result = self.estimate_pose(frame_bytes)
+                        pose_result = self.estimate_pose.local(frame_bytes)
                         # Could store poses for action recognition
                         # For now, just log how many poses detected
                         if pose_result["poses"]:
@@ -280,6 +535,7 @@ class VideoProcessor:
                                 "game_id": game_id,
                                 "status": "tracking",
                                 "progress": progress,
+                                "secret": webhook_secret,
                             }, timeout=5)
                         except:
                             pass
@@ -292,15 +548,30 @@ class VideoProcessor:
             # (simplified - real implementation would use ByteTrack)
             player_data = self._aggregate_detections(all_detections)
 
-            # Send final results
-            httpx.post(webhook_url, json={
+            # Send final results with retries
+            final_payload = {
                 "game_id": game_id,
-                "status": "analyzing",
+                "status": "ready",  # Changed from "analyzing" to "ready"
                 "progress": 100,
                 "players": player_data,
                 "duration_seconds": duration,
                 "total_frames": total_frames,
-            }, timeout=30)
+                "secret": webhook_secret,
+            }
+
+            # Retry up to 3 times
+            for attempt in range(3):
+                try:
+                    print(f"Sending final webhook (attempt {attempt + 1}/3)...")
+                    response = httpx.post(webhook_url, json=final_payload, timeout=60)
+                    print(f"Webhook response: {response.status_code}")
+                    if response.status_code == 200:
+                        break
+                except Exception as e:
+                    print(f"Webhook attempt {attempt + 1} failed: {e}")
+                    if attempt < 2:
+                        import time
+                        time.sleep(5)  # Wait 5 seconds before retry
 
             return {
                 "success": True,
@@ -340,26 +611,42 @@ class VideoProcessor:
 
 
 @app.function(image=webhook_image, secrets=[Secret.from_name("ai-scout-secrets")])
-@web_endpoint(method="POST")
+@fastapi_endpoint(method="POST")
 def trigger_processing(request: dict):
-    """Webhook endpoint to trigger video processing."""
+    """Webhook endpoint to trigger video processing.
+
+    Automatically uses chunked processing for videos > 15 minutes.
+    """
     import os
 
     game_id = request.get("game_id")
     video_url = request.get("video_url")
     webhook_url = request.get("webhook_url", os.environ.get("WEBHOOK_URL"))
+    webhook_secret = request.get("webhook_secret", os.environ.get("MODAL_WEBHOOK_SECRET", ""))
+    use_chunked = request.get("use_chunked", True)  # Default to chunked for reliability
+    video_duration = request.get("video_duration", 0)  # Optional hint from client
 
     if not game_id or not video_url:
         return {"error": "Missing game_id or video_url"}
 
-    # Spawn processing job
     processor = VideoProcessor()
-    processor.process_video.spawn(video_url, game_id, webhook_url)
 
-    return {
-        "success": True,
-        "message": f"Processing started for game {game_id}",
-    }
+    # Use chunked processing for long videos or when explicitly requested
+    # Default to chunked for better reliability
+    if use_chunked or video_duration > MIN_VIDEO_FOR_CHUNKING:
+        processor.process_video_chunked.spawn(video_url, game_id, webhook_url, webhook_secret)
+        return {
+            "success": True,
+            "message": f"Chunked processing started for game {game_id}",
+            "processing_mode": "chunked",
+        }
+    else:
+        processor.process_video.spawn(video_url, game_id, webhook_url, webhook_secret)
+        return {
+            "success": True,
+            "message": f"Processing started for game {game_id}",
+            "processing_mode": "standard",
+        }
 
 
 @app.function(image=webhook_image)

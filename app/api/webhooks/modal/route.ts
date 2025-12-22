@@ -7,56 +7,80 @@ import { sendProcessingCompleteEmail, sendProcessingFailedEmail } from '@/lib/em
 
 const WEBHOOK_SECRET = process.env.MODAL_WEBHOOK_SECRET || '';
 
-function verifySignature(body: string, signature: string): boolean {
+function verifySignature(body: string, signature: string, bodySecret?: string): boolean {
   if (!WEBHOOK_SECRET) return true; // Skip verification in dev
 
-  const expected = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(body)
-    .digest('hex');
+  // Option 1: Check if secret is passed in body (simpler approach from Modal)
+  if (bodySecret && bodySecret === WEBHOOK_SECRET) {
+    return true;
+  }
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  );
+  // Option 2: Verify HMAC signature from header
+  if (signature) {
+    const expected = crypto
+      .createHmac('sha256', WEBHOOK_SECRET)
+      .update(body)
+      .digest('hex');
+
+    // Check length before timingSafeEqual to avoid crash
+    if (signature.length !== expected.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  }
+
+  return false;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('X-Webhook-Signature') || '';
+    const data = JSON.parse(body);
 
-    // Verify signature in production
-    if (WEBHOOK_SECRET && !verifySignature(body, signature)) {
+    // Verify signature - check both header signature and body secret
+    if (WEBHOOK_SECRET && !verifySignature(body, signature, data.secret || data.webhook_secret)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const data = JSON.parse(body);
-    const { gameId, status, progress, message, teams: teamsData, players: playersData, plays: playsData, reports, videoInfo, sport } = data;
+    const { gameId, game_id, status, progress, message, teams: teamsData, players: playersData, plays: playsData, reports, videoInfo, sport } = data;
+    const resolvedGameId = gameId || game_id; // Handle both naming conventions
 
-    if (!gameId) {
+    if (!resolvedGameId) {
       return NextResponse.json({ error: 'Missing gameId' }, { status: 400 });
     }
 
-    console.log(`[Modal Webhook] Game ${gameId}: status=${status}, progress=${progress}`);
+    console.log(`[Modal Webhook] Game ${resolvedGameId}: status=${status}, progress=${progress}`);
 
     // Get the game and user info for email notifications
-    const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+    const [game] = await db.select().from(games).where(eq(games.id, resolvedGameId)).limit(1);
     if (!game) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
+    // Determine final status - if "analyzing" with data, it's actually "ready"
+    const hasCompletionData = teamsData || playersData || data.players;
+    const finalStatus = (status === 'analyzing' && hasCompletionData) ? 'ready' : status;
+
+    // Handle duration_seconds (Modal sends as float, need to round for integer column)
+    const durationSeconds = videoInfo?.durationSeconds || data.duration_seconds;
+    const totalFrames = data.total_frames || data.totalFrames;
+
     // Update game status
     await db.update(games)
       .set({
-        status,
+        status: finalStatus,
         processingProgress: progress,
         processingError: status === 'failed' ? message : null,
         sport: sport || game.sport,
-        videoDurationSeconds: videoInfo?.durationSeconds || game.videoDurationSeconds,
+        videoDurationSeconds: durationSeconds ? Math.round(durationSeconds) : game.videoDurationSeconds,
         updatedAt: new Date(),
       })
-      .where(eq(games.id, gameId));
+      .where(eq(games.id, resolvedGameId));
 
     // Handle failed processing
     if (status === 'failed') {
@@ -72,8 +96,12 @@ export async function POST(request: NextRequest) {
     }
 
     // If processing is complete, save all the analysis data
-    if (status === 'ready' && teamsData && playersData) {
-      console.log(`[Modal Webhook] Processing complete for game ${gameId}, saving analysis...`);
+    // Accept both 'ready' and 'analyzing' status (Modal sends 'analyzing' at completion)
+    const isComplete = (status === 'ready' || status === 'analyzing') && (teamsData || playersData || data.players);
+    const finalPlayersData = playersData || data.players || [];
+
+    if (isComplete) {
+      console.log(`[Modal Webhook] Processing complete for game ${resolvedGameId}, saving analysis...`);
 
       let totalPlayers = 0;
       let totalPlays = playsData?.length || 0;
@@ -81,11 +109,20 @@ export async function POST(request: NextRequest) {
       // Create a map to track ML team ID -> DB team ID
       const teamIdMap = new Map<string, string>();
 
+      // If no teams data, create a default team
+      const finalTeamsData = teamsData || [{
+        teamLabel: 'Team A',
+        teamName: 'Detected Team',
+        primaryColor: '#000000',
+        playerTrackIds: finalPlayersData.map((p: any) => p.track_id || p.trackId || p.id),
+        isUserTeam: true,
+      }];
+
       // Save teams
-      for (const team of teamsData) {
+      for (const team of finalTeamsData) {
         const [insertedTeam] = await db.insert(detectedTeams)
           .values({
-            gameId,
+            gameId: resolvedGameId,
             teamLabel: team.teamLabel || team.label,
             teamName: team.teamName || team.name || team.teamLabel || team.label,
             primaryJerseyColor: team.primaryColor || team.jerseyColor,
@@ -115,9 +152,12 @@ export async function POST(request: NextRequest) {
 
         // Save players for this team
         const teamPlayerIds = team.playerTrackIds || team.players || [];
-        for (const player of playersData) {
-          const playerTrackId = String(player.trackId || player.id);
-          const isOnTeam = teamPlayerIds.includes(player.trackId) ||
+        for (const player of finalPlayersData) {
+          const playerTrackId = String(player.trackId || player.track_id || player.id);
+          // If no team IDs specified, include all players (default team case)
+          const isOnTeam = teamPlayerIds.length === 0 ||
+                           teamPlayerIds.includes(player.trackId) ||
+                           teamPlayerIds.includes(player.track_id) ||
                            teamPlayerIds.includes(playerTrackId) ||
                            player.teamId === mlTeamId ||
                            player.team === mlTeamId;
@@ -125,7 +165,7 @@ export async function POST(request: NextRequest) {
           if (isOnTeam) {
             const [insertedPlayer] = await db.insert(detectedPlayers)
               .values({
-                gameId,
+                gameId: resolvedGameId,
                 detectedTeamId: insertedTeam.id,
                 trackingId: playerTrackId,
                 jerseyNumber: player.jerseyNumber != null ? String(player.jerseyNumber) : null,
@@ -183,7 +223,7 @@ export async function POST(request: NextRequest) {
           const possessionTeamDbId = play.possessionTeamId ? teamIdMap.get(play.possessionTeamId) : null;
 
           await db.insert(detectedPlays).values({
-            gameId,
+            gameId: resolvedGameId,
             playNumber: play.playNumber || play.number,
             startTimestamp: play.startTime != null ? String(play.startTime) : null,
             endTimestamp: play.endTime != null ? String(play.endTime) : null,
@@ -207,7 +247,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log(`[Modal Webhook] Saved ${totalPlayers} players and ${totalPlays} plays for game ${gameId}`);
+      console.log(`[Modal Webhook] Saved ${totalPlayers} players and ${totalPlays} plays for game ${resolvedGameId}`);
 
       // Send completion email
       const [user] = await db.select().from(users).where(eq(users.id, game.userId)).limit(1);
@@ -215,7 +255,7 @@ export async function POST(request: NextRequest) {
         sendProcessingCompleteEmail(
           user.email,
           game.name || game.title || 'Game',
-          gameId,
+          resolvedGameId,
           { players: totalPlayers, plays: totalPlays }
         ).catch(console.error);
       }
