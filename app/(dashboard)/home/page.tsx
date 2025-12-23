@@ -14,7 +14,10 @@ import {
   BarChart3,
   Play,
   Loader2,
-  Plus
+  Plus,
+  Zap,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -48,8 +51,22 @@ interface RecentGame {
   createdAt: string;
 }
 
+interface TrainingStats {
+  playerAnnotations: number;
+  minAnnotationsRequired: number;
+  recommendedAnnotations: number;
+  canTrain: boolean;
+  trainingProgress: number;
+  isTraining: boolean;
+  currentMetrics: {
+    accuracy: number;
+    mAP50: number;
+  } | null;
+}
+
 export default function CoachDashboard() {
   const { data, isLoading } = useSWR('/api/dashboard', fetcher);
+  const { data: trainingData } = useSWR<TrainingStats>('/api/admin/models/stats', fetcher);
 
   const stats: DashboardStats = data?.stats || {
     totalGames: 0,
@@ -308,6 +325,76 @@ export default function CoachDashboard() {
                 <span className="font-medium">Team Reports</span>
               </Link>
             </div>
+          </div>
+
+          {/* ML Training Progress */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 mt-4 sm:mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Model Training</h2>
+              <div className={`p-1.5 rounded-lg ${trainingData?.canTrain ? 'bg-green-50' : 'bg-amber-50'}`}>
+                <Zap className={`w-4 h-4 ${trainingData?.canTrain ? 'text-green-600' : 'text-amber-600'}`} />
+              </div>
+            </div>
+
+            {/* Annotation Progress */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-sm mb-1.5">
+                <span className="text-gray-600">Player Annotations</span>
+                <span className="font-medium text-gray-900">
+                  {trainingData?.playerAnnotations || 0} / {trainingData?.minAnnotationsRequired || 10}
+                </span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full transition-all ${
+                    trainingData?.canTrain ? 'bg-green-500' : 'bg-amber-500'
+                  }`}
+                  style={{ width: `${Math.min(100, trainingData?.trainingProgress || 0)}%` }}
+                />
+              </div>
+              {!trainingData?.canTrain && (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Need {(trainingData?.minAnnotationsRequired || 10) - (trainingData?.playerAnnotations || 0)} more to enable training
+                </p>
+              )}
+            </div>
+
+            {/* Training Status */}
+            {trainingData?.isTraining ? (
+              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                <span className="text-sm text-blue-700 font-medium">Training in progress...</span>
+              </div>
+            ) : trainingData?.currentMetrics ? (
+              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <div className="text-sm">
+                  <span className="text-green-700 font-medium">Model trained</span>
+                  <span className="text-green-600 ml-2">
+                    {trainingData.currentMetrics.mAP50.toFixed(1)}% mAP
+                  </span>
+                </div>
+              </div>
+            ) : trainingData?.canTrain ? (
+              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-700 font-medium">Ready to train!</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-700">Add more annotations to train</span>
+              </div>
+            )}
+
+            {/* Link to corrections */}
+            <Link
+              href="/admin/corrections"
+              className="flex items-center justify-between mt-3 text-sm text-[#0f2d52] hover:underline"
+            >
+              <span>Manage annotations</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>

@@ -352,6 +352,57 @@ export const corrections = pgTable('corrections', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Training runs - track each model training job
+export const trainingRuns = pgTable('training_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  modelType: varchar('model_type', { length: 50 }).notNull(), // 'player_detection', 'play_segmentation', 'play_classification'
+  status: varchar('status', { length: 20 }).notNull().default('queued'), // 'queued', 'downloading', 'training', 'validating', 'completed', 'failed'
+  modalJobId: varchar('modal_job_id', { length: 255 }),
+  trainingDataCount: integer('training_data_count'), // number of annotations used
+  epochs: integer('epochs').default(50),
+  batchSize: integer('batch_size').default(16),
+  baseModel: varchar('base_model', { length: 100 }).default('yolov8m.pt'), // pretrained model used
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  durationSeconds: integer('duration_seconds'),
+  errorMessage: text('error_message'),
+  trainingConfig: jsonb('training_config'), // additional training parameters
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Model metrics - store real performance metrics per training run
+export const modelMetrics = pgTable('model_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  trainingRunId: uuid('training_run_id')
+    .notNull()
+    .references(() => trainingRuns.id, { onDelete: 'cascade' }),
+  modelType: varchar('model_type', { length: 50 }).notNull(),
+  version: varchar('version', { length: 20 }), // e.g., 'v1.0.0'
+  // Core metrics (0-100 scale for display, stored as decimals)
+  accuracy: decimal('accuracy', { precision: 5, scale: 2 }),
+  precision: decimal('precision', { precision: 5, scale: 2 }),
+  recall: decimal('recall', { precision: 5, scale: 2 }),
+  f1Score: decimal('f1_score', { precision: 5, scale: 2 }),
+  // Detection-specific metrics
+  mAP50: decimal('map50', { precision: 5, scale: 2 }), // mAP at IoU 0.50
+  mAP5095: decimal('map50_95', { precision: 5, scale: 2 }), // mAP at IoU 0.50-0.95
+  // Training metrics
+  trainingLoss: decimal('training_loss', { precision: 10, scale: 6 }),
+  validationLoss: decimal('validation_loss', { precision: 10, scale: 6 }),
+  // Deployment info
+  modelPath: text('model_path'), // R2 path to stored model weights
+  modelSizeBytes: integer('model_size_bytes'),
+  inferenceTimeMs: integer('inference_time_ms'), // avg inference time
+  isProduction: boolean('is_production').default(false), // currently active in production
+  deployedAt: timestamp('deployed_at'),
+  // Additional details
+  classMetrics: jsonb('class_metrics'), // per-class breakdown { player: {...}, ball: {...} }
+  confusionMatrix: jsonb('confusion_matrix'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // ===========================================
 // AI SCOUT RELATIONS
 // ===========================================
@@ -442,6 +493,17 @@ export const playerPlayInvolvementRelations = relations(playerPlayInvolvement, (
   }),
 }));
 
+export const trainingRunsRelations = relations(trainingRuns, ({ many }) => ({
+  metrics: many(modelMetrics),
+}));
+
+export const modelMetricsRelations = relations(modelMetrics, ({ one }) => ({
+  trainingRun: one(trainingRuns, {
+    fields: [modelMetrics.trainingRunId],
+    references: [trainingRuns.id],
+  }),
+}));
+
 // ===========================================
 // AI SCOUT TYPES
 // ===========================================
@@ -462,3 +524,7 @@ export type KeyMoment = typeof keyMoments.$inferSelect;
 export type NewKeyMoment = typeof keyMoments.$inferInsert;
 export type Correction = typeof corrections.$inferSelect;
 export type NewCorrection = typeof corrections.$inferInsert;
+export type TrainingRun = typeof trainingRuns.$inferSelect;
+export type NewTrainingRun = typeof trainingRuns.$inferInsert;
+export type ModelMetric = typeof modelMetrics.$inferSelect;
+export type NewModelMetric = typeof modelMetrics.$inferInsert;

@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   Users,
   ExternalLink,
-  Loader2
+  Loader2,
+  Brain,
+  TrendingUp
 } from 'lucide-react';
 
 interface FlaggedItem {
@@ -140,9 +142,70 @@ export default function CorrectionsQueue() {
   } | null>(null);
   const [sendingToLabelStudio, setSendingToLabelStudio] = useState(false);
 
+  // Training stats state
+  const [trainingStats, setTrainingStats] = useState<{
+    playerAnnotations: number;
+    minAnnotationsRequired: number;
+    canTrain: boolean;
+    trainingProgress: number;
+    annotationsNeeded: number;
+    isTraining: boolean;
+    currentMetrics: {
+      accuracy: number;
+      precision: number;
+      recall: number;
+      f1Score: number;
+      mAP50: number;
+      version: string;
+    } | null;
+  } | null>(null);
+  const [startingTraining, setStartingTraining] = useState(false);
+
   useEffect(() => {
     fetchFlaggedItems();
   }, [filter, phaseFilter]);
+
+  // Fetch training stats on mount
+  useEffect(() => {
+    async function fetchTrainingStats() {
+      try {
+        const res = await fetch('/api/admin/models/stats');
+        if (res.ok) {
+          const data = await res.json();
+          setTrainingStats(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch training stats:', error);
+      }
+    }
+    fetchTrainingStats();
+    // Refresh every 30 seconds if training is in progress
+    const interval = setInterval(fetchTrainingStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Start training function
+  async function startTraining() {
+    setStartingTraining(true);
+    try {
+      const res = await fetch('/api/admin/training/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_type: 'player_detection' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTrainingStats((prev) => prev ? { ...prev, isTraining: true } : null);
+        alert('Training started! This will take 30-60 minutes. Check the Models page for progress.');
+      } else {
+        alert(data.message || data.error || 'Failed to start training');
+      }
+    } catch (error) {
+      alert('Failed to start training');
+    } finally {
+      setStartingTraining(false);
+    }
+  }
 
   // Check Label Studio connection on mount
   useEffect(() => {
@@ -494,6 +557,90 @@ export default function CorrectionsQueue() {
               : 'Label play types, events, and describe what happens.'
             }
           </p>
+
+          {/* Training Readiness Card */}
+          {trainingStats && (
+            <div className={`mt-4 p-4 rounded-lg border ${
+              trainingStats.canTrain
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Brain className={`w-5 h-5 ${trainingStats.canTrain ? 'text-green-600' : 'text-blue-600'}`} />
+                  <span className={`font-semibold ${trainingStats.canTrain ? 'text-green-800 dark:text-green-300' : 'text-blue-800 dark:text-blue-300'}`}>
+                    Training Progress
+                  </span>
+                </div>
+                <span className={`text-sm font-bold ${trainingStats.canTrain ? 'text-green-600' : 'text-blue-600'}`}>
+                  {trainingStats.playerAnnotations}/{trainingStats.minAnnotationsRequired}
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mb-2">
+                <div
+                  className={`h-full rounded-full transition-all ${trainingStats.canTrain ? 'bg-green-500' : 'bg-blue-500'}`}
+                  style={{ width: `${trainingStats.trainingProgress}%` }}
+                />
+              </div>
+
+              <p className={`text-xs mb-3 ${trainingStats.canTrain ? 'text-green-700 dark:text-green-400' : 'text-blue-700 dark:text-blue-400'}`}>
+                {trainingStats.canTrain
+                  ? trainingStats.isTraining
+                    ? 'Training in progress...'
+                    : 'Ready to train! Click below to start.'
+                  : `Need ${trainingStats.annotationsNeeded} more player annotations`
+                }
+              </p>
+
+              {/* Current metrics if available */}
+              {trainingStats.currentMetrics && (
+                <div className="grid grid-cols-2 gap-2 mb-3 p-2 bg-white/50 dark:bg-gray-800/50 rounded">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {trainingStats.currentMetrics.mAP50.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-gray-500">mAP50</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {trainingStats.currentMetrics.f1Score.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-gray-500">F1 Score</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Train button */}
+              <button
+                onClick={startTraining}
+                disabled={!trainingStats.canTrain || trainingStats.isTraining || startingTraining}
+                className={`w-full py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors ${
+                  trainingStats.canTrain && !trainingStats.isTraining
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {startingTraining ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : trainingStats.isTraining ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Training...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="w-4 h-4" />
+                    {trainingStats.canTrain ? 'Start Training' : 'Not Ready'}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Items List */}
@@ -1117,6 +1264,11 @@ export default function CorrectionsQueue() {
                             ? 'Bounding boxes saved. Click to edit if needed.'
                             : 'Draw bounding boxes around players and label jersey numbers'}
                         </p>
+                        {!selectedItem.hasPlayerAnnotations && (
+                          <p className="text-xs mt-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                            Important: Use this button to annotate. Do NOT upload videos directly to Label Studio.
+                          </p>
+                        )}
                       </div>
                       {labelStudioStatus?.connected && (
                         <a

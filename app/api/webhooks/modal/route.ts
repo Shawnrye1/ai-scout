@@ -249,6 +249,23 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Modal Webhook] Saved ${totalPlayers} players and ${totalPlays} plays for game ${resolvedGameId}`);
 
+      // Trigger clip extraction for Label Studio (fire-and-forget)
+      if (totalPlays > 0) {
+        const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        fetch(`${baseUrl}/api/games/${resolvedGameId}/extract-clips`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }).then(res => {
+          if (res.ok) {
+            console.log(`[Modal Webhook] Triggered clip extraction for game ${resolvedGameId}`);
+          } else {
+            console.error(`[Modal Webhook] Failed to trigger clip extraction: ${res.status}`);
+          }
+        }).catch(err => {
+          console.error(`[Modal Webhook] Error triggering clip extraction:`, err);
+        });
+      }
+
       // Send completion email
       const [user] = await db.select().from(users).where(eq(users.id, game.userId)).limit(1);
       if (user) {

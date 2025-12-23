@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { corrections } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { corrections, trainingRuns } from '@/lib/db/schema';
+import { eq, sql, desc } from 'drizzle-orm';
 
 /**
  * POST /api/admin/training/start
  *
  * Triggers model training on Modal.com using accumulated annotations.
- * Uses Modal's existing endpoint (same one used for video processing).
+ * Creates a training run record and triggers the Modal training function.
  *
  * Body: {
  *   model_type: 'player_detection' | 'play_segmentation' | 'play_classification',
@@ -35,58 +35,126 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Use the existing Modal endpoint for training
+    // Check for any currently running training
+    const [runningTraining] = await db
+      .select()
+      .from(trainingRuns)
+      .where(eq(trainingRuns.status, 'training'))
+      .limit(1);
+
+    if (runningTraining) {
+      return NextResponse.json({
+        error: 'Training already in progress',
+        message: 'Please wait for the current training to complete.',
+        trainingRunId: runningTraining.id,
+        stats,
+      }, { status: 409 });
+    }
+
+    // Create training run record
+    const [trainingRun] = await db
+      .insert(trainingRuns)
+      .values({
+        modelType: model_type,
+        status: 'queued',
+        trainingDataCount: stats.playerAnnotations,
+        epochs,
+        batchSize: batch_size,
+        startedAt: new Date(),
+        trainingConfig: { model_type, epochs, batch_size },
+      })
+      .returning();
+
+    // Get the Modal training endpoint
     const modalEndpoint = process.env.MODAL_ENDPOINT;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000';
 
     if (!modalEndpoint) {
+      // Update run to failed if no endpoint
+      await db
+        .update(trainingRuns)
+        .set({ status: 'failed', errorMessage: 'Modal endpoint not configured' })
+        .where(eq(trainingRuns.id, trainingRun.id));
+
       return NextResponse.json({
         success: false,
         message: 'Modal endpoint not configured. Add MODAL_ENDPOINT to your environment.',
+        trainingRunId: trainingRun.id,
         stats,
       }, { status: 500 });
     }
 
-    // Trigger training on Modal using the training endpoint
-    // The Modal endpoint pattern is: base-url but we need the training function
-    const trainingEndpoint = modalEndpoint.replace('trigger-processing', 'train-player-detection');
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000';
+    // Build training endpoint URL
+    // Pattern: https://username--ai-scout-trigger-processing.modal.run
+    // Training: https://username--ai-scout-training-trigger-training.modal.run
+    const baseUrl = modalEndpoint.replace('ai-scout-trigger-processing', 'ai-scout-training-trigger-training');
+    const trainingEndpoint = baseUrl;
 
-    const response = await fetch(trainingEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        app_url: appUrl,
-        epochs,
-        batch_size,
-      }),
-    });
+    try {
+      const response = await fetch(trainingEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          app_url: appUrl,
+          training_run_id: trainingRun.id,
+          epochs,
+          batch_size,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
+      if (!response.ok) {
+        const error = await response.text();
 
-      // If the training endpoint doesn't exist yet, give helpful message
-      if (response.status === 404) {
-        return NextResponse.json({
-          success: false,
-          message: 'Training function not deployed yet. Run: cd ml && modal deploy train_yolo.py',
-          stats,
-          help: 'This is a one-time setup. After deploying, training will work automatically.',
-        }, { status: 400 });
+        // If the training endpoint doesn't exist yet, give helpful message
+        if (response.status === 404) {
+          await db
+            .update(trainingRuns)
+            .set({ status: 'failed', errorMessage: 'Training function not deployed' })
+            .where(eq(trainingRuns.id, trainingRun.id));
+
+          return NextResponse.json({
+            success: false,
+            message: 'Training function not deployed yet. Run: cd ml && modal deploy train_yolo.py',
+            trainingRunId: trainingRun.id,
+            stats,
+            help: 'This is a one-time setup. After deploying, training will work automatically.',
+          }, { status: 400 });
+        }
+
+        throw new Error(`Modal training failed: ${error}`);
       }
 
-      throw new Error(`Modal training failed: ${error}`);
+      const result = await response.json();
+
+      // Update training run with Modal job ID
+      await db
+        .update(trainingRuns)
+        .set({
+          status: 'training',
+          modalJobId: result.training_run_id || trainingRun.id,
+        })
+        .where(eq(trainingRuns.id, trainingRun.id));
+
+      return NextResponse.json({
+        success: true,
+        message: 'Training started on Modal! This will take 30-60 minutes.',
+        trainingRunId: trainingRun.id,
+        stats,
+      });
+    } catch (fetchError) {
+      // Update run to failed
+      await db
+        .update(trainingRuns)
+        .set({
+          status: 'failed',
+          errorMessage: fetchError instanceof Error ? fetchError.message : 'Failed to trigger Modal',
+        })
+        .where(eq(trainingRuns.id, trainingRun.id));
+
+      throw fetchError;
     }
-
-    const result = await response.json();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Training started on Modal! This will take 30-60 minutes.',
-      job_id: result.job_id,
-      stats,
-    });
   } catch (error) {
     console.error('Failed to start training:', error);
     return NextResponse.json(

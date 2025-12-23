@@ -3,12 +3,17 @@ import { db } from '@/lib/db/drizzle';
 import { detectedPlays, games } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { labelStudio } from '@/lib/labelstudio/client';
-import { getDownloadPresignedUrl } from '@/lib/storage/r2';
+import { extractVideoClip, clipExists, getClipUrl } from '@/lib/video/clip-extractor';
 
 /**
  * POST /api/admin/labelstudio/send
  *
- * Send a play clip to Label Studio for player annotation
+ * Send a play clip to Label Studio for player annotation.
+ *
+ * This extracts the actual video clip (using ffmpeg) so that:
+ * - Label Studio only shows the relevant clip
+ * - Frame numbers are relative to the clip start (frame 0 = clip start)
+ * - Training frame extraction matches what's annotated
  *
  * Body: { playId: string }
  */
@@ -36,11 +41,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Play not found' }, { status: 404 });
     }
 
-    // Get game info for video URL
+    // Get game info for video
     const [game] = await db
       .select({
         id: games.id,
-        videoUrl: games.videoUrl,
         videoKey: games.videoKey,
       })
       .from(games)
@@ -50,19 +54,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Get video URL (presigned if using R2)
-    let videoUrl = game.videoUrl;
-    if (game.videoKey) {
-      try {
-        // Use longer expiry for Label Studio (24 hours)
-        videoUrl = await getDownloadPresignedUrl(game.videoKey, 3600 * 24);
-      } catch (e) {
-        console.error('Failed to generate presigned URL:', e);
-      }
+    if (!game.videoKey) {
+      return NextResponse.json({ error: 'No video available for this game' }, { status: 400 });
     }
 
-    if (!videoUrl) {
-      return NextResponse.json({ error: 'No video URL available' }, { status: 400 });
+    const startTime = parseFloat(play.startTimestamp?.toString() || '0');
+    const endTime = parseFloat(play.endTimestamp?.toString() || '0');
+
+    if (endTime <= startTime) {
+      return NextResponse.json({ error: 'Invalid play timestamps' }, { status: 400 });
+    }
+
+    // Check if clip already exists
+    const clipKey = `clips/${game.id}/${play.id}.mp4`;
+    let clipUrl: string;
+
+    if (await clipExists(clipKey)) {
+      console.log('[Label Studio Send] Using existing clip:', clipKey);
+      clipUrl = await getClipUrl(clipKey);
+    } else {
+      // Extract new clip
+      console.log('[Label Studio Send] Extracting clip...');
+      const result = await extractVideoClip({
+        videoKey: game.videoKey,
+        startTime,
+        endTime,
+        gameId: game.id,
+        playId: play.id,
+      });
+      clipUrl = result.clipUrl;
+      console.log('[Label Studio Send] Clip extracted:', result.clipKey);
     }
 
     // Get or create Label Studio project
@@ -75,12 +96,7 @@ export async function POST(request: NextRequest) {
     const existingTask = existingTasks.find((t: any) => t.data?.playId === playId);
 
     if (existingTask) {
-      // Task already exists - update the video URL in case it expired
-      // Presigned URLs expire after 24 hours
-      const startTime = parseFloat(play.startTimestamp?.toString() || '0');
-      const endTime = parseFloat(play.endTimestamp?.toString() || '0');
-      const videoUrlWithFragment = `${videoUrl}#t=${Math.floor(startTime)},${Math.ceil(endTime)}`;
-
+      // Task already exists - update the clip URL in case it expired
       try {
         await fetch(`${process.env.LABEL_STUDIO_URL}/api/tasks/${existingTask.id}/`, {
           method: 'PATCH',
@@ -91,12 +107,12 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             data: {
               ...existingTask.data,
-              video: videoUrlWithFragment, // Fresh presigned URL with time fragment
+              video: clipUrl, // Fresh presigned URL for the clip
             },
           }),
         });
       } catch (e) {
-        console.error('Failed to refresh video URL:', e);
+        console.error('Failed to refresh clip URL:', e);
       }
 
       return NextResponse.json({
@@ -104,36 +120,29 @@ export async function POST(request: NextRequest) {
         taskId: existingTask.id,
         projectUrl: `${process.env.LABEL_STUDIO_URL}/projects/${project.id}`,
         taskUrl: `${process.env.LABEL_STUDIO_URL}/projects/${project.id}/data?task=${existingTask.id}`,
-        message: 'Task already exists for this play',
+        message: 'Task already exists for this play (clip URL refreshed)',
         existing: true,
+        clipKey,
       });
     }
 
-    // Create task in Label Studio
-    const startTime = parseFloat(play.startTimestamp?.toString() || '0');
-    const endTime = parseFloat(play.endTimestamp?.toString() || '0');
-
-    // Add media fragment to constrain video to play segment
-    // Format: video.mp4#t=start,end (in seconds)
-    const videoUrlWithFragment = `${videoUrl}#t=${Math.floor(startTime)},${Math.ceil(endTime)}`;
-
+    // Create new task in Label Studio with the clip
     const task = await labelStudio.createTask(project.id, {
-      video: videoUrlWithFragment,
+      video: clipUrl,
       playId: play.id,
       gameId: play.gameId,
       playNumber: play.playNumber || 0,
-      startTime,
-      endTime,
+      startTime: 0,  // Clip starts at 0
+      endTime: endTime - startTime,  // Clip duration
     });
-
-    // Note: Could add a labelStudioTaskId field to detectedPlays schema to track this
-    // For now, we just return success - the task is created in Label Studio
 
     return NextResponse.json({
       success: true,
       taskId: task.id,
       projectUrl: `${process.env.LABEL_STUDIO_URL}/projects/${project.id}`,
       taskUrl: `${process.env.LABEL_STUDIO_URL}/projects/${project.id}/data?task=${task.id}`,
+      clipKey,
+      clipDuration: endTime - startTime,
     });
   } catch (error) {
     console.error('Failed to send to Label Studio:', error);
