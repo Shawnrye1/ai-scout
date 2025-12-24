@@ -33,20 +33,42 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 - Sport-specific action recognition models
 - Claude API (report generation)
 
+## Prerequisites
+
+- **Python 3.10+** - Required for Label Studio
+- **ngrok** - Required for Modal webhooks (`brew install ngrok`)
+- **Node.js 18+**
+
 ## Getting Started
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Set up environment variables
+# 2. Set up environment variables
 cp .env.example .env
 # Add your keys: POSTGRES_URL, AUTH_SECRET, STRIPE keys, etc.
 
-# Run database migrations
+# 3. Set up Label Studio (REQUIRED)
+python3 -m venv .venv-labelstudio
+source .venv-labelstudio/bin/activate
+pip install label-studio
+
+# 4. Start Label Studio
+source .venv-labelstudio/bin/activate && label-studio start --port 8080
+# - Open http://localhost:8080
+# - Create account or sign in
+# - Go to Account & Settings > Access Token
+# - Copy token to LABEL_STUDIO_API_KEY in .env
+
+# 5. Run database migrations
 npm run db:migrate
 
-# Start development server
+# 6. Start ngrok tunnel (REQUIRED for Modal webhooks)
+ngrok http 3000
+# Update BASE_URL in .env with the ngrok URL
+
+# 7. Start development server
 npm run dev
 ```
 

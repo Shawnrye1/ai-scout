@@ -110,13 +110,45 @@ Located in `/ml` directory. Runs on Modal A10G GPUs.
 ### Models Used
 - **YOLOv8x** - Player/ball detection (state-of-the-art object detection)
 - **YOLOv8x-pose** - Pose estimation (17 COCO keypoints)
-- **ByteTrack** - Multi-object tracking via supervision library
-- **PaddleOCR** - Jersey number reading
+- **BoT-SORT** - Multi-object tracking (built into YOLO, better than ByteTrack for sports)
+- **PaddleOCR 3.x** - Jersey number reading (anchors player identity)
+
+### Label Studio ML Backend (`ml_backend.py`)
+
+Current version: `yolov8x-jersey-v3`
+
+**Pipeline:**
+1. Download video clip from R2
+2. Initialize PaddleOCR (optional, continues without if fails)
+3. Run BoT-SORT tracking on ALL frames for continuity
+4. Save keyframes every 10 frames
+5. Attempt OCR on player crops every 30 frames (more chances to read)
+6. Vote on jersey numbers per track (most common wins)
+7. Merge fragmented tracks by jersey number
+8. Merge spatially adjacent tracks (within 30 frames, 10% distance)
+9. Filter: skip small boxes (<3% width), skip crowd area (top 15%)
+10. Output top 13 tracks as Label Studio videorectangle format
+
+**Key Improvements Made:**
+- Switched from ByteTrack to BoT-SORT (has ReID features)
+- Process EVERY frame for tracker continuity (not just keyframes)
+- Added court filtering to remove sideline/crowd detections
+- Jersey number OCR to anchor player identity across track fragments
+- Track merging: combine fragments with same jersey number
+- Spatial merging: combine nearby tracks that end/start within 30 frames
+- PaddleOCR 3.x compatibility (handles multiple result formats)
+- Increased OCR frequency (every 30 frames instead of 50)
+
+**Known Limitations:**
+- Basketball tracking is hard (fast movement, similar jerseys, occlusion)
+- Track fragmentation still occurs when players cross paths
+- OCR accuracy depends on video quality and jersey visibility
+- Long videos (8+ min) create many track fragments
 
 ### Processing Stages
 1. `detect_sport` - Classify football vs basketball
 2. `detect_players` - YOLOv8x player detection
-3. `track_players` - ByteTrack multi-object tracking
+3. `track_players` - BoT-SORT multi-object tracking
 4. `read_jerseys` - PaddleOCR for jersey numbers
 5. `estimate_pose` - YOLOv8x-pose body keypoints
 6. `segment_plays` - Break into plays/possessions
@@ -276,6 +308,10 @@ Reports should sound like a real scout:
 # Start dev server
 npm run dev
 
+# Start Label Studio (REQUIRED for video analysis)
+# NOTE: Runs via pip, NOT Docker
+source .venv-labelstudio/bin/activate && label-studio start --port 8080
+
 # Start ngrok tunnel (REQUIRED for Modal webhooks)
 ngrok http 3000
 # Update BASE_URL in .env with the ngrok URL
@@ -297,9 +333,10 @@ npm run build
 ## Development Checklist
 Before testing video uploads:
 1. ✅ Dev server running (`npm run dev`)
-2. ✅ ngrok tunnel active (`ngrok http 3000`)
-3. ✅ BASE_URL in .env matches ngrok URL
-4. ✅ Verify ngrok is forwarding: `curl -s http://localhost:4040/api/tunnels`
+2. ✅ Label Studio running via pip (`source .venv-labelstudio/bin/activate && label-studio start --port 8080`)
+3. ✅ ngrok tunnel active (`ngrok http 3000`)
+4. ✅ BASE_URL in .env matches ngrok URL
+5. ✅ Verify ngrok is forwarding: `curl -s http://localhost:4040/api/tunnels`
 
 **Common Issue**: If Modal webhooks aren't working, check if ngrok tunnel died (ERR_NGROK_3200). Restart with `ngrok http 3000`.
 
