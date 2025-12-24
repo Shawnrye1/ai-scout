@@ -86,256 +86,494 @@ function RotatingText() {
 const footballPlayers = [
   {
     id: 1,
-    jersey: '#7',
+    jersey: '7',
     position: 'QB',
     name: 'Marcus Johnson',
+    height: "6'2\"",
+    weight: 195,
+    year: 'Junior',
     overallGrade: 84,
-    playsAnalyzed: 42,
-    grades: [
-      { label: 'Arm Strength', grade: 87 },
-      { label: 'Decision Making', grade: 81 },
-      { label: 'Pocket Presence', grade: 79 },
-      { label: 'Athleticism', grade: 88 },
-    ],
-    advancedStats: [
-      { label: 'Completion %', value: '67.8%' },
-      { label: 'Avg Release', value: '2.3s' },
-      { label: 'TD/INT', value: '3/1' },
-      { label: 'QBR', value: '78.4' },
-    ],
+    grades: {
+      armStrength: 87,
+      accuracy: 83,
+      decisionMaking: 81,
+      pocketPresence: 79,
+      athleticism: 88,
+      leadership: 85,
+    },
+    advancedStats: {
+      completions: 18,
+      attempts: 27,
+      compPct: 66.7,
+      yards: 243,
+      tds: 3,
+      ints: 1,
+      rating: 128.4,
+      avgDepth: 8.2,
+      timeToThrow: 2.3,
+      pressureRate: 28.5,
+      cleanPocketPct: 71.5,
+      adjCompPct: 72.1,
+    },
+    analysis: {
+      summary: "High-ceiling quarterback with prototypical size and arm talent. Shows excellent poise under pressure and ability to extend plays. Decision-making is advanced for his age, though occasional lapses in coverage recognition.",
+      strengths: [
+        "Elite arm strength - can make every NFL throw",
+        "Excellent pocket mobility and escapability",
+        "Strong pre-snap read ability, often checks to correct play",
+        "Maintains accuracy on the move",
+      ],
+      improvements: [
+        "Tends to lock onto first read on play-action",
+        "Footwork inconsistent on deep outs",
+        "Needs to speed up release against pressure",
+      ],
+      projection: "Projects as a Day 2 draft pick with starter upside. Needs refinement but has all the physical tools.",
+    },
     keyMoments: [
-      { time: '14:23', play: 'TD Pass - Back shoulder fade, tight coverage', grade: 'A+' },
-      { time: '8:45', play: 'Scramble - Extended play, 12 yard gain', grade: 'A' },
-      { time: '3:12', play: 'INT - Forced throw into double coverage', grade: 'D' },
+      { time: '14:23', type: 'highlight', description: 'TD Pass - Back shoulder fade vs tight coverage', grade: 'A+', thumbnail: '🎯' },
+      { time: '11:45', type: 'highlight', description: 'Scramble right, throws across body for 22 yards', grade: 'A', thumbnail: '🏃' },
+      { time: '8:12', type: 'highlight', description: 'Reads blitz, hot route to RB for first down', grade: 'A', thumbnail: '🧠' },
+      { time: '5:33', type: 'negative', description: 'Forced throw into double coverage - INT', grade: 'D', thumbnail: '⚠️' },
+      { time: '2:15', type: 'highlight', description: 'Game-winning drive, 4/4 for 45 yards', grade: 'A+', thumbnail: '🏆' },
     ],
-    report: 'Composed pocket passer with excellent pre-snap reads. Shows ability to work through progressions on intermediate routes. Arm strength is above average with good ball placement on out routes. Best throw came at 14:23 - back shoulder fade against tight man coverage.',
   },
   {
     id: 2,
-    jersey: '#23',
+    jersey: '23',
     position: 'RB',
     name: 'Darius Williams',
+    height: "5'10\"",
+    weight: 205,
+    year: 'Senior',
     overallGrade: 79,
-    playsAnalyzed: 28,
-    grades: [
-      { label: 'Vision', grade: 82 },
-      { label: 'Burst', grade: 85 },
-      { label: 'Pass Pro', grade: 71 },
-      { label: 'Hands', grade: 76 },
-    ],
-    advancedStats: [
-      { label: 'Yards/Carry', value: '5.2' },
-      { label: 'Broken Tackles', value: '4' },
-      { label: 'Receptions', value: '3' },
-      { label: 'YAC', value: '18' },
-    ],
+    grades: {
+      vision: 82,
+      burst: 85,
+      power: 78,
+      passProtection: 71,
+      receiving: 76,
+      durability: 80,
+    },
+    advancedStats: {
+      carries: 18,
+      rushYards: 94,
+      ypc: 5.2,
+      rushTds: 1,
+      targets: 4,
+      receptions: 3,
+      recYards: 18,
+      brokenTackles: 4,
+      yardsAfterContact: 42,
+      stuffRate: 11.1,
+    },
+    analysis: {
+      summary: "Explosive runner with excellent burst through the hole. Patient enough to let blocks develop, then accelerates quickly. Pass protection remains a work in progress.",
+      strengths: [
+        "Elite acceleration and top-end speed",
+        "Excellent vision - finds cutback lanes",
+        "Finishes runs with power despite size",
+      ],
+      improvements: [
+        "Pass protection technique needs work",
+        "Ball security in traffic",
+        "Route running is limited",
+      ],
+      projection: "Day 3 pick with potential as change-of-pace back. Special teams value.",
+    },
     keyMoments: [
-      { time: '12:05', play: '22 yard run - Great cutback vision', grade: 'A' },
-      { time: '6:33', play: 'Missed blitz pickup on 3rd down', grade: 'C-' },
+      { time: '12:05', type: 'highlight', description: '22 yard run - Great cutback vision', grade: 'A', thumbnail: '💨' },
+      { time: '6:33', type: 'negative', description: 'Missed blitz pickup, QB hit', grade: 'C-', thumbnail: '⚠️' },
     ],
-    report: 'Dynamic runner with excellent burst through the hole. Shows patience waiting for blocks to develop. Needs work in pass protection - missed assignment on key 3rd down.',
   },
   {
     id: 3,
-    jersey: '#88',
+    jersey: '88',
     position: 'WR',
     name: 'Tyler Adams',
+    height: "6'1\"",
+    weight: 185,
+    year: 'Junior',
     overallGrade: 86,
-    playsAnalyzed: 31,
-    grades: [
-      { label: 'Route Running', grade: 89 },
-      { label: 'Separation', grade: 84 },
-      { label: 'Hands', grade: 88 },
-      { label: 'YAC', grade: 82 },
-    ],
-    advancedStats: [
-      { label: 'Targets', value: '9' },
-      { label: 'Receptions', value: '7' },
-      { label: 'Yards', value: '94' },
-      { label: 'Avg Sep', value: '2.1 yds' },
-    ],
+    grades: {
+      routeRunning: 89,
+      separation: 84,
+      catching: 88,
+      yac: 82,
+      blocking: 72,
+      versatility: 80,
+    },
+    advancedStats: {
+      targets: 9,
+      receptions: 7,
+      recYards: 94,
+      ypr: 13.4,
+      tds: 1,
+      catchPct: 77.8,
+      avgSeparation: 2.1,
+      contestedCatchPct: 66.7,
+      dropRate: 0,
+      yardsPerRoute: 2.4,
+    },
+    analysis: {
+      summary: "Polished route runner with natural hands. Creates consistent separation on intermediate routes. Shows excellent body control and concentration in contested situations.",
+      strengths: [
+        "Crisp route breaks - creates easy separation",
+        "Reliable hands, zero drops this game",
+        "Tracks ball well over shoulder",
+      ],
+      improvements: [
+        "Add more physicality at catch point",
+        "Run blocking effort inconsistent",
+        "Deep speed is average",
+      ],
+      projection: "Projects as reliable possession receiver at next level. WR2 ceiling.",
+    },
     keyMoments: [
-      { time: '14:23', play: 'TD catch - Adjusted to back shoulder', grade: 'A+' },
-      { time: '9:17', play: 'Contested catch over DB', grade: 'A' },
+      { time: '14:23', type: 'highlight', description: 'TD catch - Adjusted to back shoulder throw', grade: 'A+', thumbnail: '🎯' },
+      { time: '9:17', type: 'highlight', description: 'Contested catch over CB for 18 yards', grade: 'A', thumbnail: '🙌' },
     ],
-    report: 'Crisp route runner with natural hands. Creates consistent separation on intermediate routes. Showed excellent body control on TD reception, adjusting to back shoulder throw.',
   },
   {
     id: 4,
-    jersey: '#12',
+    jersey: '12',
     position: 'WR',
     name: 'Chris Martinez',
+    height: "5'11\"",
+    weight: 175,
+    year: 'Sophomore',
     overallGrade: 72,
-    playsAnalyzed: 24,
-    grades: [
-      { label: 'Route Running', grade: 74 },
-      { label: 'Separation', grade: 70 },
-      { label: 'Hands', grade: 75 },
-      { label: 'YAC', grade: 69 },
-    ],
-    advancedStats: [
-      { label: 'Targets', value: '5' },
-      { label: 'Receptions', value: '3' },
-      { label: 'Yards', value: '31' },
-      { label: 'Avg Sep', value: '1.4 yds' },
-    ],
+    grades: {
+      routeRunning: 74,
+      separation: 70,
+      catching: 68,
+      yac: 75,
+      blocking: 65,
+      versatility: 72,
+    },
+    advancedStats: {
+      targets: 5,
+      receptions: 3,
+      recYards: 31,
+      ypr: 10.3,
+      tds: 0,
+      catchPct: 60.0,
+      avgSeparation: 1.4,
+      contestedCatchPct: 33.3,
+      dropRate: 20.0,
+      yardsPerRoute: 1.1,
+    },
+    analysis: {
+      summary: "Young receiver still developing. Shows flashes of quickness but lacks consistency. The critical drop on 3rd down is a concentration issue that needs to be addressed.",
+      strengths: [
+        "Quick feet off the line",
+        "Good speed in open field",
+        "Competitive attitude",
+      ],
+      improvements: [
+        "Focus and concentration on catches",
+        "Route crispness at top of breaks",
+        "Needs to play stronger",
+      ],
+      projection: "Developmental prospect. Could emerge with more reps and maturity.",
+    },
     keyMoments: [
-      { time: '5:42', play: 'Drop on 3rd down conversion', grade: 'D' },
+      { time: '5:42', type: 'negative', description: 'Drop on 3rd down conversion attempt', grade: 'D', thumbnail: '⚠️' },
     ],
-    report: 'Solid depth receiver with room to grow. Needs to improve route crispness at the top of breaks. Critical drop on 3rd down affected drive.',
   },
   {
     id: 5,
-    jersey: '#56',
-    position: 'OL',
+    jersey: '56',
+    position: 'LT',
     name: 'Jake Thompson',
+    height: "6'5\"",
+    weight: 305,
+    year: 'Senior',
     overallGrade: 81,
-    playsAnalyzed: 42,
-    grades: [
-      { label: 'Pass Pro', grade: 83 },
-      { label: 'Run Block', grade: 79 },
-      { label: 'Technique', grade: 82 },
-      { label: 'Awareness', grade: 80 },
-    ],
-    advancedStats: [
-      { label: 'Pressures Allowed', value: '2' },
-      { label: 'Sacks Allowed', value: '0' },
-      { label: 'Pancakes', value: '3' },
-      { label: 'Penalties', value: '1' },
-    ],
+    grades: {
+      passProtection: 83,
+      runBlocking: 79,
+      technique: 82,
+      power: 80,
+      athleticism: 77,
+      awareness: 84,
+    },
+    advancedStats: {
+      snaps: 68,
+      pressuresAllowed: 2,
+      sacksAllowed: 0,
+      hitsAllowed: 1,
+      hurriesAllowed: 1,
+      pressureRate: 2.9,
+      pancakes: 3,
+      penalties: 1,
+      runBlockGrade: 79.2,
+      passBlockGrade: 83.1,
+    },
+    analysis: {
+      summary: "Reliable pass protector with excellent anchor. Allowed zero sacks and handled speed rush well. Run blocking shows room for growth at the second level.",
+      strengths: [
+        "Excellent anchor against power",
+        "Quick set against speed rush",
+        "Communicates well with interior line",
+      ],
+      improvements: [
+        "Struggles reaching second level",
+        "Can get overextended on combo blocks",
+        "Lateral movement needs work",
+      ],
+      projection: "NFL backup with potential to develop into starter. Reliable in protection.",
+    },
     keyMoments: [
-      { time: '11:20', play: 'Excellent pickup on twist stunt', grade: 'A' },
-      { time: '7:55', play: 'Pancake block sprung TD run', grade: 'A+' },
+      { time: '11:20', type: 'highlight', description: 'Excellent pickup on twist stunt', grade: 'A', thumbnail: '🛡️' },
+      { time: '7:55', type: 'highlight', description: 'Pancake block sprung TD run', grade: 'A+', thumbnail: '💪' },
     ],
-    report: 'Reliable pass protector with good anchor. Allowed zero sacks, handled speed rush well. Run blocking could be more physical at point of attack.',
   },
 ];
 
 const basketballPlayers = [
   {
     id: 1,
-    jersey: '#3',
+    jersey: '3',
     position: 'PG',
     name: 'Jordan Mitchell',
+    height: "6'1\"",
+    weight: 180,
+    year: 'Junior',
     overallGrade: 87,
-    playsAnalyzed: 58,
-    grades: [
-      { label: 'Shooting', grade: 82 },
-      { label: 'Passing', grade: 91 },
-      { label: 'Defense', grade: 78 },
-      { label: 'Basketball IQ', grade: 89 },
-    ],
-    advancedStats: [
-      { label: 'Points', value: '18' },
-      { label: 'Assists', value: '8' },
-      { label: 'Turnovers', value: '2' },
-      { label: 'AST/TO', value: '4.0' },
-    ],
+    grades: {
+      scoring: 82,
+      playmaking: 91,
+      defense: 78,
+      athleticism: 84,
+      bbiq: 89,
+      leadership: 86,
+    },
+    advancedStats: {
+      points: 18,
+      assists: 8,
+      rebounds: 4,
+      steals: 2,
+      turnovers: 2,
+      fgPct: 47.1,
+      threePct: 37.5,
+      ftPct: 85.7,
+      ast2to: 4.0,
+      usgRate: 24.3,
+      per: 22.8,
+      ortg: 118,
+    },
+    analysis: {
+      summary: "Elite floor general with exceptional court vision. Controls pace masterfully and creates high-quality looks for teammates. Shooting has improved but still streaky. Defensive effort inconsistent off-ball.",
+      strengths: [
+        "Elite court vision - sees plays before they develop",
+        "Excellent PnR operator, makes right reads",
+        "Clutch performer - raises game in big moments",
+        "Vocal leader, commands respect",
+      ],
+      improvements: [
+        "Off-ball defensive awareness",
+        "Consistency from three-point range",
+        "Can be turnover prone in traffic",
+      ],
+      projection: "First-round talent. Projects as starting PG at next level.",
+    },
     keyMoments: [
-      { time: 'Q2 4:32', play: 'Lob assist on PnR - Perfect timing', grade: 'A+' },
-      { time: 'Q3 8:15', play: 'Step-back three in transition', grade: 'A' },
-      { time: 'Q4 2:05', play: 'Lost assignment on backdoor cut', grade: 'C' },
+      { time: 'Q2 4:32', type: 'highlight', description: 'Lob assist on PnR - Perfect timing and touch', grade: 'A+', thumbnail: '🎯' },
+      { time: 'Q3 8:15', type: 'highlight', description: 'Step-back three in transition, dagger shot', grade: 'A', thumbnail: '🔥' },
+      { time: 'Q4 2:05', type: 'negative', description: 'Lost assignment on backdoor cut - easy layup', grade: 'C', thumbnail: '⚠️' },
+      { time: 'Q4 0:45', type: 'highlight', description: 'Game-sealing steal and finish', grade: 'A+', thumbnail: '🏆' },
     ],
-    report: 'Elite court vision with ability to create for teammates off pick-and-roll. Demonstrates excellent decision-making in transition, averaging 8.2 assists. Shooting improves in catch-and-shoot situations. Defensive awareness needs improvement off-ball.',
   },
   {
     id: 2,
-    jersey: '#11',
+    jersey: '11',
     position: 'SG',
     name: 'Marcus Davis',
+    height: "6'4\"",
+    weight: 195,
+    year: 'Senior',
     overallGrade: 83,
-    playsAnalyzed: 52,
-    grades: [
-      { label: 'Shooting', grade: 88 },
-      { label: 'Off-Ball', grade: 85 },
-      { label: 'Defense', grade: 76 },
-      { label: 'Athleticism', grade: 81 },
-    ],
-    advancedStats: [
-      { label: 'Points', value: '22' },
-      { label: '3PT %', value: '42%' },
-      { label: 'FT %', value: '85%' },
-      { label: '+/-', value: '+8' },
-    ],
+    grades: {
+      scoring: 88,
+      playmaking: 72,
+      defense: 76,
+      athleticism: 81,
+      shooting: 89,
+      offBall: 85,
+    },
+    advancedStats: {
+      points: 22,
+      assists: 2,
+      rebounds: 3,
+      steals: 1,
+      turnovers: 1,
+      fgPct: 52.9,
+      threePct: 42.9,
+      ftPct: 85.0,
+      catchShootPct: 50.0,
+      pullupPct: 33.3,
+      spotUpPPP: 1.24,
+    },
+    analysis: {
+      summary: "Knockdown shooter with quick release. Very effective in catch-and-shoot situations and coming off screens. Limited playmaking ability but knows his role.",
+      strengths: [
+        "Elite catch-and-shoot ability",
+        "Quick release, hard to contest",
+        "Excellent off-ball movement",
+      ],
+      improvements: [
+        "Defensive close-out technique",
+        "Creating own shot off dribble",
+        "Rebounding effort",
+      ],
+      projection: "Role player at next level. Valuable 3&D potential.",
+    },
     keyMoments: [
-      { time: 'Q1 6:20', play: '3PT from corner - Quick release', grade: 'A' },
-      { time: 'Q3 5:45', play: 'Pump fake, drive, finish', grade: 'A' },
+      { time: 'Q1 6:20', type: 'highlight', description: 'Corner three - Quick release over closeout', grade: 'A', thumbnail: '🎯' },
+      { time: 'Q3 5:45', type: 'highlight', description: 'Pump fake, one dribble, finish at rim', grade: 'A', thumbnail: '🏀' },
     ],
-    report: 'Knockdown shooter with quick release. Very effective in catch-and-shoot situations. Needs to improve defensive footwork on close-outs.',
   },
   {
     id: 3,
-    jersey: '#24',
+    jersey: '24',
     position: 'SF',
     name: 'Andre Williams',
+    height: "6'7\"",
+    weight: 215,
+    year: 'Junior',
     overallGrade: 80,
-    playsAnalyzed: 48,
-    grades: [
-      { label: 'Versatility', grade: 84 },
-      { label: 'Defense', grade: 82 },
-      { label: 'Rebounding', grade: 78 },
-      { label: 'Shooting', grade: 75 },
-    ],
-    advancedStats: [
-      { label: 'Points', value: '12' },
-      { label: 'Rebounds', value: '7' },
-      { label: 'Steals', value: '3' },
-      { label: 'Blocks', value: '1' },
-    ],
+    grades: {
+      scoring: 75,
+      playmaking: 74,
+      defense: 86,
+      athleticism: 88,
+      versatility: 84,
+      rebounding: 78,
+    },
+    advancedStats: {
+      points: 12,
+      assists: 3,
+      rebounds: 7,
+      steals: 3,
+      blocks: 1,
+      fgPct: 45.5,
+      threePct: 28.6,
+      defRtg: 98,
+      stlPct: 3.2,
+      drebPct: 18.4,
+    },
+    analysis: {
+      summary: "Versatile two-way player who can guard 1-4. Elite length and athleticism. Offense is still developing but shows flashes.",
+      strengths: [
+        "Switchable defender - can guard multiple positions",
+        "Active hands, disrupts passing lanes",
+        "Elite transition player",
+      ],
+      improvements: [
+        "Three-point consistency",
+        "Half-court creation",
+        "Free throw shooting",
+      ],
+      projection: "Defensive specialist at next level. 3&D upside if shot develops.",
+    },
     keyMoments: [
-      { time: 'Q2 1:15', play: 'Chase-down block in transition', grade: 'A+' },
-      { time: 'Q4 6:30', play: 'Switched onto PG, forced TO', grade: 'A' },
+      { time: 'Q2 1:15', type: 'highlight', description: 'Chase-down block in transition', grade: 'A+', thumbnail: '🚫' },
+      { time: 'Q4 6:30', type: 'highlight', description: 'Switched onto PG, forced turnover', grade: 'A', thumbnail: '🔒' },
     ],
-    report: 'Versatile two-way player who can guard multiple positions. Active hands in passing lanes. Shooting consistency from three needs improvement.',
   },
   {
     id: 4,
-    jersey: '#32',
+    jersey: '32',
     position: 'PF',
     name: 'Kevin Brooks',
+    height: "6'9\"",
+    weight: 235,
+    year: 'Senior',
     overallGrade: 77,
-    playsAnalyzed: 44,
-    grades: [
-      { label: 'Post Game', grade: 79 },
-      { label: 'Rebounding', grade: 82 },
-      { label: 'Defense', grade: 74 },
-      { label: 'Shooting', grade: 71 },
-    ],
-    advancedStats: [
-      { label: 'Points', value: '10' },
-      { label: 'Rebounds', value: '9' },
-      { label: 'Blocks', value: '2' },
-      { label: 'FG %', value: '55%' },
-    ],
+    grades: {
+      scoring: 76,
+      postGame: 79,
+      defense: 74,
+      rebounding: 82,
+      athleticism: 73,
+      bbiq: 78,
+    },
+    advancedStats: {
+      points: 10,
+      assists: 1,
+      rebounds: 9,
+      blocks: 2,
+      fgPct: 55.6,
+      postUpPPP: 0.92,
+      orebPct: 12.1,
+      drebPct: 22.3,
+      boxPlusMinus: 3.2,
+    },
+    analysis: {
+      summary: "Physical presence in the paint. Good rebounder with developing post moves. Limited range keeps him as a traditional big.",
+      strengths: [
+        "Physical post presence",
+        "Excellent offensive rebounder",
+        "Soft touch around rim",
+      ],
+      improvements: [
+        "Extend range to three-point line",
+        "Help-side defense rotations",
+        "Conditioning and mobility",
+      ],
+      projection: "Backup big at next level. Energy and rebounding role.",
+    },
     keyMoments: [
-      { time: 'Q2 7:40', play: 'And-1 finish through contact', grade: 'A' },
+      { time: 'Q2 7:40', type: 'highlight', description: 'And-1 finish through contact', grade: 'A', thumbnail: '💪' },
     ],
-    report: 'Physical presence in the paint with good rebounding instincts. Post moves are developing. Needs to improve help-side defense rotations.',
   },
   {
     id: 5,
-    jersey: '#44',
+    jersey: '44',
     position: 'C',
     name: 'David Chen',
+    height: "6'11\"",
+    weight: 250,
+    year: 'Sophomore',
     overallGrade: 75,
-    playsAnalyzed: 41,
-    grades: [
-      { label: 'Rim Protection', grade: 80 },
-      { label: 'Rebounding', grade: 78 },
-      { label: 'Finishing', grade: 73 },
-      { label: 'Mobility', grade: 68 },
-    ],
-    advancedStats: [
-      { label: 'Points', value: '8' },
-      { label: 'Rebounds', value: '11' },
-      { label: 'Blocks', value: '4' },
-      { label: 'Screen Ast', value: '6' },
-    ],
+    grades: {
+      scoring: 68,
+      rimProtection: 82,
+      rebounding: 78,
+      screening: 80,
+      athleticism: 65,
+      footwork: 70,
+    },
+    advancedStats: {
+      points: 8,
+      assists: 2,
+      rebounds: 11,
+      blocks: 4,
+      fgPct: 62.5,
+      blkPct: 8.2,
+      contestedShotPct: 42.1,
+      screenAssists: 6,
+      drebPct: 28.4,
+    },
+    analysis: {
+      summary: "Rim protector with excellent timing on blocks. Sets solid screens. Limited mobility affects ability to defend in space.",
+      strengths: [
+        "Shot-blocking timing and instincts",
+        "Solid screen setter",
+        "Holds position in post",
+      ],
+      improvements: [
+        "Lateral mobility on switches",
+        "Offensive skill development",
+        "Free throw shooting",
+      ],
+      projection: "Backup center role. Could develop into starter with improved mobility.",
+    },
     keyMoments: [
-      { time: 'Q3 3:20', play: 'Weak-side block on drive', grade: 'A' },
-      { time: 'Q4 8:10', play: 'Slow rotation on PnR', grade: 'C-' },
+      { time: 'Q3 3:20', type: 'highlight', description: 'Weak-side block on drive attempt', grade: 'A', thumbnail: '🚫' },
+      { time: 'Q4 8:10', type: 'negative', description: 'Slow PnR rotation, gave up open three', grade: 'C-', thumbnail: '⚠️' },
     ],
-    report: 'Solid rim protector with good timing on blocks. Sets effective screens. Lateral mobility limits ability to switch onto guards in pick-and-roll.',
   },
 ];
 
@@ -358,7 +596,7 @@ function AnimatedDashboard() {
   const [isFootball, setIsFootball] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState(1);
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'moments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'clips'>('overview');
 
   const dashboard = isFootball ? footballDashboard : basketballDashboard;
   const selectedPlayer = dashboard.players.find(p => p.id === selectedPlayerId) || dashboard.players[0];
@@ -375,11 +613,30 @@ function AnimatedDashboard() {
   };
 
   const getGradeColor = (grade: string) => {
-    if (grade.startsWith('A')) return 'text-green-600 bg-green-50';
-    if (grade.startsWith('B')) return 'text-blue-600 bg-blue-50';
-    if (grade.startsWith('C')) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (grade.startsWith('A')) return 'text-green-600 bg-green-100';
+    if (grade.startsWith('B')) return 'text-blue-600 bg-blue-100';
+    if (grade.startsWith('C')) return 'text-yellow-600 bg-yellow-100';
+    return 'text-red-600 bg-red-100';
   };
+
+  const getGradeBarColor = (grade: number) => {
+    if (grade >= 85) return 'bg-green-500';
+    if (grade >= 75) return 'bg-blue-500';
+    if (grade >= 65) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  // Get grade entries as array for display
+  const gradeEntries = Object.entries(selectedPlayer.grades).map(([key, value]) => ({
+    label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+    grade: value as number,
+  }));
+
+  // Get advanced stats as array
+  const statsEntries = Object.entries(selectedPlayer.advancedStats).slice(0, 8).map(([key, value]) => ({
+    label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace('Pct', '%'),
+    value: typeof value === 'number' ? (key.includes('Pct') || key.includes('pct') ? `${value}%` : value) : value,
+  }));
 
   return (
     <div className="relative p-2 sm:p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
@@ -402,85 +659,109 @@ function AnimatedDashboard() {
       <div className={`aspect-[16/9] rounded-xl bg-white shadow-2xl overflow-hidden transition-all duration-500 ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
         <div className="h-full flex flex-col">
           {/* Top bar */}
-          <div className="h-12 bg-gray-100 border-b flex items-center justify-between px-4">
+          <div className="h-10 bg-gray-100 border-b flex items-center justify-between px-4">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
             </div>
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded font-medium ${isFootball ? 'bg-[#0f2d52] text-white' : 'bg-orange-600 text-white'}`}>
                 {isFootball ? 'FOOTBALL' : 'BASKETBALL'}
               </span>
-              <span className="text-sm text-gray-500 hidden sm:inline">{dashboard.gameTitle}</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">{dashboard.gameTitle}</span>
             </div>
-            <div className="w-20" />
+            <div className="w-16" />
           </div>
 
           {/* Content */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Sidebar - Clickable Players */}
-            <div className="w-44 lg:w-52 bg-gray-50 border-r p-3 hidden sm:block overflow-y-auto">
-              <div className="text-xs font-semibold text-gray-400 mb-3">PLAYERS DETECTED</div>
-              {dashboard.players.map((player) => (
-                <button
-                  key={player.id}
-                  onClick={() => { setSelectedPlayerId(player.id); setActiveTab('overview'); }}
-                  className={`w-full text-left text-sm py-2 px-3 rounded-lg mb-1 transition-all ${
-                    selectedPlayerId === player.id
-                      ? `text-white ${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'} shadow-md`
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{player.jersey} - {player.position}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      selectedPlayerId === player.id ? 'bg-white/20' : 'bg-gray-200'
-                    }`}>
-                      {player.overallGrade}
-                    </span>
-                  </div>
-                  {selectedPlayerId === player.id && (
-                    <div className="text-xs opacity-80 mt-0.5 truncate">{player.name}</div>
-                  )}
-                </button>
-              ))}
+            {/* Sidebar - Players with names */}
+            <div className="w-48 lg:w-56 bg-gray-50 border-r hidden sm:flex flex-col">
+              <div className="p-3 border-b">
+                <div className="text-xs font-semibold text-gray-400">PLAYERS DETECTED</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                {dashboard.players.map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => { setSelectedPlayerId(player.id); setActiveTab('overview'); }}
+                    className={`w-full text-left py-2 px-3 rounded-lg mb-1 transition-all ${
+                      selectedPlayerId === player.id
+                        ? `${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'} shadow-lg`
+                        : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                        selectedPlayerId === player.id
+                          ? 'bg-white/20 text-white'
+                          : `${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'} text-white`
+                      }`}>
+                        {player.jersey}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium truncate ${selectedPlayerId === player.id ? 'text-white' : 'text-gray-900'}`}>
+                          {player.name}
+                        </div>
+                        <div className={`text-xs ${selectedPlayerId === player.id ? 'text-white/70' : 'text-gray-500'}`}>
+                          {player.position} • {player.height}
+                        </div>
+                      </div>
+                      <div className={`text-sm font-bold ${selectedPlayerId === player.id ? 'text-white' : isFootball ? 'text-[#0f2d52]' : 'text-orange-600'}`}>
+                        {player.overallGrade}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Player header */}
-              <div className="p-4 sm:p-5 border-b bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-gray-900">{selectedPlayer.jersey} - {selectedPlayer.name}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isFootball ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                        {selectedPlayer.position}
-                      </span>
+            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+              {/* Player header with physical stats */}
+              <div className="p-4 border-b bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold text-white ${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'}`}>
+                      #{selectedPlayer.jersey}
                     </div>
-                    <p className="text-sm text-gray-500">{selectedPlayer.playsAnalyzed} plays analyzed</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-gray-900">{selectedPlayer.name}</h3>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isFootball ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {selectedPlayer.position}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                        <span>{selectedPlayer.height}</span>
+                        <span className="text-gray-300">|</span>
+                        <span>{selectedPlayer.weight} lbs</span>
+                        <span className="text-gray-300">|</span>
+                        <span>{selectedPlayer.year}</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className={`text-3xl font-bold ${isFootball ? 'text-[#0f2d52]' : 'text-orange-600'}`}>
                       {selectedPlayer.overallGrade}
                     </div>
-                    <div className="text-xs text-gray-500">Overall Grade</div>
+                    <div className="text-xs text-gray-500 font-medium">OVERALL GRADE</div>
                   </div>
                 </div>
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b bg-gray-50 px-4">
+              <div className="flex border-b bg-white px-4">
                 {[
-                  { id: 'overview', label: 'Overview' },
+                  { id: 'overview', label: 'AI Analysis' },
                   { id: 'stats', label: 'Advanced Stats' },
-                  { id: 'moments', label: 'Key Moments' },
+                  { id: 'clips', label: 'Video Clips' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       activeTab === tab.id
                         ? `${isFootball ? 'border-[#0f2d52] text-[#0f2d52]' : 'border-orange-600 text-orange-600'}`
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -492,59 +773,96 @@ function AnimatedDashboard() {
               </div>
 
               {/* Tab Content */}
-              <div className="flex-1 p-4 sm:p-5 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
                 {activeTab === 'overview' && (
-                  <div className="space-y-4">
-                    {/* Skill Grades */}
-                    <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                      {selectedPlayer.grades.map((item, i) => (
-                        <div key={i} className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center">
-                          <div className="text-lg sm:text-xl font-bold text-gray-900">{item.grade}</div>
-                          <div className="text-xs text-gray-500 truncate">{item.label}</div>
+                  <div className="p-4 space-y-4">
+                    {/* Skill Grades Row */}
+                    <div className="grid grid-cols-6 gap-2">
+                      {gradeEntries.map((item, i) => (
+                        <div key={i} className="text-center">
+                          <div className={`text-lg font-bold ${item.grade >= 80 ? 'text-green-600' : item.grade >= 70 ? 'text-blue-600' : 'text-yellow-600'}`}>
+                            {item.grade}
+                          </div>
+                          <div className="text-[10px] text-gray-500 leading-tight">{item.label}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Scout Report */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="text-sm font-semibold text-gray-700 mb-2">AI Scout Report</div>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {selectedPlayer.report}
+                    {/* AI Analysis - Summary */}
+                    <div className={`rounded-xl p-4 ${isFootball ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'}`}>
+                          <span className="text-white text-xs">AI</span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-700">Scout Summary</span>
+                      </div>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {selectedPlayer.analysis.summary}
                       </p>
+                    </div>
+
+                    {/* Strengths & Improvements */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-green-50 rounded-xl p-3">
+                        <div className="text-xs font-semibold text-green-700 mb-2">STRENGTHS</div>
+                        <ul className="space-y-1">
+                          {selectedPlayer.analysis.strengths.slice(0, 3).map((s, i) => (
+                            <li key={i} className="text-xs text-green-800 flex items-start gap-1">
+                              <span className="text-green-500 mt-0.5">✓</span>
+                              <span className="line-clamp-2">{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-amber-50 rounded-xl p-3">
+                        <div className="text-xs font-semibold text-amber-700 mb-2">DEVELOPMENT AREAS</div>
+                        <ul className="space-y-1">
+                          {selectedPlayer.analysis.improvements.slice(0, 3).map((s, i) => (
+                            <li key={i} className="text-xs text-amber-800 flex items-start gap-1">
+                              <span className="text-amber-500 mt-0.5">→</span>
+                              <span className="line-clamp-2">{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Projection */}
+                    <div className="bg-gray-100 rounded-xl p-3">
+                      <div className="text-xs font-semibold text-gray-600 mb-1">PROJECTION</div>
+                      <p className="text-sm text-gray-800">{selectedPlayer.analysis.projection}</p>
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'stats' && (
-                  <div className="space-y-4">
-                    {/* Advanced Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {selectedPlayer.advancedStats.map((stat, i) => (
+                  <div className="p-4 space-y-4">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {statsEntries.map((stat, i) => (
                         <div key={i} className={`rounded-lg p-3 text-center ${isFootball ? 'bg-blue-50' : 'bg-orange-50'}`}>
                           <div className={`text-xl font-bold ${isFootball ? 'text-[#0f2d52]' : 'text-orange-600'}`}>
                             {stat.value}
                           </div>
-                          <div className="text-xs text-gray-600">{stat.label}</div>
+                          <div className="text-[10px] text-gray-600 leading-tight">{stat.label}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Skill Breakdown */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="text-sm font-semibold text-gray-700 mb-3">Skill Breakdown</div>
-                      <div className="space-y-3">
-                        {selectedPlayer.grades.map((item, i) => (
-                          <div key={i}>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">{item.label}</span>
-                              <span className="font-medium text-gray-900">{item.grade}</span>
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    {/* Skill Breakdown with bars */}
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="text-xs font-semibold text-gray-600 mb-3">SKILL BREAKDOWN</div>
+                      <div className="space-y-2">
+                        {gradeEntries.map((item, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-24 text-xs text-gray-600 truncate">{item.label}</div>
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-500'}`}
+                                className={`h-full rounded-full ${getGradeBarColor(item.grade)}`}
                                 style={{ width: `${item.grade}%` }}
                               />
                             </div>
+                            <div className="w-8 text-xs font-semibold text-gray-700 text-right">{item.grade}</div>
                           </div>
                         ))}
                       </div>
@@ -552,25 +870,37 @@ function AnimatedDashboard() {
                   </div>
                 )}
 
-                {activeTab === 'moments' && (
-                  <div className="space-y-2">
-                    {selectedPlayer.keyMoments.length > 0 ? (
-                      selectedPlayer.keyMoments.map((moment, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                          <div className={`shrink-0 w-14 text-center py-1 rounded text-xs font-mono ${isFootball ? 'bg-[#0f2d52] text-white' : 'bg-orange-600 text-white'}`}>
-                            {moment.time}
+                {activeTab === 'clips' && (
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedPlayer.keyMoments.map((moment, i) => (
+                        <div
+                          key={i}
+                          className={`rounded-xl overflow-hidden border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
+                            moment.type === 'highlight' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                          }`}
+                        >
+                          {/* Video thumbnail area */}
+                          <div className={`h-16 flex items-center justify-center ${moment.type === 'highlight' ? 'bg-green-100' : 'bg-red-100'}`}>
+                            <span className="text-3xl">{moment.thumbnail}</span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-700 truncate">{moment.play}</p>
+                          <div className="p-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isFootball ? 'bg-[#0f2d52] text-white' : 'bg-orange-600 text-white'}`}>
+                                {moment.time}
+                              </span>
+                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${getGradeColor(moment.grade)}`}>
+                                {moment.grade}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-700 line-clamp-2">{moment.description}</p>
                           </div>
-                          <span className={`shrink-0 text-xs font-bold px-2 py-1 rounded ${getGradeColor(moment.grade)}`}>
-                            {moment.grade}
-                          </span>
                         </div>
-                      ))
-                    ) : (
+                      ))}
+                    </div>
+                    {selectedPlayer.keyMoments.length === 0 && (
                       <div className="text-center py-8 text-gray-500 text-sm">
-                        No key moments flagged for this player
+                        No video clips available for this player
                       </div>
                     )}
                   </div>
