@@ -13,7 +13,8 @@ import {
   Brain,
   CreditCard,
   Scissors,
-  Play
+  Play,
+  ClipboardList,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/admin/annotate', label: 'Annotate Videos', icon: Scissors },
   { href: '/admin/corrections', label: 'Correction Queue', icon: Flag },
   { href: '/admin/games', label: 'All Games', icon: Video },
+  { href: '/admin/teams', label: 'Team Database', icon: ClipboardList },
   { href: '/admin/players', label: 'Player Database', icon: Users },
   { href: '/admin/models', label: 'ML Models', icon: Brain },
   { href: '/admin/billing', label: 'Billing', icon: CreditCard },

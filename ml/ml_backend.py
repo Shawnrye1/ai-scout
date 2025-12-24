@@ -233,25 +233,43 @@ def predict_video(yolo, video_url: str, keyframe_rate: int = 10) -> Dict[str, An
                                 crop = frame[y1i:jersey_y2, x1i:x2i]
                                 if crop.size > 0:
                                     try:
-                                        # PaddleOCR 3.x API - use predict() or ocr()
+                                        # PaddleOCR 3.x API
                                         ocr_result = ocr.ocr(crop)
+
+                                        # Debug: log first OCR attempt to see format
+                                        if frame_idx == 0 and track_id <= 3:
+                                            print(f"[OCR DEBUG] Track {track_id} result type: {type(ocr_result)}")
+                                            print(f"[OCR DEBUG] Track {track_id} result: {ocr_result}")
+
                                         if ocr_result and ocr_result[0]:
                                             for line in ocr_result[0]:
                                                 # Handle different result formats
+                                                text = None
+                                                ocr_conf = 0.5
+
                                                 if isinstance(line, dict):
                                                     text = str(line.get('text', '')).strip()
                                                     ocr_conf = float(line.get('score', 0))
                                                 elif isinstance(line, (list, tuple)) and len(line) >= 2:
-                                                    text = str(line[1][0]).strip() if isinstance(line[1], (list, tuple)) else str(line[1]).strip()
-                                                    ocr_conf = float(line[1][1]) if isinstance(line[1], (list, tuple)) and len(line[1]) > 1 else 0.5
-                                                else:
-                                                    continue
-                                                # Look for 1-2 digit numbers (jersey numbers)
-                                                if text.isdigit() and len(text) <= 2 and ocr_conf > 0.4:
-                                                    jersey_readings[track_id].append(text)
-                                                    print(f"[OCR] Track {track_id}: read '{text}' (conf={ocr_conf:.2f})")
+                                                    # Standard format: [[box], (text, conf)]
+                                                    if isinstance(line[1], (list, tuple)):
+                                                        text = str(line[1][0]).strip()
+                                                        ocr_conf = float(line[1][1]) if len(line[1]) > 1 else 0.5
+                                                    else:
+                                                        text = str(line[1]).strip()
+
+                                                if text:
+                                                    # Log all OCR detections for debugging
+                                                    if frame_idx % 90 == 0:  # Every 3 seconds
+                                                        print(f"[OCR] Track {track_id}: '{text}' (conf={ocr_conf:.2f})")
+
+                                                    # Look for 1-2 digit numbers (jersey numbers)
+                                                    if text.isdigit() and len(text) <= 2 and ocr_conf > 0.3:
+                                                        jersey_readings[track_id].append(text)
+                                                        print(f"[OCR MATCH] Track {track_id}: Jersey #{text} (conf={ocr_conf:.2f})")
                                     except Exception as e:
-                                        print(f"[OCR] Error on track {track_id}: {e}")
+                                        if frame_idx == 0:
+                                            print(f"[OCR] Error on track {track_id}: {e}")
 
                 # Log progress
                 if frame_idx % 30 == 0:

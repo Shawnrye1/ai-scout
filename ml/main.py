@@ -186,8 +186,13 @@ class VideoProcessor:
         return {"detections": detections}
 
     @modal.method()
-    def read_jersey_number(self, player_crop_bytes: bytes) -> dict:
-        """Read jersey number from a cropped player image."""
+    def read_jersey_number(self, player_crop_bytes: bytes, validate_against_roster: bool = True) -> dict:
+        """Read jersey number from a cropped player image.
+
+        If roster data is available and validate_against_roster is True,
+        OCR results are validated against known jersey numbers.
+        Numbers not in the roster get lower confidence.
+        """
         import cv2
         import numpy as np
 
@@ -204,17 +209,33 @@ class VideoProcessor:
                 conf = line[1][1]
                 # Filter for jersey numbers (1-2 digits)
                 if text.isdigit() and len(text) <= 2:
+                    # Boost confidence if number is in roster
+                    roster_validated = False
+                    if validate_against_roster and hasattr(self, '_valid_jerseys') and self._valid_jerseys:
+                        if text in self._valid_jerseys:
+                            # Number is in roster - boost confidence
+                            conf = min(1.0, conf * 1.2)
+                            roster_validated = True
+                        else:
+                            # Number NOT in roster - reduce confidence significantly
+                            conf = conf * 0.5
+
                     numbers.append({
                         "number": text,
-                        "confidence": conf
+                        "confidence": conf,
+                        "roster_validated": roster_validated
                     })
 
         # Return highest confidence number
         if numbers:
             best = max(numbers, key=lambda x: x["confidence"])
-            return {"jersey_number": best["number"], "confidence": best["confidence"]}
+            return {
+                "jersey_number": best["number"],
+                "confidence": best["confidence"],
+                "roster_validated": best.get("roster_validated", False)
+            }
 
-        return {"jersey_number": None, "confidence": 0}
+        return {"jersey_number": None, "confidence": 0, "roster_validated": False}
 
     @modal.method()
     def process_chunk(self, video_path: str, start_time: float, end_time: float, chunk_id: int) -> dict:
@@ -293,13 +314,32 @@ class VideoProcessor:
         }
 
     @modal.method()
-    def process_video_chunked(self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "") -> dict:
-        """Process video in chunks for better reliability with long videos."""
+    def process_video_chunked(
+        self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "",
+        roster_config: dict = None, valid_jerseys: list = None
+    ) -> dict:
+        """Process video in chunks for better reliability with long videos.
+
+        Args:
+            video_url: URL to download video
+            game_id: Game ID for webhook updates
+            webhook_url: URL to post status updates
+            webhook_secret: Secret for webhook auth
+            roster_config: Team roster data for player identification
+            valid_jerseys: List of valid jersey numbers from rosters (for OCR validation)
+        """
         import cv2
         import httpx
         import tempfile
         import os
         import concurrent.futures
+
+        # Store roster info for OCR validation
+        self._valid_jerseys = set(valid_jerseys) if valid_jerseys else set()
+        self._roster_config = roster_config or {}
+
+        if self._valid_jerseys:
+            print(f"[Roster] Will validate OCR against {len(self._valid_jerseys)} known jersey numbers")
 
         # Download video
         print(f"Downloading video from {video_url[:50]}...")
@@ -468,12 +508,31 @@ class VideoProcessor:
         return merged
 
     @modal.method()
-    def process_video(self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "") -> dict:
-        """Full video processing pipeline."""
+    def process_video(
+        self, video_url: str, game_id: str, webhook_url: str, webhook_secret: str = "",
+        roster_config: dict = None, valid_jerseys: list = None
+    ) -> dict:
+        """Full video processing pipeline.
+
+        Args:
+            video_url: URL to download video
+            game_id: Game ID for webhook updates
+            webhook_url: URL to post status updates
+            webhook_secret: Secret for webhook auth
+            roster_config: Team roster data for player identification
+            valid_jerseys: List of valid jersey numbers from rosters (for OCR validation)
+        """
         import cv2
         import httpx
         import tempfile
         import os
+
+        # Store roster info for OCR validation
+        self._valid_jerseys = set(valid_jerseys) if valid_jerseys else set()
+        self._roster_config = roster_config or {}
+
+        if self._valid_jerseys:
+            print(f"[Roster] Will validate OCR against {len(self._valid_jerseys)} known jersey numbers")
 
         # Download video
         print(f"Downloading video from {video_url[:50]}...")
@@ -616,6 +675,13 @@ def trigger_processing(request: dict):
     """Webhook endpoint to trigger video processing.
 
     Automatically uses chunked processing for videos > 15 minutes.
+
+    New: Accepts roster data for OCR validation:
+    - is_home_game: bool - whether coach's team is home
+    - home_team_roster: dict with team_name, jersey_color_home/away, players[]
+    - away_team_roster: dict with team_name, jersey_color_home/away, players[]
+
+    Players[] contains: jersey_number, name, position, height, weight
     """
     import os
 
@@ -626,26 +692,65 @@ def trigger_processing(request: dict):
     use_chunked = request.get("use_chunked", True)  # Default to chunked for reliability
     video_duration = request.get("video_duration", 0)  # Optional hint from client
 
+    # Roster data for OCR validation
+    is_home_game = request.get("is_home_game")
+    home_team_roster = request.get("home_team_roster")
+    away_team_roster = request.get("away_team_roster")
+
+    # Log roster info for debugging
+    if home_team_roster:
+        print(f"[Roster] Home team: {home_team_roster.get('team_name')} ({len(home_team_roster.get('players', []))} players)")
+    if away_team_roster:
+        print(f"[Roster] Away team: {away_team_roster.get('team_name')} ({len(away_team_roster.get('players', []))} players)")
+
     if not game_id or not video_url:
         return {"error": "Missing game_id or video_url"}
 
     processor = VideoProcessor()
 
+    # Build roster config to pass to processor
+    roster_config = {
+        "is_home_game": is_home_game,
+        "home_team_roster": home_team_roster,
+        "away_team_roster": away_team_roster,
+    }
+
+    # Extract valid jersey numbers from rosters for OCR validation
+    valid_jerseys = set()
+    if home_team_roster and home_team_roster.get("players"):
+        for p in home_team_roster["players"]:
+            if p.get("jersey_number"):
+                valid_jerseys.add(str(p["jersey_number"]))
+    if away_team_roster and away_team_roster.get("players"):
+        for p in away_team_roster["players"]:
+            if p.get("jersey_number"):
+                valid_jerseys.add(str(p["jersey_number"]))
+
+    print(f"[Roster] Valid jersey numbers: {sorted(valid_jerseys) if valid_jerseys else 'None'}")
+
     # Use chunked processing for long videos or when explicitly requested
     # Default to chunked for better reliability
     if use_chunked or video_duration > MIN_VIDEO_FOR_CHUNKING:
-        processor.process_video_chunked.spawn(video_url, game_id, webhook_url, webhook_secret)
+        processor.process_video_chunked.spawn(
+            video_url, game_id, webhook_url, webhook_secret,
+            roster_config=roster_config, valid_jerseys=list(valid_jerseys)
+        )
         return {
             "success": True,
             "message": f"Chunked processing started for game {game_id}",
             "processing_mode": "chunked",
+            "roster_players": len(valid_jerseys),
         }
     else:
-        processor.process_video.spawn(video_url, game_id, webhook_url, webhook_secret)
+        processor.process_video.spawn(
+            video_url, game_id, webhook_url, webhook_secret,
+            roster_config=roster_config, valid_jerseys=list(valid_jerseys)
+        )
         return {
             "success": True,
             "message": f"Processing started for game {game_id}",
             "processing_mode": "standard",
+            "roster_players": len(valid_jerseys),
         }
 
 

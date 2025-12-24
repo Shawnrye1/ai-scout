@@ -24,7 +24,6 @@ export async function PATCH(
       .update(detectedPlays)
       .set({
         needsReview: reviewed ? false : true,
-        updatedAt: new Date(),
       })
       .where(eq(detectedPlays.id, playId));
 

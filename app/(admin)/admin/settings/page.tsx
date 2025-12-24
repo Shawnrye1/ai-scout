@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, Save, RefreshCw, Database, Brain, Mail, Key } from 'lucide-react';
+import { Settings, Save, RefreshCw, Database, Brain, Mail, Key, Palette } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ThemeToggle with SSR disabled to avoid prerendering issues
+const ThemeToggle = dynamic(
+  () => import('@/components/theme-toggle').then((mod) => mod.ThemeToggle),
+  { ssr: false }
+);
 
 export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
@@ -24,25 +31,40 @@ export default function AdminSettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Settings</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Settings</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Configure system behavior and processing options
         </p>
       </div>
 
       <div className="max-w-2xl space-y-6">
+        {/* Appearance */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Palette className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
+          </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-white mb-2">Theme</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Choose your preferred color scheme
+            </div>
+            <ThemeToggle />
+          </div>
+        </div>
+
         {/* AI Processing */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-4">
             <Brain className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-semibold text-gray-900">AI Processing</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Processing</h2>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-900">Auto-flag low confidence detections</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-medium text-gray-900 dark:text-white">Auto-flag low confidence detections</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Automatically flag plays below confidence threshold for review
                 </div>
               </div>
@@ -63,7 +85,7 @@ export default function AdminSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 mb-2">
                 Confidence Threshold ({settings.confidenceThreshold}%)
               </label>
               <input
@@ -76,7 +98,7 @@ export default function AdminSettingsPage() {
                 }
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                 <span>50% (More items flagged)</span>
                 <span>95% (Fewer items flagged)</span>
               </div>
@@ -84,8 +106,8 @@ export default function AdminSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-900">Auto-generate reports</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-medium text-gray-900 dark:text-white">Auto-generate reports</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Automatically generate scouting reports when processing completes
                 </div>
               </div>
@@ -108,15 +130,15 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Model Training */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-4">
             <RefreshCw className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Model Training</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Model Training</h2>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Auto-retrain threshold ({settings.retrainThreshold} corrections)
               </label>
               <input
@@ -130,7 +152,7 @@ export default function AdminSettingsPage() {
                 }
                 className="w-full"
               />
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Trigger model retraining after this many new corrections
               </div>
             </div>
@@ -138,17 +160,17 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Notifications */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-4">
             <Mail className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium text-gray-900">Email on processing complete</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-medium text-gray-900 dark:text-white">Email on processing complete</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Send email notification when game analysis is ready
                 </div>
               </div>
@@ -171,15 +193,15 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Integrations */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-4">
             <Key className="w-5 h-5 text-orange-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Integrations</h2>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Modal Endpoint
               </label>
               <input
@@ -187,9 +209,9 @@ export default function AdminSettingsPage() {
                 value={settings.modalEndpoint}
                 onChange={(e) => setSettings((s) => ({ ...s, modalEndpoint: e.target.value }))}
                 placeholder="https://your-modal-endpoint.modal.run"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f2d52]"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0f2d52]"
               />
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 The Modal.com endpoint for ML processing
               </div>
             </div>

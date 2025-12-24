@@ -40,6 +40,40 @@ export const teams = pgTable('teams', {
   stripeProductId: text('stripe_product_id'),
   planName: varchar('plan_name', { length: 50 }),
   subscriptionStatus: varchar('subscription_status', { length: 20 }),
+  // Link to the coach's sports team in the shared database
+  sportsTeamId: integer('sports_team_id'), // references sportsTeams.id (added after sportsTeams is defined)
+});
+
+// Shared sports team database - all teams (schools, clubs, etc.)
+// Any user can search/add teams, reusable across the platform
+export const sportsTeams = pgTable('sports_teams', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(), // e.g., "Lincoln High School"
+  sport: varchar('sport', { length: 20 }).notNull(), // 'basketball', 'football'
+  jerseyColorHome: varchar('jersey_color_home', { length: 50 }), // home jersey color
+  jerseyColorAway: varchar('jersey_color_away', { length: 50 }), // away jersey color
+  city: varchar('city', { length: 100 }),
+  state: varchar('state', { length: 50 }),
+  conference: varchar('conference', { length: 100 }),
+  division: varchar('division', { length: 50 }), // e.g., "4A", "Division I"
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Players in the shared team database
+export const sportsTeamPlayers = pgTable('sports_team_players', {
+  id: serial('id').primaryKey(),
+  sportsTeamId: integer('sports_team_id')
+    .notNull()
+    .references(() => sportsTeams.id),
+  jerseyNumber: integer('jersey_number').notNull(),
+  name: varchar('name', { length: 100 }),
+  height: varchar('height', { length: 10 }),
+  weight: integer('weight'),
+  position: varchar('position', { length: 30 }),
+  yearGrade: varchar('year_grade', { length: 20 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const teamMembers = pgTable('team_members', {
@@ -79,10 +113,25 @@ export const invitations = pgTable('invitations', {
   status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
-export const teamsRelations = relations(teams, ({ many }) => ({
+export const teamsRelations = relations(teams, ({ many, one }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
   invitations: many(invitations),
+  sportsTeam: one(sportsTeams, {
+    fields: [teams.sportsTeamId],
+    references: [sportsTeams.id],
+  }),
+}));
+
+export const sportsTeamsRelations = relations(sportsTeams, ({ many }) => ({
+  players: many(sportsTeamPlayers),
+}));
+
+export const sportsTeamPlayersRelations = relations(sportsTeamPlayers, ({ one }) => ({
+  sportsTeam: one(sportsTeams, {
+    fields: [sportsTeamPlayers.sportsTeamId],
+    references: [sportsTeams.id],
+  }),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -199,7 +248,9 @@ export const games = pgTable('games', {
   processingError: text('processing_error'),
   modalJobId: varchar('modal_job_id', { length: 255 }),
   gameDate: timestamp('game_date'),
-  opponent: varchar('opponent', { length: 255 }),
+  opponent: varchar('opponent', { length: 255 }), // legacy text field
+  opponentSportsTeamId: integer('opponent_sports_team_id'), // link to sportsTeams for structured opponent data
+  isHomeGame: boolean('is_home_game'), // true = home, false = away
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -528,3 +579,9 @@ export type TrainingRun = typeof trainingRuns.$inferSelect;
 export type NewTrainingRun = typeof trainingRuns.$inferInsert;
 export type ModelMetric = typeof modelMetrics.$inferSelect;
 export type NewModelMetric = typeof modelMetrics.$inferInsert;
+
+// Sports Team types
+export type SportsTeam = typeof sportsTeams.$inferSelect;
+export type NewSportsTeam = typeof sportsTeams.$inferInsert;
+export type SportsTeamPlayer = typeof sportsTeamPlayers.$inferSelect;
+export type NewSportsTeamPlayer = typeof sportsTeamPlayers.$inferInsert;

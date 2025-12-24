@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { games, detectedPlayers, detectedTeams, playerAnalysis } from '@/lib/db/schema';
-import { desc, eq, gte, sql, and, isNotNull } from 'drizzle-orm';
+import { desc, eq, gte, sql, and, isNotNull, inArray } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
 export async function GET() {
@@ -48,7 +48,7 @@ export async function GET() {
       const [playersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(detectedPlayers)
-        .where(sql`${detectedPlayers.gameId} = ANY(${gameIds})`);
+        .where(inArray(detectedPlayers.gameId, gameIds));
 
       totalPlayers = playersCount?.count || 0;
 
@@ -57,7 +57,7 @@ export async function GET() {
         .select({ avg: sql<number>`COALESCE(AVG(${playerAnalysis.overallGrade})::numeric(5,2), 0)` })
         .from(playerAnalysis)
         .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
-        .where(sql`${detectedPlayers.gameId} = ANY(${gameIds})`);
+        .where(inArray(detectedPlayers.gameId, gameIds));
 
       avgGrade = parseFloat(avgResult?.avg?.toString() || '0');
 

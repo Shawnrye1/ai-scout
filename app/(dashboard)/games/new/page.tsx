@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo } from 'lucide-react';
+import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo, Home, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,21 @@ import { Label } from '@/components/ui/label';
 type UploadState = 'idle' | 'creating' | 'uploading' | 'completing' | 'done' | 'error';
 type UploadMethod = 'file' | 'url';
 
+interface SportsTeam {
+  id: number;
+  name: string;
+  sport: string;
+  city: string | null;
+  state: string | null;
+}
+
 export default function NewGamePage() {
   const router = useRouter();
   const [uploadMethod, setUploadMethod] = useState<UploadMethod>('file');
   const [title, setTitle] = useState('');
   const [opponent, setOpponent] = useState('');
+  const [opponentTeamId, setOpponentTeamId] = useState<number | null>(null);
+  const [isHomeGame, setIsHomeGame] = useState<boolean | null>(null);
   const [gameDate, setGameDate] = useState('');
   const [sport, setSport] = useState<'football' | 'basketball' | ''>('');
   const [file, setFile] = useState<File | null>(null);
@@ -23,6 +33,31 @@ export default function NewGamePage() {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const [availableTeams, setAvailableTeams] = useState<SportsTeam[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(true);
+
+  // Fetch available teams for opponent selection
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        const res = await fetch('/api/sports-teams');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableTeams(data.teams || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch teams:', err);
+      } finally {
+        setTeamsLoading(false);
+      }
+    }
+    fetchTeams();
+  }, []);
+
+  // Filter teams by sport if sport is selected
+  const filteredTeams = sport
+    ? availableTeams.filter((t) => t.sport === sport)
+    : availableTeams;
 
   // Detect video source from URL
   const getVideoSource = (url: string): 'hudl' | 'youtube' | 'vimeo' | 'direct' | null => {
@@ -91,6 +126,8 @@ export default function NewGamePage() {
         body: JSON.stringify({
           title,
           opponent: opponent || undefined,
+          opponentSportsTeamId: opponentTeamId || undefined,
+          isHomeGame: isHomeGame ?? undefined,
           gameDate: gameDate || undefined,
           sport: sport || undefined,
           // If URL method, include the video URL directly
@@ -341,15 +378,75 @@ export default function NewGamePage() {
             </div>
             <div>
               <Label htmlFor="opponent" className="block text-sm font-medium text-gray-700 mb-1">
-                Opponent
+                Opponent Team
               </Label>
-              <Input
-                id="opponent"
-                value={opponent}
-                onChange={(e) => setOpponent(e.target.value)}
-                placeholder="e.g., Lincoln High"
-                disabled={isUploading}
-              />
+              {filteredTeams.length > 0 ? (
+                <select
+                  id="opponent"
+                  value={opponentTeamId || ''}
+                  onChange={(e) => {
+                    const teamId = e.target.value ? parseInt(e.target.value) : null;
+                    setOpponentTeamId(teamId);
+                    const team = filteredTeams.find((t) => t.id === teamId);
+                    if (team) setOpponent(team.name);
+                  }}
+                  disabled={isUploading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f2d52]"
+                >
+                  <option value="">Select opponent team...</option>
+                  {filteredTeams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} {team.city && team.state ? `(${team.city}, ${team.state})` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id="opponent"
+                  value={opponent}
+                  onChange={(e) => setOpponent(e.target.value)}
+                  placeholder="e.g., Lincoln High"
+                  disabled={isUploading}
+                />
+              )}
+              {!teamsLoading && filteredTeams.length === 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  No teams in database. <Link href="/admin/teams" className="text-[#0f2d52] hover:underline">Add teams</Link> to enable roster matching.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
+                Home / Away
+              </Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsHomeGame(true)}
+                  disabled={isUploading}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                    isHomeGame === true
+                      ? 'border-[#0f2d52] bg-[#0f2d52]/5 text-[#0f2d52]'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <Home className="w-4 h-4" />
+                  Home
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsHomeGame(false)}
+                  disabled={isUploading}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                    isHomeGame === false
+                      ? 'border-[#0f2d52] bg-[#0f2d52]/5 text-[#0f2d52]'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <Plane className="w-4 h-4" />
+                  Away
+                </button>
+              </div>
             </div>
             <div>
               <Label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">

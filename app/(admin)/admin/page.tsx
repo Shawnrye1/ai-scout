@@ -87,8 +87,8 @@ export default function AdminOverview() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Monitor AI performance and manage corrections for model fine-tuning
         </p>
       </div>
@@ -99,12 +99,12 @@ export default function AdminOverview() {
           <a
             key={stat.label}
             href={stat.href}
-            className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
                   {loading ? '...' : stat.value}
                 </p>
               </div>
@@ -118,8 +118,8 @@ export default function AdminOverview() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <a
               href="/admin/corrections"
@@ -146,53 +146,53 @@ export default function AdminOverview() {
         </div>
 
         {/* Today's Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Summary</h2>
           <div className="space-y-4">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Clock className="w-4 h-4" />
                 <span>Games Processed</span>
               </div>
-              <span className="font-semibold text-gray-900">{stats.processedToday}</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{stats.processedToday}</span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <CheckCircle className="w-4 h-4" />
                 <span>Corrections Made</span>
               </div>
-              <span className="font-semibold text-gray-900">{stats.recentCorrections}</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{stats.recentCorrections}</span>
             </div>
             <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <TrendingUp className="w-4 h-4" />
                 <span>Model Confidence</span>
               </div>
-              <span className="font-semibold text-gray-900">{stats.avgConfidence}%</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{stats.avgConfidence}%</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
         {activity.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No recent activity</p>
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No recent activity</p>
         ) : (
           <div className="space-y-3">
             {activity.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50"
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700"
               >
                 <div
                   className={`p-2 rounded-full ${
                     item.type === 'correction'
-                      ? 'bg-green-100 text-green-600'
+                      ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
                       : item.type === 'flagged'
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-blue-100 text-blue-600'
+                      ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-400'
+                      : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                   }`}
                 >
                   {item.type === 'correction' ? (
@@ -204,8 +204,8 @@ export default function AdminOverview() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-900">{item.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm text-gray-900 dark:text-white">{item.description}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {item.timestamp} {item.user && `by ${item.user}`}
                   </p>
                 </div>

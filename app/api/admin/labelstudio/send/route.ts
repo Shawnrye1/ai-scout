@@ -2,8 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { detectedPlays, games } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { labelStudio } from '@/lib/labelstudio/client';
+import { labelStudio, LabelStudioPrediction } from '@/lib/labelstudio/client';
 import { extractVideoClip, clipExists, getClipUrl } from '@/lib/video/clip-extractor';
+
+/**
+ * Get predictions from ML backend
+ *
+ * Calls the Modal ML backend to run YOLO detection on the video clip
+ * and returns predictions in Label Studio format.
+ */
+async function getMLPredictions(videoUrl: string): Promise<LabelStudioPrediction | null> {
+  const mlBackendUrl = process.env.LABEL_STUDIO_ML_BACKEND_URL;
+
+  if (!mlBackendUrl) {
+    console.log('[ML Backend] No ML_BACKEND_URL configured, skipping pre-labeling');
+    return null;
+  }
+
+  try {
+    console.log('[ML Backend] Getting predictions from:', mlBackendUrl);
+
+    // Call the standalone predict_clip function on Modal
+    const response = await fetch(`${mlBackendUrl}/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tasks: [{
+          data: { video: videoUrl }
+        }]
+      }),
+      signal: AbortSignal.timeout(120000), // 2 minute timeout
+    });
+
+    if (!response.ok) {
+      console.error('[ML Backend] Error:', response.status, await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    const predictions = data.results?.[0];
+
+    if (predictions && predictions.result?.length > 0) {
+      console.log(`[ML Backend] Got ${predictions.result.length} predictions`);
+      return predictions;
+    }
+
+    console.log('[ML Backend] No predictions returned');
+    return null;
+  } catch (error) {
+    console.error('[ML Backend] Failed to get predictions:', error);
+    return null;
+  }
+}
 
 /**
  * POST /api/admin/labelstudio/send
@@ -15,11 +67,14 @@ import { extractVideoClip, clipExists, getClipUrl } from '@/lib/video/clip-extra
  * - Frame numbers are relative to the clip start (frame 0 = clip start)
  * - Training frame extraction matches what's annotated
  *
- * Body: { playId: string }
+ * NEW: If ML backend is configured, automatically gets pre-annotations
+ * so annotators only need to correct instead of drawing from scratch.
+ *
+ * Body: { playId: string, skipPredictions?: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
-    const { playId } = await request.json();
+    const { playId, skipPredictions } = await request.json();
 
     if (!playId) {
       return NextResponse.json({ error: 'playId is required' }, { status: 400 });
@@ -126,15 +181,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create new task in Label Studio with the clip
-    const task = await labelStudio.createTask(project.id, {
+    // Get ML predictions for pre-labeling (unless skipped)
+    let predictions: LabelStudioPrediction | null = null;
+    let predictionCount = 0;
+
+    if (!skipPredictions) {
+      console.log('[Label Studio Send] Getting ML predictions for pre-labeling...');
+      predictions = await getMLPredictions(clipUrl);
+      predictionCount = predictions?.result?.length || 0;
+    }
+
+    // Create task in Label Studio with the clip
+    const taskData = {
       video: clipUrl,
       playId: play.id,
       gameId: play.gameId,
       playNumber: play.playNumber || 0,
       startTime: 0,  // Clip starts at 0
       endTime: endTime - startTime,  // Clip duration
-    });
+    };
+
+    let task;
+    if (predictions && predictions.result.length > 0) {
+      // Create task WITH pre-annotations
+      console.log(`[Label Studio Send] Creating task with ${predictionCount} pre-annotations`);
+      task = await labelStudio.createTaskWithPredictions(project.id, taskData, predictions);
+    } else {
+      // Create task without predictions (fallback)
+      console.log('[Label Studio Send] Creating task without pre-annotations');
+      task = await labelStudio.createTask(project.id, taskData);
+    }
 
     return NextResponse.json({
       success: true,
@@ -143,6 +219,8 @@ export async function POST(request: NextRequest) {
       taskUrl: `${process.env.LABEL_STUDIO_URL}/projects/${project.id}/data?task=${task.id}`,
       clipKey,
       clipDuration: endTime - startTime,
+      predictionCount,
+      hasPredictions: predictionCount > 0,
     });
   } catch (error) {
     console.error('Failed to send to Label Studio:', error);

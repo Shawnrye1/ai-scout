@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
 const createGameSchema = z.object({
   title: z.string().min(1).max(255),
   opponent: z.string().optional(),
+  opponentSportsTeamId: z.number().optional(),
+  isHomeGame: z.boolean().optional(),
   gameDate: z.string().optional(),
   sport: z.enum(['football', 'basketball']).optional(),
   // For URL-based video uploads
@@ -77,6 +79,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       title: data.title,
       opponent: data.opponent,
+      opponentSportsTeamId: data.opponentSportsTeamId,
+      isHomeGame: data.isHomeGame,
       gameDate: data.gameDate ? new Date(data.gameDate) : null,
       sport: data.sport,
       videoUrl: data.videoUrl,

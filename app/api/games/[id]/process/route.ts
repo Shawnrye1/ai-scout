@@ -4,6 +4,7 @@ import { games } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { triggerModalProcessing } from '@/lib/processing/modal';
 import { getDownloadPresignedUrl } from '@/lib/storage/r2';
+import { fetchGameRosters } from '@/lib/processing/roster-helper';
 
 /**
  * POST /api/games/[id]/process
@@ -57,11 +58,17 @@ export async function POST(
       })
       .where(eq(games.id, gameId));
 
-    // Trigger Modal processing
+    // Fetch roster data for ML validation
+    const rosterData = await fetchGameRosters(game.id);
+
+    // Trigger Modal processing with roster data
     await triggerModalProcessing({
       gameId: game.id,
       videoUrl,
       sport: game.sport || undefined,
+      isHomeGame: rosterData.isHomeGame ?? undefined,
+      homeTeamRoster: rosterData.homeTeamRoster,
+      awayTeamRoster: rosterData.awayTeamRoster,
     });
 
     return NextResponse.json({

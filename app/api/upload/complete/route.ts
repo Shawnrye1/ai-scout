@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { getPublicUrl, getDownloadPresignedUrl } from '@/lib/storage/r2';
 import { z } from 'zod';
 import { triggerModalProcessing } from '@/lib/processing/modal';
+import { fetchGameRosters } from '@/lib/processing/roster-helper';
 
 // Schema for file uploads
 const fileUploadSchema = z.object({
@@ -101,12 +102,18 @@ export async function POST(request: NextRequest) {
       downloadUrl = await getDownloadPresignedUrl(fileData.key, 3600 * 4); // 4 hour expiry
     }
 
-    // Trigger Modal processing job
+    // Trigger Modal processing job with roster data
     try {
+      // Fetch roster data for ML validation
+      const rosterData = await fetchGameRosters(updatedGame.id);
+
       await triggerModalProcessing({
         gameId: updatedGame.id,
         videoUrl: downloadUrl,
         sport: updatedGame.sport || undefined,
+        isHomeGame: rosterData.isHomeGame ?? undefined,
+        homeTeamRoster: rosterData.homeTeamRoster,
+        awayTeamRoster: rosterData.awayTeamRoster,
       });
     } catch (processingError) {
       console.error('Failed to trigger processing:', processingError);

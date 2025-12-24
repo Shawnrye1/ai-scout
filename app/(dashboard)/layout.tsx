@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X, CreditCard } from 'lucide-react';
+import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X, CreditCard, ClipboardList } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ function UserMenu() {
       <>
         <Link
           href="/pricing"
-          className="text-sm font-medium text-gray-700 hover:text-gray-900"
+          className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
         >
           Pricing
         </Link>
@@ -75,9 +75,15 @@ function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer">
+          <Link href="/roster" className="flex w-full items-center">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            <span>Roster</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Link href="/players" className="flex w-full items-center">
             <Users className="mr-2 h-4 w-4" />
-            <span>Players</span>
+            <span>Player Insights</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer">
@@ -140,8 +146,8 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
       href={href}
       className={`flex items-center gap-2 text-sm font-medium transition-colors ${
         isActive
-          ? 'text-[#0f2d52]'
-          : 'text-gray-600 hover:text-gray-900'
+          ? 'text-[#0f2d52] dark:text-blue-400'
+          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
       }`}
     >
       <Icon className="h-4 w-4" />
@@ -154,21 +160,21 @@ function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
             <Logo className="h-8 w-8" />
-            <span className="ml-2 text-xl font-bold text-gray-900">AI Scout</span>
+            <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">AI Scout</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <NavLink href="/home" icon={LayoutDashboard}>Dashboard</NavLink>
             <NavLink href="/games" icon={Video}>Games</NavLink>
-            <NavLink href="/players" icon={Users}>Players</NavLink>
+            <NavLink href="/roster" icon={ClipboardList}>Roster</NavLink>
+            <NavLink href="/players" icon={Users}>Insights</NavLink>
             <NavLink href="/reports" icon={BarChart3}>Reports</NavLink>
-            <NavLink href="/dashboard/billing" icon={CreditCard}>Billing</NavLink>
           </nav>
         </div>
 
@@ -176,7 +182,7 @@ function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -189,7 +195,7 @@ function Header() {
 
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-gray-100 px-4 py-3 bg-white">
+        <nav className="md:hidden border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800">
           <div className="flex flex-col gap-1">
             <MobileNavLink href="/home" icon={LayoutDashboard} onClick={() => setMobileMenuOpen(false)}>
               Dashboard
@@ -197,8 +203,11 @@ function Header() {
             <MobileNavLink href="/games" icon={Video} onClick={() => setMobileMenuOpen(false)}>
               Games
             </MobileNavLink>
+            <MobileNavLink href="/roster" icon={ClipboardList} onClick={() => setMobileMenuOpen(false)}>
+              Roster
+            </MobileNavLink>
             <MobileNavLink href="/players" icon={Users} onClick={() => setMobileMenuOpen(false)}>
-              Players
+              Player Insights
             </MobileNavLink>
             <MobileNavLink href="/reports" icon={BarChart3} onClick={() => setMobileMenuOpen(false)}>
               Reports
@@ -226,8 +235,8 @@ function MobileNavLink({ href, children, icon: Icon, onClick }: { href: string; 
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
         isActive
-          ? 'bg-[#0f2d52]/10 text-[#0f2d52]'
-          : 'text-gray-600 hover:bg-gray-100'
+          ? 'bg-[#0f2d52]/10 text-[#0f2d52] dark:bg-blue-900/20 dark:text-blue-400'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
       }`}
     >
       <Icon className="h-5 w-5" />
@@ -238,7 +247,7 @@ function MobileNavLink({ href, children, icon: Icon, onClick }: { href: string; 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex flex-col min-h-screen bg-gray-50">
+    <section className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       {children}
     </section>

@@ -10,6 +10,13 @@ import { updateAccount } from '@/app/(login)/actions';
 import { User } from '@/lib/db/schema';
 import useSWR from 'swr';
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ThemeToggle with SSR disabled to avoid prerendering issues
+const ThemeToggle = dynamic(
+  () => import('@/components/theme-toggle').then((mod) => mod.ThemeToggle),
+  { ssr: false }
+);
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -80,9 +87,22 @@ export default function GeneralPage() {
 
   return (
     <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
+      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 dark:text-white mb-6">
         General Settings
       </h1>
+
+      {/* Appearance */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Choose your preferred color scheme
+          </p>
+          <ThemeToggle />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
