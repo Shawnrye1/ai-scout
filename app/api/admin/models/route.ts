@@ -219,6 +219,8 @@ export async function GET() {
       id: run.id,
       modelType: run.modelType,
       status: run.status,
+      progress: run.progress,
+      currentEpoch: run.currentEpoch,
       trainingDataCount: run.trainingDataCount,
       epochs: run.epochs,
       durationSeconds: run.durationSeconds,

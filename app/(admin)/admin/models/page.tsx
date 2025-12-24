@@ -71,6 +71,8 @@ interface TrainingHistory {
   id: string;
   modelType: string;
   status: string;
+  progress: number | null;
+  currentEpoch: number | null;
   trainingDataCount: number | null;
   epochs: number | null;
   durationSeconds: number | null;
@@ -573,6 +575,7 @@ export default function ModelManagement() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Model</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Data</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Duration</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
@@ -599,6 +602,32 @@ export default function ModelManagement() {
                         {run.status === 'failed' && <XCircle className="w-3 h-3" />}
                         {run.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {run.status === 'training' || run.status === 'downloading' || run.status === 'validating' || run.status === 'uploading' ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full transition-all"
+                              style={{ width: `${run.progress || 0}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[3rem]">
+                            {run.progress || 0}%
+                          </span>
+                          {run.currentEpoch && run.epochs && (
+                            <span className="text-xs text-gray-400">
+                              (E{run.currentEpoch}/{run.epochs})
+                            </span>
+                          )}
+                        </div>
+                      ) : run.status === 'completed' ? (
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">100%</span>
+                      ) : run.status === 'failed' ? (
+                        <span className="text-xs text-red-500">-</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {run.trainingDataCount || '-'} annotations

@@ -80,7 +80,11 @@ export async function GET(request: NextRequest) {
         corrected_start: correctedData.actualStartTime || null,
         corrected_end: correctedData.actualEndTime || null,
         split_points: correctedData.splitPoints
-          ? correctedData.splitPoints.split(',').map((s: string) => parseFloat(s.trim())).filter((n: number) => !isNaN(n))
+          ? (Array.isArray(correctedData.splitPoints)
+              ? correctedData.splitPoints.map((n: any) => parseFloat(n)).filter((n: number) => !isNaN(n))
+              : typeof correctedData.splitPoints === 'string'
+                ? correctedData.splitPoints.split(',').map((s: string) => parseFloat(s.trim())).filter((n: number) => !isNaN(n))
+                : [])
           : [],
 
         // Play classification (training target for play type model)

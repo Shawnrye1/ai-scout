@@ -67,17 +67,19 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleProgress(trainingRunId: string, payload: any) {
-  const { status, progress } = payload;
+  const { status, progress, currentEpoch } = payload;
 
   await db
     .update(trainingRuns)
     .set({
       status,
+      progress: progress || 0,
+      currentEpoch: currentEpoch || 0,
       updatedAt: new Date(),
     })
     .where(eq(trainingRuns.id, trainingRunId));
 
-  console.log(`Training ${trainingRunId}: ${status} (${progress}%)`);
+  console.log(`Training ${trainingRunId}: ${status} - ${progress}% (epoch ${currentEpoch || '?'})`);
 }
 
 async function handleCompletion(trainingRunId: string, payload: any) {

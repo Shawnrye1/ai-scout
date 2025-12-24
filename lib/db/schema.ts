@@ -408,6 +408,8 @@ export const trainingRuns = pgTable('training_runs', {
   id: uuid('id').primaryKey().defaultRandom(),
   modelType: varchar('model_type', { length: 50 }).notNull(), // 'player_detection', 'play_segmentation', 'play_classification'
   status: varchar('status', { length: 20 }).notNull().default('queued'), // 'queued', 'downloading', 'training', 'validating', 'completed', 'failed'
+  progress: integer('progress').default(0), // 0-100 completion percentage
+  currentEpoch: integer('current_epoch').default(0), // current epoch number
   modalJobId: varchar('modal_job_id', { length: 255 }),
   trainingDataCount: integer('training_data_count'), // number of annotations used
   epochs: integer('epochs').default(50),

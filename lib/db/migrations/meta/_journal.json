@@ -50,6 +50,13 @@
       "when": 1766565409381,
       "tag": "0006_dashing_human_robot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766597087901,
+      "tag": "0007_tiny_vertigo",
+      "breakpoints": true
     }
   ]
 }

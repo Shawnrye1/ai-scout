@@ -158,10 +158,22 @@ def train_player_detection(
         print(f"Dataset prepared at {dataset_dir}")
 
         # ===== STEP 3: Train YOLOv8 =====
-        send_progress(app_url, training_run_id, webhook_secret, "training", 20)
+        send_progress(app_url, training_run_id, webhook_secret, "training", 20, 0, epochs)
 
         # Load pretrained model
         model = YOLO(base_model)
+
+        # Add callback for epoch progress
+        def on_train_epoch_end(trainer):
+            """Callback to send progress after each epoch."""
+            current = trainer.epoch + 1
+            total = trainer.epochs
+            # Progress: 20% (start) to 80% (before validation), distributed across epochs
+            epoch_progress = 20 + int((current / total) * 60)
+            send_progress(app_url, training_run_id, webhook_secret, "training", epoch_progress, current, total)
+            print(f"Epoch {current}/{total} complete - {epoch_progress}%")
+
+        model.add_callback("on_train_epoch_end", on_train_epoch_end)
 
         # Train with custom data
         start_time = datetime.now()
@@ -448,7 +460,7 @@ def process_annotation(annotation: dict, images_dir: Path, labels_dir: Path, idx
         print(f"Error processing annotation {idx}: {e}")
 
 
-def send_progress(app_url: str, training_run_id: str, secret: str, status: str, progress: int):
+def send_progress(app_url: str, training_run_id: str, secret: str, status: str, progress: int, current_epoch: int = 0, total_epochs: int = 0):
     """Send progress update to webhook."""
     try:
         webhook_url = f"{app_url}/api/webhooks/training"
@@ -457,6 +469,8 @@ def send_progress(app_url: str, training_run_id: str, secret: str, status: str, 
             "trainingRunId": training_run_id,
             "status": status,
             "progress": progress,
+            "currentEpoch": current_epoch,
+            "totalEpochs": total_epochs,
         }
 
         body = json.dumps(payload)
