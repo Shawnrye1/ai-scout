@@ -698,11 +698,21 @@ function GeminiInsights({ analysis }: { analysis: any }) {
             {coachingInsights.forNextGame.attackingTheirDefense?.length > 0 && (
               <div className="bg-green-50 rounded-lg p-4 border border-green-100">
                 <h4 className="text-sm font-semibold text-green-700 mb-2">Attacking Their Defense</h4>
-                <ul className="space-y-2">
-                  {coachingInsights.forNextGame.attackingTheirDefense.map((item: string, i: number) => (
-                    <li key={i} className="text-sm text-green-800 flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      {item}
+                <ul className="space-y-3">
+                  {coachingInsights.forNextGame.attackingTheirDefense.map((item: any, i: number) => (
+                    <li key={i} className="text-sm text-green-800">
+                      {typeof item === 'string' ? (
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          {item}
+                        </div>
+                      ) : (
+                        <div className="bg-green-100/50 rounded-lg p-3">
+                          <div className="font-medium text-green-900 mb-1">{item.action}</div>
+                          {item.why && <div className="text-xs text-green-700">Why: {item.why}</div>}
+                          {item.when && <div className="text-xs text-green-600 mt-1">When: {item.when}</div>}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -713,11 +723,21 @@ function GeminiInsights({ analysis }: { analysis: any }) {
             {coachingInsights.forNextGame.defendingTheirOffense?.length > 0 && (
               <div className="bg-red-50 rounded-lg p-4 border border-red-100">
                 <h4 className="text-sm font-semibold text-red-700 mb-2">Defending Their Offense</h4>
-                <ul className="space-y-2">
-                  {coachingInsights.forNextGame.defendingTheirOffense.map((item: string, i: number) => (
-                    <li key={i} className="text-sm text-red-800 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      {item}
+                <ul className="space-y-3">
+                  {coachingInsights.forNextGame.defendingTheirOffense.map((item: any, i: number) => (
+                    <li key={i} className="text-sm text-red-800">
+                      {typeof item === 'string' ? (
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          {item}
+                        </div>
+                      ) : (
+                        <div className="bg-red-100/50 rounded-lg p-3">
+                          <div className="font-medium text-red-900 mb-1">{item.adjustment || item.action}</div>
+                          {item.why && <div className="text-xs text-red-700">Why: {item.why}</div>}
+                          {item.personnel && <div className="text-xs text-red-600 mt-1">Personnel: {item.personnel}</div>}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -1736,10 +1756,17 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             {/* Player Reports Tab */}
-            {activeTab === 'players' && (
+            {activeTab === 'players' && (() => {
+              // Handle both array and object formats for playerScouting
+              const playerScouting = game.geminiAnalysis?.playerScouting;
+              const scoutedPlayers = Array.isArray(playerScouting)
+                ? playerScouting
+                : (playerScouting?.players || []);
+
+              return (
               <>
                 {/* AI Player Scouting Reports */}
-                {game.geminiAnalysis?.playerScouting?.players?.length > 0 && (
+                {scoutedPlayers.length > 0 && (
                   <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1781,7 +1808,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {game.geminiAnalysis.playerScouting.players
+                      {scoutedPlayers
                         .filter((player: any) => playerTeamFilter === 'all' || player.team === playerTeamFilter)
                         .map((player: any, idx: number) => (
                           <ScoutingPlayerCard
@@ -1818,11 +1845,64 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                 )}
               </>
-            )}
+              );
+            })()}
 
             {/* Plays Tab */}
             {activeTab === 'plays' && (
               <>
+                {/* Key Moments from AI Scouting */}
+                {game.geminiAnalysis?.coachingInsights?.keyMoments?.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-yellow-500" />
+                      Key Moments
+                    </h3>
+                    <div className="grid gap-3">
+                      {game.geminiAnalysis.coachingInsights.keyMoments.map((moment: any, idx: number) => {
+                        // Parse timestamp like "00:16" or "2:22" to seconds
+                        const parseTimestamp = (ts: string) => {
+                          if (!ts) return null;
+                          const parts = ts.split(':').map(Number);
+                          if (parts.length === 2) return parts[0] * 60 + parts[1];
+                          if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                          return null;
+                        };
+                        const seconds = parseTimestamp(moment.timestamp);
+
+                        return (
+                          <div
+                            key={idx}
+                            className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => seconds !== null && openVideoAt(seconds)}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3">
+                                <div className="bg-yellow-400 text-yellow-900 font-bold rounded-lg px-3 py-1.5 text-sm font-mono">
+                                  {moment.timestamp}
+                                </div>
+                                <div>
+                                  <p className="text-gray-800 font-medium">{moment.description}</p>
+                                  {moment.impact && (
+                                    <p className="text-sm text-gray-500 mt-1">{moment.impact}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {game.videoUrl && seconds !== null && (
+                                <Button variant="ghost" size="sm" className="gap-1 text-yellow-700 hover:text-yellow-800 shrink-0">
+                                  <Play className="w-4 h-4" />
+                                  Watch
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Detected Plays */}
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-gray-500">{game.detectedPlays?.length || 0} plays detected</span>
                   {game.videoUrl && (
