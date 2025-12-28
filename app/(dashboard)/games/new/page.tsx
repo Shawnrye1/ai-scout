@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo, Home, Plane } from 'lucide-react';
+import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo, Home, Plane, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,8 @@ export default function NewGamePage() {
   const [error, setError] = useState('');
   const [availableTeams, setAvailableTeams] = useState<SportsTeam[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(true);
+  const [boxScore, setBoxScore] = useState('');
+  const [showBoxScore, setShowBoxScore] = useState(false);
 
   // Fetch available teams for opponent selection
   useEffect(() => {
@@ -130,6 +132,7 @@ export default function NewGamePage() {
           isHomeGame: isHomeGame ?? undefined,
           gameDate: gameDate || undefined,
           sport: sport || undefined,
+          boxScore: boxScore || undefined,
           // If URL method, include the video URL directly
           ...(uploadMethod === 'url' && { videoUrl, videoSource }),
         }),
@@ -486,6 +489,48 @@ export default function NewGamePage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Box Score (Optional, Collapsible) */}
+          <div className="border border-gray-200 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setShowBoxScore(!showBoxScore)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-gray-500" />
+                <span className="font-medium text-gray-700">Box Score</span>
+                <span className="text-xs text-gray-400">(optional)</span>
+              </div>
+              {showBoxScore ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+            {showBoxScore && (
+              <div className="px-4 pb-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mt-3 mb-2">
+                  Paste the box score to help AI map jersey numbers to player names and validate stats.
+                </p>
+                <textarea
+                  value={boxScore}
+                  onChange={(e) => setBoxScore(e.target.value)}
+                  placeholder={`Example:
+TEAM A (78)
+#  Player         FG   3PT   FT  REB PF PTS AST TO BLK STL
+32 Cooper Flagg*  6-16 1-5   4-6  9   2  17  4   3  3   3
+30 Liam McNeeley* 7-11 3-4   2-2  2   0  19  1   0  1   2
+
+TEAM B (72)
+#  Player         FG   3PT   FT  REB PF PTS AST TO BLK STL
+03 AJ Dybantsa*   7-15 2-6   2-2  4   2  18  4   6  0   1`}
+                  disabled={isUploading}
+                  className="w-full h-48 px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f2d52] resize-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* Error Message */}

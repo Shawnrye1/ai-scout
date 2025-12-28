@@ -46,6 +46,8 @@ const createGameSchema = z.object({
   isHomeGame: z.boolean().optional(),
   gameDate: z.string().optional(),
   sport: z.enum(['football', 'basketball']).optional(),
+  // Box score text for player name mapping and stat validation
+  boxScore: z.string().optional(),
   // For URL-based video uploads
   videoUrl: z.string().url().optional(),
   videoSource: z.enum(['hudl', 'youtube', 'vimeo', 'direct']).optional(),
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
       isHomeGame: data.isHomeGame,
       gameDate: data.gameDate ? new Date(data.gameDate) : null,
       sport: data.sport,
+      boxScore: data.boxScore,
       videoUrl: data.videoUrl,
       videoSource: data.videoSource,
       status: isUrlUpload ? 'queued' : 'uploading',

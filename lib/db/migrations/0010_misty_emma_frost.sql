@@ -1,0 +1,2 @@
+ALTER TABLE "detected_teams" ALTER COLUMN "primary_jersey_color" SET DATA TYPE varchar(50);--> statement-breakpoint
+ALTER TABLE "detected_teams" ALTER COLUMN "secondary_jersey_color" SET DATA TYPE varchar(50);

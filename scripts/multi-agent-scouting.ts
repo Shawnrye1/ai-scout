@@ -151,83 +151,67 @@ Return JSON:
 
 Analyze BOTH teams and return an array with two objects.`;
 
-const PLAYER_ANALYST_PROMPT = `You are an INDIVIDUAL PLAYER ANALYST scout analyzing basketball game film.
+// ============================================================================
+// TWO-PASS PLAYER SCOUTING PROMPTS
+// ============================================================================
 
-Focus on identifying and profiling the KEY PLAYERS (5-8 most impactful players you see).
+const JERSEY_SCAN_PROMPT = `You are scanning this basketball game to identify ALL players on BOTH teams.
 
-For each player, analyze:
+Watch the ENTIRE video carefully and list EVERY jersey number you see.
 
-1. OFFENSIVE GAME
-   - Preferred hand
-   - Primary scoring moves
-   - Shooting range and shot selection
-   - Ball handling ability
-   - Passing vision
-   - Off-ball movement
-
-2. DEFENSIVE GAME
-   - On-ball defense quality
-   - Help defense awareness
-   - Closeout technique
-   - Rebounding effort
-   - Positioning
-
-3. ATHLETIC PROFILE
-   - Speed/quickness
-   - Strength/physicality
-   - Explosiveness
-   - Motor/effort level
-
-4. TENDENCIES (most important!)
-   - What does this player ALWAYS do?
-   - What do they NEVER do?
-   - Predictable patterns
-   - Go-to moves in clutch
-
-5. HOW TO GUARD THIS PLAYER
-   - Specific defensive advice
-   - Force them where?
-   - What to take away?
-
-6. HOW TO ATTACK THIS PLAYER
-   - Defensive weaknesses to exploit
-   - Specific actions that work against them
+Be thorough:
+- Watch for substitutions throughout the game
+- Track bench players who enter
+- Note any names you hear announced or see on jerseys
+- Identify team by jersey color (label as "home" or "away")
 
 Return JSON:
 {
-  "players": [
-    {
-      "team": "home" or "away",
-      "jerseyNumber": 23,
-      "estimatedPosition": "PG/SG/SF/PF/C",
-      "overallAssessment": "one sentence summary",
-      "offensiveTendencies": {
-        "preferredHand": "right/left/both",
-        "primaryMoves": ["move 1", "move 2"],
-        "shootingRange": "3pt/midrange/paint only",
-        "scoringStyle": "description",
-        "ballHandling": "elite/good/average/limited",
-        "keyTendency": "THE thing to know - with timestamp example"
-      },
-      "defensiveTendencies": {
-        "onBallDefense": "aggressive/solid/average/weak",
-        "helpDefense": "description",
-        "effort": "high motor/inconsistent/low energy",
-        "keyWeakness": "how to attack them"
-      },
-      "athleticProfile": {
-        "speed": "elite/above average/average/below average",
-        "strength": "physical/average/gets pushed around",
-        "explosiveness": "description"
-      },
-      "scoutingAdvice": {
-        "howToGuard": "specific advice",
-        "howToAttack": "specific advice",
-        "keyMoments": ["timestamp of notable play"]
-      }
-    }
-  ]
+  "homeTeam": {
+    "jerseyColor": "description of home jersey color/style",
+    "players": [
+      {"jersey": 11, "name": "if known or heard"},
+      {"jersey": 22, "name": ""}
+    ]
+  },
+  "awayTeam": {
+    "jerseyColor": "description of away jersey color/style",
+    "players": [
+      {"jersey": 1, "name": ""},
+      {"jersey": 5, "name": ""}
+    ]
+  }
 }`;
+
+const PLAYER_DEEP_DIVE_PROMPT = (playerList: string) => `Scout these basketball players from the video.
+
+Players to scout:
+${playerList}
+
+For EACH player, provide:
+- Jersey number and team
+- Position
+- 1-sentence assessment
+- Preferred hand
+- Top 2 offensive moves
+- Defensive rating (strong/average/weak)
+- How to guard them
+- How to attack them
+
+Return JSON array:
+[
+  {
+    "team": "home",
+    "jerseyNumber": 11,
+    "position": "G",
+    "overallAssessment": "Quick guard who can score in transition",
+    "preferredHand": "right",
+    "primaryMoves": ["drive left", "pull-up jumper"],
+    "defensiveRating": "average",
+    "howToGuard": "Force right, stay in front",
+    "howToAttack": "Use ball screens, he over-helps"
+  }
+]`;
 
 const GAME_FLOW_ANALYST_PROMPT = `You are a GAME FLOW ANALYST studying basketball game film.
 
@@ -416,16 +400,31 @@ async function runAgent(
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[${agentName}] Complete in ${elapsed}s`);
 
-    // Parse JSON
+    // Parse JSON with error handling
     const jsonMatch = result.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (parseError: any) {
+        console.error(`[${agentName}] JSON parse error:`, parseError.message);
+        // Try to fix common JSON issues
+        let fixed = jsonMatch[0]
+          .replace(/,\s*}/g, '}')  // trailing commas in objects
+          .replace(/,\s*]/g, ']')  // trailing commas in arrays
+          .replace(/'/g, '"');     // single quotes to double
+        try {
+          return JSON.parse(fixed);
+        } catch {
+          console.error(`[${agentName}] Could not fix JSON`);
+          return [];
+        }
+      }
     }
-    console.log(`[${agentName}] Warning: Could not parse JSON response`);
-    return null;
+    console.log(`[${agentName}] Warning: Could not find JSON in response`);
+    return [];
   } catch (error: any) {
     console.error(`[${agentName}] Error:`, error.message);
-    return null;
+    return [];
   }
 }
 
@@ -448,15 +447,17 @@ async function multiAgentScouting(videoPath: string, homeTeam?: string, awayTeam
   const totalDuration = parseFloat(durationOutput);
   console.log(`Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s\n`);
 
-  // For long videos, extract a sample
+  // For long videos, extract a sample from early game (to catch starters)
   let videoFile;
-  const isLongVideo = totalDuration > 900; // > 15 min
+  const isLongVideo = totalDuration > 1200; // > 20 min
 
   if (isLongVideo) {
-    const startTime = Math.floor(totalDuration / 4);
+    // Take first half of game (45 min) for comprehensive scouting
+    const startTime = 60; // 1 min in to skip pre-game
+    const sampleDuration = 2700; // 45 minutes (half game)
     const samplePath = '/tmp/scouting-sample.mp4';
-    console.log(`Long video - extracting 15-min sample starting at ${Math.floor(startTime/60)}:${String(startTime%60).padStart(2,'0')}...`);
-    execSync(`ffmpeg -y -ss ${startTime} -i "${videoPath}" -t 900 -c copy "${samplePath}" 2>/dev/null`);
+    console.log(`Long video - extracting ${sampleDuration/60}-min sample (half game) starting at ${Math.floor(startTime/60)}:${String(startTime%60).padStart(2,'0')}...`);
+    execSync(`ffmpeg -y -ss ${startTime} -i "${videoPath}" -t ${sampleDuration} -c copy "${samplePath}" 2>/dev/null`);
     videoFile = await uploadVideo(samplePath, 'Scouting Sample');
     fs.unlinkSync(samplePath);
   } else {
@@ -464,27 +465,73 @@ async function multiAgentScouting(videoPath: string, homeTeam?: string, awayTeam
   }
 
   console.log('\n' + '='.repeat(70));
-  console.log('LAUNCHING SPECIALIZED AGENTS IN PARALLEL');
+  console.log('PHASE 1: TEAM & GAME ANALYSIS (parallel)');
   console.log('='.repeat(70));
 
-  // Run all agents in parallel
-  const agentStartTime = Date.now();
+  // Phase 1: Run team/game agents in parallel with jersey scan
+  const phase1StartTime = Date.now();
   const [
     offensiveResults,
     defensiveResults,
-    playerResults,
+    jerseyScanResults,
     gameFlowResults,
     coachingResults
   ] = await Promise.all([
     runAgent(videoFile, 'OFFENSIVE SCOUT', OFFENSIVE_SCOUT_PROMPT),
     runAgent(videoFile, 'DEFENSIVE SCOUT', DEFENSIVE_SCOUT_PROMPT),
-    runAgent(videoFile, 'PLAYER ANALYST', PLAYER_ANALYST_PROMPT),
+    runAgent(videoFile, 'JERSEY SCAN', JERSEY_SCAN_PROMPT),
     runAgent(videoFile, 'GAME FLOW', GAME_FLOW_ANALYST_PROMPT),
     runAgent(videoFile, 'COACHING STRATEGIST', COACHING_STRATEGIST_PROMPT),
   ]);
 
-  const totalAgentTime = ((Date.now() - agentStartTime) / 1000).toFixed(1);
-  console.log(`\nAll agents completed in ${totalAgentTime}s (parallel execution)`);
+  const phase1Time = ((Date.now() - phase1StartTime) / 1000).toFixed(1);
+  console.log(`\nPhase 1 completed in ${phase1Time}s`);
+
+  // Build player list from jersey scan
+  const homePlayers = jerseyScanResults?.homeTeam?.players || [];
+  const awayPlayers = jerseyScanResults?.awayTeam?.players || [];
+  const allPlayersList = [
+    ...homePlayers.map((p: any) => `Home #${p.jersey}${p.name ? ` (${p.name})` : ''}`),
+    ...awayPlayers.map((p: any) => `Away #${p.jersey}${p.name ? ` (${p.name})` : ''}`),
+  ];
+
+  console.log(`\nJersey scan found ${allPlayersList.length} players:`);
+  console.log(`  Home (${homePlayers.length}): ${homePlayers.map((p: any) => `#${p.jersey}`).join(', ')}`);
+  console.log(`  Away (${awayPlayers.length}): ${awayPlayers.map((p: any) => `#${p.jersey}`).join(', ')}`);
+
+  console.log('\n' + '='.repeat(70));
+  console.log('PHASE 2: PLAYER DEEP DIVE (parallel by team)');
+  console.log('='.repeat(70));
+
+  // Phase 2: Deep dive on players - split by team for better coverage
+  const phase2StartTime = Date.now();
+
+  const homePlayerList = homePlayers.map((p: any) => `Home #${p.jersey}${p.name ? ` (${p.name})` : ''}`).join('\n');
+  const awayPlayerList = awayPlayers.map((p: any) => `Away #${p.jersey}${p.name ? ` (${p.name})` : ''}`).join('\n');
+
+  // Run home and away deep dives in parallel
+  const [homePlayerResults, awayPlayerResults] = await Promise.all([
+    runAgent(videoFile, 'HOME PLAYERS', PLAYER_DEEP_DIVE_PROMPT(homePlayerList)),
+    runAgent(videoFile, 'AWAY PLAYERS', PLAYER_DEEP_DIVE_PROMPT(awayPlayerList)),
+  ]);
+
+  // Combine player results (handle both array and object formats) and normalize team values
+  const homePlayersAnalyzed = (Array.isArray(homePlayerResults) ? homePlayerResults : (homePlayerResults?.players || []))
+    .map((p: any) => ({ ...p, team: p.team?.toLowerCase() || 'home' }));
+  const awayPlayersAnalyzed = (Array.isArray(awayPlayerResults) ? awayPlayerResults : (awayPlayerResults?.players || []))
+    .map((p: any) => ({ ...p, team: p.team?.toLowerCase() || 'away' }));
+  const playerResults = {
+    players: [...homePlayersAnalyzed, ...awayPlayersAnalyzed]
+  };
+
+  console.log(`\n  Home players analyzed: ${homePlayersAnalyzed.length}`);
+  console.log(`  Away players analyzed: ${awayPlayersAnalyzed.length}`);
+
+  const phase2Time = ((Date.now() - phase2StartTime) / 1000).toFixed(1);
+  console.log(`\nPhase 2 completed in ${phase2Time}s`);
+
+  const totalAgentTime = ((Date.now() - phase1StartTime) / 1000).toFixed(1);
+  console.log(`\nTotal analysis time: ${totalAgentTime}s (two-pass with parallel agents)`);
 
   // Combine results into comprehensive scouting report
   console.log('\n' + '='.repeat(70));
@@ -544,7 +591,7 @@ async function multiAgentScouting(videoPath: string, homeTeam?: string, awayTeam
     videoPath,
     homeTeamName: homeTeam || 'Home',
     awayTeamName: awayTeam || 'Away',
-    analysisMethod: 'multi-agent-parallel',
+    analysisMethod: 'multi-agent-two-pass',
     agentResults: {
       offensive: offensiveResults,
       defensive: defensiveResults,
@@ -560,10 +607,11 @@ async function multiAgentScouting(videoPath: string, homeTeam?: string, awayTeam
       keyMoments: gameFlowResults?.keyMoments,
       runs: gameFlowResults?.runs,
       situational: gameFlowResults?.situational,
-      forNextGame: coachingResults?.forNextGame,
-      practicePriorities: coachingResults?.practicePriorities,
-      exploitableTendencies: coachingResults?.exploitableTendencies,
-      gameplanSummary: coachingResults?.gameplanSummary,
+      // Handle coaching results as array or object
+      forNextGame: Array.isArray(coachingResults) ? coachingResults[0]?.forNextGame : coachingResults?.forNextGame,
+      practicePriorities: Array.isArray(coachingResults) ? coachingResults[0]?.practicePriorities : coachingResults?.practicePriorities,
+      exploitableTendencies: Array.isArray(coachingResults) ? coachingResults[0]?.exploitableTendencies : coachingResults?.exploitableTendencies,
+      gameplanSummary: Array.isArray(coachingResults) ? coachingResults[0]?.gameplanSummary : coachingResults?.gameplanSummary,
     },
   };
 

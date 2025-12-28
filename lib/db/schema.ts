@@ -251,6 +251,10 @@ export const games = pgTable('games', {
   opponent: varchar('opponent', { length: 255 }), // legacy text field
   opponentSportsTeamId: integer('opponent_sports_team_id'), // link to sportsTeams for structured opponent data
   isHomeGame: boolean('is_home_game'), // true = home, false = away
+  // Box score text (optional, provided by coach for validation and player name mapping)
+  boxScore: text('box_score'),
+  // Full Gemini analysis JSON (gameInfo, plays, playerScouting, teamAnalysis, gameFlow, coachingInsights)
+  geminiAnalysis: jsonb('gemini_analysis'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -262,8 +266,8 @@ export const detectedTeams = pgTable('detected_teams', {
     .notNull()
     .references(() => games.id, { onDelete: 'cascade' }),
   teamLabel: varchar('team_label', { length: 50 }), // 'home', 'away', 'dark', 'light'
-  primaryJerseyColor: varchar('primary_jersey_color', { length: 20 }),
-  secondaryJerseyColor: varchar('secondary_jersey_color', { length: 20 }),
+  primaryJerseyColor: varchar('primary_jersey_color', { length: 50 }),
+  secondaryJerseyColor: varchar('secondary_jersey_color', { length: 50 }),
   playerCount: integer('player_count'),
   isUserTeam: boolean('is_user_team').default(false),
   teamName: varchar('team_name', { length: 255 }), // user-provided

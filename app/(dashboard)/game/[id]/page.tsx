@@ -18,7 +18,8 @@ import {
   Target,
   Flag,
   Film,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VideoPlayerModal } from '@/components/video-player';
@@ -34,6 +35,210 @@ function getGradeColor(grade: string): string {
   if (g === 'D' || grade === 'below-average') return 'text-orange-600';
   if (g === 'F' || grade === 'poor') return 'text-red-600';
   return 'text-gray-600';
+}
+
+// Parse timestamp like "00:16" or "2:22" or "1:23:45" to seconds
+function parseTimestamp(ts: string): number | null {
+  if (!ts) return null;
+  const parts = ts.split(':').map(Number);
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+// Format seconds to MM:SS or HH:MM:SS
+function formatTime(seconds: number | null): string {
+  if (seconds === null) return '--:--';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Check if analysis is complete (supports both new flag and legacy analyses)
+function isAnalysisComplete(analysis: any): boolean {
+  if (!analysis) return false;
+  // If the flag is explicitly set, use it
+  if (typeof analysis.analysisComplete === 'boolean') {
+    return analysis.analysisComplete;
+  }
+  // For legacy analyses without the flag, check if key sections exist
+  const hasTeamScouting = !!(analysis.teamScouting?.homeTeam || analysis.teamScouting?.awayTeam);
+  const hasPlayerScouting = (analysis.playerScouting?.players?.length || 0) > 0;
+  const hasCoachingInsights = !!(analysis.coachingInsights?.gameNarrative || analysis.coachingInsights?.forNextGame);
+  return hasTeamScouting && hasPlayerScouting;
+}
+
+// Player Detail Modal Component
+function PlayerDetailModal({ player, teamName, isOpen, onClose }: { player: any; teamName?: string; isOpen: boolean; onClose: () => void }) {
+  if (!isOpen || !player) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className={`sticky top-0 z-10 p-6 border-b ${player.team?.toLowerCase() === 'home' ? 'bg-blue-600' : 'bg-orange-500'}`}>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-2xl">
+              #{player.jerseyNumber}
+            </div>
+            <div className="text-white">
+              <h2 className="text-2xl font-bold">
+                {player.name || player.playerName || `Player #${player.jerseyNumber}`}
+              </h2>
+              <div className="flex items-center gap-2 mt-1 text-white/80">
+                <span>{player.position || player.estimatedPosition || 'Player'}</span>
+                <span>•</span>
+                <span>{teamName || (player.team?.toLowerCase() === 'home' ? 'Home Team' : 'Away Team')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Overall Assessment */}
+          {player.overallAssessment && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Overall Assessment</h3>
+              <p className="text-gray-700">{player.overallAssessment}</p>
+            </div>
+          )}
+
+          {/* Physical Profile */}
+          {player.physicalProfile && (
+            <div className="bg-purple-50 rounded-xl p-4">
+              <h3 className="font-semibold text-purple-900 mb-2">Physical Profile</h3>
+              <p className="text-purple-800">{player.physicalProfile}</p>
+            </div>
+          )}
+
+          {/* Key Ratings */}
+          <div className="grid grid-cols-3 gap-3">
+            {player.basketballIQ && (
+              <div className="bg-indigo-50 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-indigo-900 capitalize">{player.basketballIQ}</div>
+                <div className="text-xs text-indigo-600">Basketball IQ</div>
+              </div>
+            )}
+            {player.defensiveRating && (
+              <div className="bg-red-50 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-red-900 capitalize">{player.defensiveRating}</div>
+                <div className="text-xs text-red-600">Defense</div>
+              </div>
+            )}
+            {player.motor && (
+              <div className="bg-green-50 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-green-900 capitalize">{player.motor}</div>
+                <div className="text-xs text-green-600">Motor/Effort</div>
+              </div>
+            )}
+          </div>
+
+          {/* Offensive Skills */}
+          <div className="bg-blue-50 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-900 mb-3">Offensive Game</h3>
+            <div className="space-y-3">
+              {player.preferredHand && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700">Preferred Hand</span>
+                  <span className="font-medium text-blue-900 capitalize">{player.preferredHand}</span>
+                </div>
+              )}
+
+              {/* Shooting Ability */}
+              {player.shootingAbility && (
+                <div className="space-y-2">
+                  <div className="text-sm text-blue-700 font-medium">Shooting</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {player.shootingAbility.range && (
+                      <div className="bg-blue-100 rounded-lg p-2">
+                        <div className="text-blue-600">Range</div>
+                        <div className="font-medium text-blue-900">{player.shootingAbility.range}</div>
+                      </div>
+                    )}
+                    {player.shootingAbility.form && (
+                      <div className="bg-blue-100 rounded-lg p-2">
+                        <div className="text-blue-600">Form</div>
+                        <div className="font-medium text-blue-900">{player.shootingAbility.form}</div>
+                      </div>
+                    )}
+                    {player.shootingAbility.offDribble && (
+                      <div className="bg-blue-100 rounded-lg p-2">
+                        <div className="text-blue-600">Off Dribble</div>
+                        <div className="font-medium text-blue-900">{player.shootingAbility.offDribble}</div>
+                      </div>
+                    )}
+                    {player.shootingAbility.catchAndShoot && (
+                      <div className="bg-blue-100 rounded-lg p-2">
+                        <div className="text-blue-600">Catch & Shoot</div>
+                        <div className="font-medium text-blue-900">{player.shootingAbility.catchAndShoot}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Primary Moves */}
+              {player.primaryMoves && player.primaryMoves.length > 0 && (
+                <div>
+                  <div className="text-sm text-blue-700 font-medium mb-2">Primary Moves</div>
+                  <div className="flex flex-wrap gap-2">
+                    {player.primaryMoves.map((move: string, i: number) => (
+                      <span key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">{move}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Scouting Advice - How to Guard */}
+          {player.howToGuard && (
+            <div className="bg-red-100 rounded-xl p-4">
+              <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                How to Guard This Player
+              </h4>
+              <p className="text-red-900">{player.howToGuard}</p>
+            </div>
+          )}
+
+          {/* Scouting Advice - How to Attack */}
+          {player.howToAttack && (
+            <div className="bg-green-100 rounded-xl p-4">
+              <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                How to Attack This Player
+              </h4>
+              <p className="text-green-900">{player.howToAttack}</p>
+            </div>
+          )}
+
+          {/* Legacy fields for backwards compatibility */}
+          {player.offensiveTendencies?.keyTendency && (
+            <div className="bg-yellow-100 rounded-xl p-4">
+              <h4 className="font-semibold text-yellow-800 mb-2">Key Tendency</h4>
+              <p className="text-yellow-900">{player.offensiveTendencies.keyTendency}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -355,28 +560,36 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
   );
 }
 
-function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: string }) {
+function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamName?: string; onClick?: () => void }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+    <div
+      className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-gray-300 transition-all cursor-pointer"
+      onClick={onClick}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg ${
-            player.team === 'home' ? 'bg-blue-600' : 'bg-orange-500'
+            player.team?.toLowerCase() === 'home' ? 'bg-blue-600' : 'bg-orange-500'
           }`}>
             #{player.jerseyNumber}
           </div>
           <div>
+            {/* Player Name - from box score or jersey number */}
+            <div className="font-bold text-gray-900">
+              {player.name || player.playerName || `#${player.jerseyNumber}`}
+            </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{player.estimatedPosition || 'Player'}</span>
+              <span className="text-sm text-gray-600">{player.estimatedPosition || player.position || 'Player'}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                player.team === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                player.team?.toLowerCase() === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {teamName || (player.team === 'home' ? 'Home' : 'Away')}
+                {teamName || (player.team?.toLowerCase() === 'home' ? 'Home' : 'Away')}
               </span>
             </div>
           </div>
         </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
       </div>
 
       {/* Overall Assessment */}
@@ -384,16 +597,16 @@ function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: stri
         {player.overallAssessment}
       </p>
 
-      {/* Tendencies Grid */}
+      {/* Tendencies Grid - handles both nested and flat formats */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Offensive Tendencies */}
         <div>
           <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Offense</h5>
           <div className="space-y-1 text-xs">
-            {player.offensiveTendencies?.preferredHand && (
+            {(player.offensiveTendencies?.preferredHand || player.preferredHand) && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Hand</span>
-                <span className="font-medium text-gray-700 capitalize">{player.offensiveTendencies.preferredHand}</span>
+                <span className="font-medium text-gray-700 capitalize">{player.offensiveTendencies?.preferredHand || player.preferredHand}</span>
               </div>
             )}
             {player.offensiveTendencies?.shootingRange && (
@@ -409,11 +622,11 @@ function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: stri
               </div>
             )}
           </div>
-          {player.offensiveTendencies?.primaryMoves?.length > 0 && (
+          {(player.offensiveTendencies?.primaryMoves?.length > 0 || player.primaryMoves?.length > 0) && (
             <div className="mt-2">
               <span className="text-xs text-gray-400">Moves:</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {player.offensiveTendencies.primaryMoves.slice(0, 3).map((move: string, i: number) => (
+                {(player.offensiveTendencies?.primaryMoves || player.primaryMoves || []).slice(0, 3).map((move: string, i: number) => (
                   <span key={i} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{move}</span>
                 ))}
               </div>
@@ -425,10 +638,10 @@ function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: stri
         <div>
           <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Defense</h5>
           <div className="space-y-1 text-xs">
-            {player.defensiveTendencies?.onBallDefense && (
+            {(player.defensiveTendencies?.onBallDefense || player.defensiveRating) && (
               <div className="flex justify-between">
-                <span className="text-gray-500">On-Ball</span>
-                <span className="font-medium text-gray-700">{player.defensiveTendencies.onBallDefense}</span>
+                <span className="text-gray-500">Rating</span>
+                <span className="font-medium text-gray-700">{player.defensiveTendencies?.onBallDefense || player.defensiveRating}</span>
               </div>
             )}
             {player.defensiveTendencies?.helpDefense && (
@@ -474,19 +687,19 @@ function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: stri
         </div>
       )}
 
-      {/* Scouting Advice */}
-      {player.scoutingAdvice && (
+      {/* Scouting Advice - handles both nested and flat formats */}
+      {(player.scoutingAdvice || player.howToGuard || player.howToAttack) && (
         <div className="space-y-2 border-t border-gray-100 pt-3">
-          {player.scoutingAdvice.howToGuard && (
+          {(player.scoutingAdvice?.howToGuard || player.howToGuard) && (
             <div className="bg-red-50 rounded-lg p-3">
               <div className="text-xs font-semibold text-red-700 mb-1">How to Guard</div>
-              <p className="text-xs text-red-800">{player.scoutingAdvice.howToGuard}</p>
+              <p className="text-xs text-red-800">{player.scoutingAdvice?.howToGuard || player.howToGuard}</p>
             </div>
           )}
-          {player.scoutingAdvice.howToAttack && (
+          {(player.scoutingAdvice?.howToAttack || player.howToAttack) && (
             <div className="bg-green-50 rounded-lg p-3">
               <div className="text-xs font-semibold text-green-700 mb-1">How to Attack</div>
-              <p className="text-xs text-green-800">{player.scoutingAdvice.howToAttack}</p>
+              <p className="text-xs text-green-800">{player.scoutingAdvice?.howToAttack || player.howToAttack}</p>
             </div>
           )}
         </div>
@@ -501,6 +714,23 @@ function ScoutingPlayerCard({ player, teamName }: { player: any; teamName?: stri
       )}
     </div>
   );
+}
+
+// Helper to safely render tendency items (can be string or object)
+function renderTendency(t: any): string {
+  if (typeof t === 'string') return t;
+  if (t && typeof t === 'object') {
+    // Handle object format: {notes, action, frequency, timestamp}
+    if (t.action) return `${t.action}${t.frequency ? ` (${t.frequency})` : ''}${t.notes ? ` - ${t.notes}` : ''}`;
+    if (t.notes) return t.notes;
+    if (t.tendency) return t.tendency;
+    if (t.description) return t.description;
+    // Fallback: try to stringify first available string value
+    for (const key of ['name', 'text', 'value', 'label']) {
+      if (typeof t[key] === 'string') return t[key];
+    }
+  }
+  return String(t);
 }
 
 function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel: 'home' | 'away'; teamName?: string }) {
@@ -548,10 +778,10 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
             Offensive Tendencies
           </h4>
           <ul className="space-y-2">
-            {team.offensiveTendencies.map((t: string, i: number) => (
+            {team.offensiveTendencies.map((t: any, i: number) => (
               <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
-                <span>{t}</span>
+                <span>{renderTendency(t)}</span>
               </li>
             ))}
           </ul>
@@ -566,10 +796,10 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
             Defensive Tendencies
           </h4>
           <ul className="space-y-2">
-            {team.defensiveTendencies.map((t: string, i: number) => (
+            {team.defensiveTendencies.map((t: any, i: number) => (
               <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
-                <span>{t}</span>
+                <span>{renderTendency(t)}</span>
               </li>
             ))}
           </ul>
@@ -584,10 +814,10 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
             Exploitable Weaknesses
           </h4>
           <ul className="space-y-2">
-            {team.weaknesses.map((w: string, i: number) => (
+            {team.weaknesses.map((w: any, i: number) => (
               <li key={i} className="text-sm text-red-800 flex items-start gap-2">
                 <span className="text-red-500 mt-1">•</span>
-                <span>{w}</span>
+                <span>{renderTendency(w)}</span>
               </li>
             ))}
           </ul>
@@ -1166,9 +1396,9 @@ function GeminiInsights({ analysis }: { analysis: any }) {
                       </span>
                     )}
                     <span className={`text-xs px-2 py-0.5 rounded ${
-                      player.team === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                      player.team?.toLowerCase() === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                     }`}>
-                      {player.team === 'home' ? (gameInfo?.teams?.home?.name || 'Home') : (gameInfo?.teams?.away?.name || 'Away')}
+                      {player.team?.toLowerCase() === 'home' ? (gameInfo?.teams?.home?.name || 'Home') : (gameInfo?.teams?.away?.name || 'Away')}
                     </span>
                   </div>
 
@@ -1243,7 +1473,7 @@ function GeminiInsights({ analysis }: { analysis: any }) {
           {/* Group by team */}
           {['home', 'away'].map((teamLabel) => {
             const teamPlayers = analysis.playerScouting.filter(
-              (p: any) => p.team === teamLabel
+              (p: any) => p.team?.toLowerCase() === teamLabel
             );
             if (teamPlayers.length === 0) return null;
 
@@ -1432,12 +1662,13 @@ function ProcessingStatus({ game }: { game: any }) {
 
 export default function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [activeTab, setActiveTab] = useState<'insights' | 'players' | 'teams' | 'plays'>('insights');
+  const [activeTab, setActiveTab] = useState<'insights' | 'players' | 'teams' | 'plays' | 'video'>('insights');
   const [playerTeamFilter, setPlayerTeamFilter] = useState<'all' | 'home' | 'away'>('all');
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [videoStartTime, setVideoStartTime] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const { data, error, isLoading, mutate } = useSWR(`/api/games/${id}`, fetcher, {
     refreshInterval: 5000, // Poll while processing
   });
@@ -1604,6 +1835,14 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             initialTime={videoStartTime}
           />
         )}
+
+        {/* Player Detail Modal */}
+        <PlayerDetailModal
+          player={selectedPlayer}
+          teamName={selectedPlayer?.team?.toLowerCase() === 'home' ? game.geminiAnalysis?.homeTeamName : game.geminiAnalysis?.awayTeamName}
+          isOpen={!!selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
       </div>
 
       {/* Gemini Analysis Error */}
@@ -1637,16 +1876,28 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
               <h3 className="font-semibold text-gray-900 mb-4">Overview</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Players Detected</span>
-                  <span className="font-semibold text-gray-900">{allPlayers.length}</span>
+                  <span className="text-gray-500">Players Scouted</span>
+                  <span className="font-semibold text-gray-900">
+                    {game.geminiAnalysis?.playerScouting?.players?.length || allPlayers.length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Plays Analyzed</span>
-                  <span className="font-semibold text-gray-900">{game.detectedPlays?.length || 0}</span>
+                  <span className="text-gray-500">Total Shots</span>
+                  <span className="font-semibold text-gray-900">
+                    {(() => {
+                      // Count total FGA from all players' box scores
+                      const players = game.geminiAnalysis?.playerScouting?.players || [];
+                      const totalFGA = players.reduce((sum: number, p: any) =>
+                        sum + (p.boxScore?.fieldGoalsAttempted || 0), 0);
+                      return totalFGA || game.detectedPlays?.length || '-';
+                    })()}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Teams</span>
-                  <span className="font-semibold text-gray-900">{game.detectedTeams?.length || 0}</span>
+                  <span className="text-gray-500">Key Moments</span>
+                  <span className="font-semibold text-gray-900">
+                    {game.geminiAnalysis?.coachingInsights?.keyMoments?.length || 0}
+                  </span>
                 </div>
                 {game.videoDurationSeconds && (
                   <div className="flex items-center justify-between">
@@ -1659,40 +1910,81 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            {/* Teams */}
-            {game.detectedTeams?.map((team: any) => (
-              <div key={team.id} className="bg-white rounded-xl border border-gray-200 p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  {team.primaryJerseyColor && (
-                    <div
-                      className="w-6 h-6 rounded-full border-2 border-gray-200"
-                      style={{ backgroundColor: team.primaryJerseyColor }}
-                    />
-                  )}
-                  <h3 className="font-semibold text-gray-900">
-                    {team.teamName || team.teamLabel || 'Team'}
-                  </h3>
-                  {team.isUserTeam && (
+            {/* Teams - Use Gemini analysis if available, otherwise detectedTeams */}
+            {game.geminiAnalysis?.teamScouting ? (
+              <>
+                {/* Home Team */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-6 h-6 rounded-full bg-blue-600" />
+                    <h3 className="font-semibold text-gray-900">
+                      {game.geminiAnalysis.homeTeamName || 'Home'}
+                    </h3>
                     <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'home').length || 0} players scouted
+                  </div>
+                </div>
+                {/* Away Team */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-6 h-6 rounded-full bg-orange-500" />
+                    <h3 className="font-semibold text-gray-900">
+                      {game.geminiAnalysis.awayTeamName || 'Away'}
+                    </h3>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'away').length || 0} players scouted
+                  </div>
+                </div>
+              </>
+            ) : (
+              game.detectedTeams?.map((team: any) => (
+                <div key={team.id} className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    {team.primaryJerseyColor && (
+                      <div
+                        className="w-6 h-6 rounded-full border-2 border-gray-200"
+                        style={{ backgroundColor: team.primaryJerseyColor }}
+                      />
+                    )}
+                    <h3 className="font-semibold text-gray-900">
+                      {team.teamName || team.teamLabel || 'Team'}
+                    </h3>
+                    {team.isUserTeam && (
+                      <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {team.players?.length || 0} players detected
+                  </div>
+                  {team.analysis?.tendenciesReport && (
+                    <p className="mt-3 text-sm text-gray-600 line-clamp-3">
+                      {team.analysis.tendenciesReport}
+                    </p>
                   )}
                 </div>
-                <div className="text-sm text-gray-500">
-                  {team.players?.length || 0} players detected
-                </div>
-                {team.analysis?.tendenciesReport && (
-                  <p className="mt-3 text-sm text-gray-600 line-clamp-3">
-                    {team.analysis.tendenciesReport}
-                  </p>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Right Column - Tabbed Content */}
           <div className="lg:col-span-2">
+            {/* Show banner if analysis is in progress */}
+            {game.geminiAnalysis && !isAnalysisComplete(game.geminiAnalysis) && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-lg p-4 mb-6 flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                <div>
+                  <p className="text-sm font-medium text-purple-900">Analysis in progress...</p>
+                  <p className="text-xs text-purple-700">Full scouting report will be available when complete</p>
+                </div>
+              </div>
+            )}
+
             {/* Tabs */}
             <div className="flex items-center gap-1 mb-6 border-b border-gray-200 overflow-x-auto pb-px -mb-px scrollbar-hide">
-              {game.geminiAnalysis && (
+              {isAnalysisComplete(game.geminiAnalysis) && (
                 <button
                   onClick={() => setActiveTab('insights')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -1748,10 +2040,25 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   </span>
                 </button>
               )}
+              {game.videoUrl && (
+                <button
+                  onClick={() => setActiveTab('video')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'video'
+                      ? 'border-[#0f2d52] text-[#0f2d52]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Video className="w-4 h-4" />
+                    Video
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* AI Insights Tab */}
-            {activeTab === 'insights' && game.geminiAnalysis && (
+            {activeTab === 'insights' && isAnalysisComplete(game.geminiAnalysis) && (
               <GeminiInsights analysis={game.geminiAnalysis} />
             )}
 
@@ -1809,40 +2116,45 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {scoutedPlayers
-                        .filter((player: any) => playerTeamFilter === 'all' || player.team === playerTeamFilter)
+                        .filter((player: any) => playerTeamFilter === 'all' || player.team?.toLowerCase() === playerTeamFilter)
                         .map((player: any, idx: number) => (
                           <ScoutingPlayerCard
                             key={idx}
                             player={player}
-                            teamName={player.team === 'home' ? game.geminiAnalysis?.homeTeamName : game.geminiAnalysis?.awayTeamName}
+                            teamName={player.team?.toLowerCase() === 'home' ? game.geminiAnalysis?.homeTeamName : game.geminiAnalysis?.awayTeamName}
+                            onClick={() => setSelectedPlayer(player)}
                           />
                         ))}
                     </div>
                   </div>
                 )}
 
-                {/* Detected Players */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-gray-500">{allPlayers.length} players detected</span>
-                </div>
+                {/* Only show old Detected Players section if no Gemini player scouting */}
+                {scoutedPlayers.length === 0 && (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-gray-500">{allPlayers.length} players detected</span>
+                    </div>
 
-                {allPlayers.length === 0 ? (
-                  <div className="bg-gray-50 rounded-xl p-8 text-center">
-                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No players detected yet</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {allPlayers.map((player: any) => (
-                      <PlayerCard
-                        key={player.id}
-                        player={player}
-                        gameId={id}
-                        onMomentClick={openVideoAt}
-                        geminiPlayerData={geminiPlayerMap.get(player.jerseyNumber)}
-                      />
-                    ))}
-                  </div>
+                    {allPlayers.length === 0 ? (
+                      <div className="bg-gray-50 rounded-xl p-8 text-center">
+                        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">No players detected yet</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {allPlayers.map((player: any) => (
+                          <PlayerCard
+                            key={player.id}
+                            player={player}
+                            gameId={id}
+                            onMomentClick={openVideoAt}
+                            geminiPlayerData={geminiPlayerMap.get(player.jerseyNumber)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
               );
@@ -1860,14 +2172,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                     </h3>
                     <div className="grid gap-3">
                       {game.geminiAnalysis.coachingInsights.keyMoments.map((moment: any, idx: number) => {
-                        // Parse timestamp like "00:16" or "2:22" to seconds
-                        const parseTimestamp = (ts: string) => {
-                          if (!ts) return null;
-                          const parts = ts.split(':').map(Number);
-                          if (parts.length === 2) return parts[0] * 60 + parts[1];
-                          if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-                          return null;
-                        };
                         const seconds = parseTimestamp(moment.timestamp);
 
                         return (
@@ -2010,24 +2314,82 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                 )}
 
-                {/* Detected Teams */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-gray-500">{game.detectedTeams?.length || 0} teams detected</span>
-                </div>
+                {/* Only show old Detected Teams section if no Gemini team scouting */}
+                {!game.geminiAnalysis?.teamScouting && (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-gray-500">{game.detectedTeams?.length || 0} teams detected</span>
+                    </div>
 
-                {!game.detectedTeams || game.detectedTeams.length === 0 ? (
-                  <div className="bg-gray-50 rounded-xl p-8 text-center">
-                    <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No team data available yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {game.detectedTeams.map((team: any) => (
-                      <TeamReportCard key={team.id} team={team} sport={game.sport || 'football'} />
-                    ))}
-                  </div>
+                    {!game.detectedTeams || game.detectedTeams.length === 0 ? (
+                      <div className="bg-gray-50 rounded-xl p-8 text-center">
+                        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">No team data available yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {game.detectedTeams.map((team: any) => (
+                          <TeamReportCard key={team.id} team={team} sport={game.sport || 'football'} />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
+            )}
+
+            {/* Video Tab */}
+            {activeTab === 'video' && game.videoUrl && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="aspect-video bg-black">
+                  <video
+                    src={game.videoUrl}
+                    controls
+                    className="w-full h-full"
+                    playsInline
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <div className="p-4 border-t border-gray-100">
+                  <h3 className="font-semibold text-gray-900">{game.name}</h3>
+                  {game.videoDurationSeconds && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Duration: {Math.floor(game.videoDurationSeconds / 60)}:{(game.videoDurationSeconds % 60).toString().padStart(2, '0')}
+                    </p>
+                  )}
+                  {game.geminiAnalysis?.keyMoments && game.geminiAnalysis.keyMoments.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Key Moments</h4>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {game.geminiAnalysis.keyMoments.map((moment: any, idx: number) => {
+                          const seconds = typeof moment.timestamp === 'string'
+                            ? parseTimestamp(moment.timestamp)
+                            : moment.timestamp;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                const video = document.querySelector('video');
+                                if (video && seconds !== null) {
+                                  video.currentTime = seconds;
+                                  video.play();
+                                }
+                              }}
+                              className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors flex items-start gap-3"
+                            >
+                              <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600 whitespace-nowrap">
+                                {moment.timestamp || formatTime(seconds)}
+                              </span>
+                              <span className="text-sm text-gray-700">{moment.description}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
