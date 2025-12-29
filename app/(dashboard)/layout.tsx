@@ -14,7 +14,6 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  CreditCard,
   ClipboardList,
   Shield,
   ChevronLeft,
@@ -39,7 +38,6 @@ const navItems = [
   { href: '/roster', label: 'Roster', icon: ClipboardList },
   { href: '/players', label: 'Player Insights', icon: Users },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard', label: 'Settings', icon: Settings, exact: true },
 ];
 

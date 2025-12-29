@@ -1899,34 +1899,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             {game.gameDate && <span>{new Date(game.gameDate).toLocaleDateString()}</span>}
           </div>
         </div>
-        <div className="flex gap-2">
-          {game.videoUrl && (
-            <Button variant="outline" className="gap-2" onClick={() => openVideoAt(0)}>
-              <Play className="w-4 h-4" />
-              Watch Video
-            </Button>
-          )}
-          {/* Gemini Analysis Button - show when not ready or failed */}
-          {(game.status === 'uploading' || game.status === 'queued' || game.status === 'failed' || !game.detectedPlays?.length) && game.videoUrl && (
-            <Button
-              className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              onClick={handleAnalyzeWithGemini}
-              disabled={isAnalyzing || game.status === 'analyzing'}
-            >
-              {isAnalyzing || game.status === 'analyzing' ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Analyze with Gemini
-                </>
-              )}
-            </Button>
-          )}
-        </div>
         {/* Video Player Modal */}
         {game.videoUrl && (
           <VideoPlayerModal
