@@ -12,7 +12,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { buildFewShotContext, type AgentType } from './few-shot-learning';
+import { buildFewShotContext, getAllVerifiedExampleCounts, type AgentType, type EventType } from './few-shot-learning';
 
 // ============================================================================
 // BASKETBALL SCOUT KNOWLEDGE BASE
@@ -413,6 +413,100 @@ Return JSON:
   }
 }`;
 
+const STAT_TRACKER_PROMPT = `${BASKETBALL_SCOUT_KNOWLEDGE}
+
+---
+
+## YOUR ASSIGNMENT: STAT TRACKER
+
+You are tracking EVERY significant basketball event in this game. Your data will be verified by humans, so include a confidence score for each event.
+
+### EVENTS TO TRACK
+
+For EACH event, record:
+- **type**: scoring, rebound, assist, steal, block, turnover, foul
+- **team**: home or away
+- **jersey**: Player jersey number (null if unclear)
+- **timestamp**: Video elapsed time (MM:SS format, e.g., "12:34")
+- **timestampSeconds**: Seconds from video start (e.g., 754)
+- **confidence**: Your confidence 0-100 (be honest!)
+- **description**: Brief description of what happened
+- **points**: For scoring events only (1, 2, or 3)
+
+### CONFIDENCE SCORING GUIDE
+
+- **90-100**: Crystal clear - you can see the play, the player, and the result with certainty
+- **70-89**: Likely correct - good view but some element is slightly unclear
+- **50-69**: Uncertain - camera angle issues, player occlusion, or fast action
+- **Below 50**: Don't include - too uncertain to report
+
+### EVENT DEFINITIONS (be strict!)
+
+- **scoring**: Ball goes through the hoop (made basket or free throw)
+- **rebound**: Player gains possession after a missed shot
+- **assist**: Pass directly leads to a made basket (no dribbles by scorer)
+- **steal**: Takeaway from opponent who had possession
+- **block**: Deflection of an opponent's shot attempt
+- **turnover**: Loss of possession without a shot attempt
+- **foul**: Referee calls a foul (if visible/audible)
+
+### CRITICAL RULES
+
+1. Only report events you ACTUALLY SEE happen
+2. If jersey number is unclear, set jersey to null and lower confidence
+3. Be HONEST with confidence scores - this is for quality control
+4. Include ALL events, even low-confidence ones (humans will verify)
+5. Use VIDEO ELAPSED TIME, not game clock
+
+Return JSON:
+{
+  "events": [
+    {
+      "type": "scoring",
+      "team": "home",
+      "jersey": 23,
+      "timestamp": "3:45",
+      "timestampSeconds": 225,
+      "confidence": 95,
+      "description": "Made 3-pointer from top of key",
+      "points": 3
+    },
+    {
+      "type": "rebound",
+      "team": "away",
+      "jersey": null,
+      "timestamp": "4:12",
+      "timestampSeconds": 252,
+      "confidence": 65,
+      "description": "Defensive rebound, jersey unclear due to camera angle"
+    },
+    {
+      "type": "assist",
+      "team": "home",
+      "jersey": 5,
+      "timestamp": "5:30",
+      "timestampSeconds": 330,
+      "confidence": 88,
+      "description": "No-look pass to #32 for layup"
+    }
+  ],
+  "summary": {
+    "totalEvents": 45,
+    "byType": {
+      "scoring": 18,
+      "rebound": 12,
+      "assist": 8,
+      "steal": 3,
+      "block": 2,
+      "turnover": 2
+    },
+    "lowConfidenceCount": 8,
+    "averageConfidence": 82
+  }
+}
+
+Track the ENTIRE video. Be thorough but honest about confidence.`;
+
 const COACHING_STRATEGIST_PROMPT = `${BASKETBALL_SCOUT_KNOWLEDGE}
 
 ---
@@ -537,6 +631,21 @@ Be specific. Use professional scouting language. This report goes to coaches.`;
 // MAIN ANALYSIS FUNCTION
 // ============================================================================
 
+export interface DetectedEvent {
+  type: 'scoring' | 'rebound' | 'assist' | 'steal' | 'block' | 'turnover' | 'foul';
+  team: 'home' | 'away';
+  jersey: number | null;
+  timestamp: string;
+  timestampSeconds: number;
+  confidence: number;
+  description: string;
+  points?: number;
+  // Added by review process
+  verified?: boolean;
+  autoApproved?: boolean;
+  reviewStatus?: 'pending' | 'verified' | 'rejected';
+}
+
 export interface MultiAgentAnalysisResult {
   homeTeamName?: string;
   awayTeamName?: string;
@@ -549,12 +658,23 @@ export interface MultiAgentAnalysisResult {
     players: any[];
   };
   coachingInsights: any;
+  // New: Event tracking
+  detectedEvents: DetectedEvent[];
+  humanReviewQueue: DetectedEvent[];
+  verifiedEvents: DetectedEvent[];
+  eventSummary: {
+    totalEvents: number;
+    autoApproved: number;
+    pendingReview: number;
+    byType: Record<string, number>;
+  };
   agentResults: {
     offensive: any;
     defensive: any;
     jerseys: any;
     gameFlow: any;
     coaching: any;
+    statTracker: any;
   };
   analysisMethod: string;
   analyzedAt: string;
@@ -719,12 +839,13 @@ ${boxScore}
 
   const jerseyPromptWithBoxScore = boxScoreContext + JERSEY_SCAN_PROMPT;
 
-  const [offensiveResults, defensiveResults, jerseyResults, gameFlowResults, coachingResults] = await Promise.all([
+  const [offensiveResults, defensiveResults, jerseyResults, gameFlowResults, coachingResults, statTrackerResults] = await Promise.all([
     runAgent(offensiveFewShot + OFFENSIVE_SCOUT_PROMPT, 'OFFENSIVE SCOUT'),
     runAgent(defensiveFewShot + DEFENSIVE_SCOUT_PROMPT, 'DEFENSIVE SCOUT'),
     runAgent(jerseyPromptWithBoxScore, 'JERSEY SCAN'),
     runAgent(gameFlowFewShot + GAME_FLOW_PROMPT, 'GAME FLOW'),
     runAgent(COACHING_STRATEGIST_PROMPT, 'COACHING STRATEGIST'),
+    runAgent(STAT_TRACKER_PROMPT, 'STAT TRACKER'),
   ]);
 
   onProgress?.(50, 'Phase 1 complete. Starting Phase 2: Player deep dive...');
@@ -827,6 +948,82 @@ ${boxScore}
   // Handle coaching results (may be array)
   const coaching = Array.isArray(coachingResults) ? coachingResults[0] : coachingResults;
 
+  onProgress?.(85, 'Processing events and building review queue...');
+
+  // Process stat tracker results and build review queue
+  const rawEvents: DetectedEvent[] = statTrackerResults?.events || [];
+  console.log(`Stat tracker found ${rawEvents.length} events`);
+
+  // AI Auto-Review: Compare events against verified examples
+  // Events that match verified patterns with high confidence can be auto-approved
+  const AUTO_APPROVE_THRESHOLD = 90; // Confidence needed for auto-approval
+  const MIN_VERIFIED_EXAMPLES = 10; // Need this many examples before auto-approving
+
+  // Get verified example counts per event type
+  let verifiedCounts: Record<string, number> = {};
+  try {
+    verifiedCounts = await getAllVerifiedExampleCounts();
+    console.log('Verified example counts:', verifiedCounts);
+  } catch (e) {
+    console.warn('Could not get verified example counts:', e);
+  }
+
+  // Categorize events
+  const verifiedEvents: DetectedEvent[] = [];
+  const humanReviewQueue: DetectedEvent[] = [];
+  const allEvents: DetectedEvent[] = [];
+
+  for (const event of rawEvents) {
+    const typedEvent: DetectedEvent = {
+      type: event.type,
+      team: event.team,
+      jersey: event.jersey,
+      timestamp: event.timestamp,
+      timestampSeconds: event.timestampSeconds,
+      confidence: event.confidence,
+      description: event.description,
+      points: event.points,
+      reviewStatus: 'pending',
+    };
+
+    // Check if we can auto-approve this event
+    const hasEnoughExamples = (verifiedCounts[event.type] || 0) >= MIN_VERIFIED_EXAMPLES;
+    const isHighConfidence = event.confidence >= AUTO_APPROVE_THRESHOLD;
+    const hasJersey = event.jersey !== null;
+
+    if (hasEnoughExamples && isHighConfidence && hasJersey) {
+      // Auto-approve: high confidence + we have training data
+      typedEvent.autoApproved = true;
+      typedEvent.verified = true;
+      typedEvent.reviewStatus = 'verified';
+      verifiedEvents.push(typedEvent);
+    } else {
+      // Needs human review
+      typedEvent.autoApproved = false;
+      humanReviewQueue.push(typedEvent);
+    }
+
+    allEvents.push(typedEvent);
+  }
+
+  // Sort review queue by confidence (lowest first - most uncertain need review first)
+  humanReviewQueue.sort((a, b) => a.confidence - b.confidence);
+
+  // Build event summary
+  const eventsByType: Record<string, number> = {};
+  for (const event of allEvents) {
+    eventsByType[event.type] = (eventsByType[event.type] || 0) + 1;
+  }
+
+  const eventSummary = {
+    totalEvents: allEvents.length,
+    autoApproved: verifiedEvents.length,
+    pendingReview: humanReviewQueue.length,
+    byType: eventsByType,
+  };
+
+  console.log(`Event processing: ${verifiedEvents.length} auto-approved, ${humanReviewQueue.length} need review`);
+
   onProgress?.(90, 'Finalizing scouting report...');
 
   // Check if analysis is complete - primarily based on player detection
@@ -840,12 +1037,18 @@ ${boxScore}
     analysisMethod: 'multi-agent-two-pass',
     analysisComplete,
     analyzedAt: new Date().toISOString(),
+    // Event tracking
+    detectedEvents: allEvents,
+    humanReviewQueue,
+    verifiedEvents,
+    eventSummary,
     agentResults: {
       offensive: offensiveResults,
       defensive: defensiveResults,
       jerseys: jerseyResults,
       gameFlow: gameFlowResults,
       coaching: coachingResults,
+      statTracker: statTrackerResults,
     },
     teamScouting: {
       homeTeam: {

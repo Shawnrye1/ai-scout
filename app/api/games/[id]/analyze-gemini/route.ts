@@ -92,12 +92,14 @@ export async function POST(
       console.warn('Failed to clean up temp directory:', e);
     }
 
-    // Mark game as ready
+    // Mark game as ready, set annotation status based on review queue
+    const hasReviewItems = (analysis.humanReviewQueue?.length || 0) > 0;
     await db
       .update(games)
       .set({
         status: 'ready',
         processingProgress: 100,
+        annotationStatus: hasReviewItems ? 'pending' : 'reviewed',
         updatedAt: new Date(),
       })
       .where(eq(games.id, gameId));
@@ -112,6 +114,11 @@ export async function POST(
         playersDetected: playerCount,
         homeTeam: analysis.homeTeamName,
         awayTeam: analysis.awayTeamName,
+        events: {
+          total: analysis.eventSummary?.totalEvents || 0,
+          autoApproved: analysis.eventSummary?.autoApproved || 0,
+          pendingReview: analysis.eventSummary?.pendingReview || 0,
+        },
       },
     });
   } catch (error) {

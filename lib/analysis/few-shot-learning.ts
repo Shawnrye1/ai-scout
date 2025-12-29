@@ -215,6 +215,31 @@ export async function saveVerifiedExample(
 }
 
 /**
+ * Get count of verified examples for a specific event type
+ */
+export async function getVerifiedExampleCount(eventType: EventType): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(verifiedExamples)
+    .where(eq(verifiedExamples.eventType, eventType));
+
+  return result[0]?.count || 0;
+}
+
+/**
+ * Get counts of verified examples for all event types
+ */
+export async function getAllVerifiedExampleCounts(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+
+  for (const eventType of Object.keys(EVENT_TYPES) as EventType[]) {
+    counts[eventType] = await getVerifiedExampleCount(eventType);
+  }
+
+  return counts;
+}
+
+/**
  * Get few-shot learning statistics
  */
 export async function getFewShotStats(): Promise<{
