@@ -161,7 +161,7 @@ export default function AIPerformancePage() {
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-full">
           <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Gemini 2.0 Flash</span>
+          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Gemini 3 Pro</span>
         </div>
       </div>
 
