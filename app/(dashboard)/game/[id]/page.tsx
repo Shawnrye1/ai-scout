@@ -858,7 +858,9 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
           <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Defense</div>
           <div className="font-bold text-gray-900 text-sm">{team.defensiveSystem || 'Not analyzed'}</div>
           {team.pnrCoverage && (
-            <div className="text-xs text-gray-600 mt-1">PnR: {team.pnrCoverage}</div>
+            <div className="text-xs text-gray-600 mt-1">
+              PnR: {typeof team.pnrCoverage === 'string' ? team.pnrCoverage : team.pnrCoverage.primary || 'N/A'}
+            </div>
           )}
         </div>
       </div>
