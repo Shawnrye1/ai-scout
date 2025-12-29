@@ -1169,9 +1169,48 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
             )}
           </div>
 
+          {/* Players to Watch - with threat/counter details */}
+          {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Players to Watch</h4>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
+                  <div key={i} className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg font-bold text-yellow-800">#{p.jersey}</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{p.team}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-red-700"><span className="font-semibold">Threat:</span> {p.threat}</p>
+                      <p className="text-xs text-green-700"><span className="font-semibold">Counter:</span> {p.counter}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
+      {/* NEW: Practice Priorities */}
+      {coachingInsights?.practicePriorities?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-indigo-600" />
+            Practice Priorities
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coachingInsights.practicePriorities.map((priority: any, i: number) => (
+              <div key={i} className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+                <h4 className="font-semibold text-indigo-800 mb-2">{priority.focus}</h4>
+                {priority.drillSuggestion && (
+                  <p className="text-sm text-indigo-700">{priority.drillSuggestion}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* NEW: Exploitable Tendencies */}
       {coachingInsights?.exploitableTendencies?.length > 0 && (
@@ -1339,27 +1378,6 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
           {coachingInsights.forNextGame && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-sm font-medium text-gray-700 mb-3">Next Game Preparation</p>
-
-              {/* Players to Watch - with threat/counter details */}
-              {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 uppercase mb-2">Players to Watch</p>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
-                      <div key={i} className="p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg font-bold text-red-700">#{p.jersey}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{p.team}</span>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-red-800"><span className="font-semibold">Threat:</span> {p.threat}</p>
-                          <p className="text-xs text-green-700"><span className="font-semibold">Counter:</span> {p.counter}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Attacking Their Defense */}
