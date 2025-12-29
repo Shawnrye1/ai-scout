@@ -37,10 +37,48 @@ function getGradeColor(grade: string): string {
   return 'text-gray-600';
 }
 
-// Parse timestamp like "00:16" or "2:22" or "1:23:45" to seconds
-function parseTimestamp(ts: string): number | null {
+// Convert game clock time to approximate video elapsed time
+// Game clock shows time REMAINING (e.g., "Q1 4:44" = 4:44 left in Q1)
+// Video time is time ELAPSED from start
+// Assumes 8-minute quarters (high school basketball)
+const QUARTER_LENGTH = 8 * 60; // 8 minutes in seconds
+
+function parseTimestamp(ts: string, quarter?: number): number | null {
   if (!ts) return null;
-  const parts = ts.split(':').map(Number);
+
+  // Check for quarter format like "Q1 4:44" or "Q2 5:50"
+  const quarterMatch = ts.match(/Q(\d)\s+(\d+):(\d+)/i);
+  if (quarterMatch) {
+    const q = parseInt(quarterMatch[1]);
+    const mins = parseInt(quarterMatch[2]);
+    const secs = parseInt(quarterMatch[3]);
+    const clockRemaining = mins * 60 + secs;
+
+    // Calculate elapsed time: (completed quarters * quarter length) + (quarter length - remaining)
+    const completedQuarters = q - 1;
+    const elapsedInCurrentQuarter = QUARTER_LENGTH - clockRemaining;
+    return (completedQuarters * QUARTER_LENGTH) + elapsedInCurrentQuarter;
+  }
+
+  // Handle range format like "7:09-4:44" (take the first time as game clock remaining)
+  let timeStr = ts;
+  if (timeStr.includes('-')) {
+    timeStr = timeStr.split('-')[0].trim();
+  }
+
+  // Parse the time
+  const parts = timeStr.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+
+  // If quarter is provided, convert game clock to video time
+  if (quarter && parts.length === 2) {
+    const clockRemaining = parts[0] * 60 + parts[1];
+    const completedQuarters = quarter - 1;
+    const elapsedInCurrentQuarter = QUARTER_LENGTH - clockRemaining;
+    return (completedQuarters * QUARTER_LENGTH) + elapsedInCurrentQuarter;
+  }
+
+  // Otherwise treat as video elapsed time
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   return null;
@@ -58,18 +96,59 @@ function formatTime(seconds: number | null): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Check if analysis is complete (supports both new flag and legacy analyses)
-function isAnalysisComplete(analysis: any): boolean {
-  if (!analysis) return false;
-  // If the flag is explicitly set, use it
-  if (typeof analysis.analysisComplete === 'boolean') {
-    return analysis.analysisComplete;
+// Parse box score to extract team names and final scores
+function parseBoxScore(boxScore: string | null): {
+  homeTeam: { name: string; score: number } | null;
+  awayTeam: { name: string; score: number } | null;
+  quarterScores: { team: string; q1: number; q2: number; q3: number; q4: number; final: number }[];
+} {
+  if (!boxScore) return { homeTeam: null, awayTeam: null, quarterScores: [] };
+
+  const teams: { name: string; score: number }[] = [];
+  const quarterScores: { team: string; q1: number; q2: number; q3: number; q4: number; final: number }[] = [];
+
+  // Match team names with scores like "PROLIFIC PREP (72)" or "MONTVERDE ACADEMY (78)"
+  const teamMatches = boxScore.matchAll(/([A-Z][A-Z\s]+)\s*\((\d+)\)/g);
+  for (const match of teamMatches) {
+    teams.push({ name: match[1].trim(), score: parseInt(match[2]) });
   }
-  // For legacy analyses without the flag, check if key sections exist
-  const hasTeamScouting = !!(analysis.teamScouting?.homeTeam || analysis.teamScouting?.awayTeam);
-  const hasPlayerScouting = (analysis.playerScouting?.players?.length || 0) > 0;
-  const hasCoachingInsights = !!(analysis.coachingInsights?.gameNarrative || analysis.coachingInsights?.forNextGame);
-  return hasTeamScouting && hasPlayerScouting;
+
+  // Parse score by quarter table
+  // Find all team quarter scores using global regex (handles both separate lines and concatenated)
+  // Skip past the header row "Team1st2nd3rd4thFinal"
+  const quarterSection = boxScore.match(/Score By Quarter[\s\S]*?Final(.+)$/);
+  if (quarterSection) {
+    const scoresLine = quarterSection[1]; // Everything after "Final"
+    // Match pattern: TeamName (2+ chars, starting with capital) + 8-10 digits
+    const allMatches = scoresLine.matchAll(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\d{1,2})(\d{2})(\d{2})(\d{2})(\d{2,3})/g);
+    for (const qMatch of allMatches) {
+      quarterScores.push({
+        team: qMatch[1].trim(),
+        q1: parseInt(qMatch[2]),
+        q2: parseInt(qMatch[3]),
+        q3: parseInt(qMatch[4]),
+        q4: parseInt(qMatch[5]),
+        final: parseInt(qMatch[6])
+      });
+    }
+  }
+
+  return {
+    homeTeam: teams[1] || null, // Second team listed is usually home
+    awayTeam: teams[0] || null, // First team listed is usually away
+    quarterScores
+  };
+}
+
+// Check if analysis is complete based on detected players in database
+function isAnalysisComplete(game: any): boolean {
+  if (!game) return false;
+  // Check if we have detected players in the database (the official source)
+  const totalPlayers = game.detectedTeams?.reduce(
+    (sum: number, team: any) => sum + (team.players?.length || 0),
+    0
+  ) || 0;
+  return totalPlayers > 0;
 }
 
 // Player Detail Modal Component
@@ -827,11 +906,12 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
   );
 }
 
-function GeminiInsights({ analysis }: { analysis: any }) {
+function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: string }) {
   if (!analysis) return null;
 
   const gameInfo = analysis.gameInfo;
   const coachingInsights = analysis.coachingInsights;
+  const boxScoreData = parseBoxScore(boxScore || null);
   const gameFlow = analysis.gameFlow;
   const teamAnalysisData = analysis.teamAnalysis;
   const coachReport = analysis.coachReport;
@@ -882,6 +962,49 @@ function GeminiInsights({ analysis }: { analysis: any }) {
             <Film className="w-5 h-5 text-slate-600" />
             Game Summary
           </h3>
+
+          {/* Accurate Final Score from Box Score */}
+          {boxScoreData.homeTeam && boxScoreData.awayTeam && (
+            <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 text-center">Final Score</p>
+
+              {/* Scoreboard Table */}
+              <table className="w-full text-center">
+                <thead>
+                  <tr className="text-xs text-gray-500 uppercase">
+                    <th className="text-left py-1 px-2">Team</th>
+                    <th className="py-1 px-2 w-12">Q1</th>
+                    <th className="py-1 px-2 w-12">Q2</th>
+                    <th className="py-1 px-2 w-12">Q3</th>
+                    <th className="py-1 px-2 w-12">Q4</th>
+                    <th className="py-1 px-3 w-16 bg-gray-100 rounded">Final</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {boxScoreData.quarterScores.map((qs, i) => {
+                    const isWinner = qs.final === Math.max(...boxScoreData.quarterScores.map(q => q.final));
+                    return (
+                      <tr key={i} className={isWinner ? 'font-bold' : ''}>
+                        <td className="text-left py-2 px-2">
+                          <span className={isWinner ? 'text-green-700' : 'text-gray-700'}>
+                            {isWinner && '🏆 '}{qs.team}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-gray-600">{qs.q1}</td>
+                        <td className="py-2 px-2 text-gray-600">{qs.q2}</td>
+                        <td className="py-2 px-2 text-gray-600">{qs.q3}</td>
+                        <td className="py-2 px-2 text-gray-600">{qs.q4}</td>
+                        <td className={`py-2 px-3 bg-gray-100 rounded text-lg ${isWinner ? 'text-green-700' : 'text-gray-700'}`}>
+                          {qs.final}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <p className="text-gray-700 text-lg leading-relaxed">{coachingInsights.gameNarrative}</p>
 
           {/* Deciding Factors */}
@@ -904,12 +1027,17 @@ function GeminiInsights({ analysis }: { analysis: any }) {
             <div className="mt-4 pt-4 border-t border-slate-200">
               <h4 className="text-sm font-semibold text-gray-600 mb-2">Key Moments</h4>
               <div className="space-y-2">
-                {coachingInsights.keyMoments.map((moment: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 text-sm">
-                    <span className="font-mono text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">{moment.timestamp}</span>
-                    <span className="text-gray-600">{moment.description}</span>
-                  </div>
-                ))}
+                {coachingInsights.keyMoments.map((moment: any, i: number) => {
+                  const seconds = parseTimestamp(moment.timestamp);
+                  return (
+                    <div key={i} className="flex items-start gap-3 text-sm">
+                      <span className="font-mono text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">
+                        {formatTime(seconds)}
+                      </span>
+                      <span className="text-gray-600">{moment.description}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1972,7 +2100,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
           {/* Right Column - Tabbed Content */}
           <div className="lg:col-span-2">
             {/* Show banner if analysis is in progress */}
-            {game.geminiAnalysis && !isAnalysisComplete(game.geminiAnalysis) && (
+            {game.geminiAnalysis && !isAnalysisComplete(game) && (
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-lg p-4 mb-6 flex items-center gap-3">
                 <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
                 <div>
@@ -1984,7 +2112,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* Tabs */}
             <div className="flex items-center gap-1 mb-6 border-b border-gray-200 overflow-x-auto pb-px -mb-px scrollbar-hide">
-              {isAnalysisComplete(game.geminiAnalysis) && (
+              {isAnalysisComplete(game) && (
                 <button
                   onClick={() => setActiveTab('insights')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -2058,8 +2186,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {/* AI Insights Tab */}
-            {activeTab === 'insights' && isAnalysisComplete(game.geminiAnalysis) && (
-              <GeminiInsights analysis={game.geminiAnalysis} />
+            {activeTab === 'insights' && isAnalysisComplete(game) && (
+              <GeminiInsights analysis={game.geminiAnalysis} boxScore={game.boxScore as string} />
             )}
 
             {/* Player Reports Tab */}
@@ -2339,58 +2467,132 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             {/* Video Tab */}
-            {activeTab === 'video' && game.videoUrl && (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="aspect-video bg-black">
-                  <video
-                    src={game.videoUrl}
-                    controls
-                    className="w-full h-full"
-                    playsInline
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-                <div className="p-4 border-t border-gray-100">
-                  <h3 className="font-semibold text-gray-900">{game.name}</h3>
-                  {game.videoDurationSeconds && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Duration: {Math.floor(game.videoDurationSeconds / 60)}:{(game.videoDurationSeconds % 60).toString().padStart(2, '0')}
-                    </p>
-                  )}
-                  {game.geminiAnalysis?.keyMoments && game.geminiAnalysis.keyMoments.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Key Moments</h4>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {game.geminiAnalysis.keyMoments.map((moment: any, idx: number) => {
-                          const seconds = typeof moment.timestamp === 'string'
-                            ? parseTimestamp(moment.timestamp)
-                            : moment.timestamp;
-                          return (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                const video = document.querySelector('video');
-                                if (video && seconds !== null) {
-                                  video.currentTime = seconds;
-                                  video.play();
-                                }
-                              }}
-                              className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors flex items-start gap-3"
-                            >
-                              <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600 whitespace-nowrap">
-                                {moment.timestamp || formatTime(seconds)}
-                              </span>
-                              <span className="text-sm text-gray-700">{moment.description}</span>
-                            </button>
-                          );
-                        })}
+            {activeTab === 'video' && game.videoUrl && (() => {
+              const keyMoments = game.geminiAnalysis?.coachingInsights?.keyMoments || [];
+              const scoringRuns = game.geminiAnalysis?.coachingInsights?.scoringRuns || [];
+
+              const jumpToTime = (seconds: number | null) => {
+                const video = document.querySelector('video');
+                if (video && seconds !== null) {
+                  video.currentTime = seconds;
+                  video.play();
+                }
+              };
+
+              return (
+                <div className="space-y-4">
+                  {/* Video Player */}
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="aspect-video bg-black">
+                      <video
+                        src={game.videoUrl}
+                        controls
+                        className="w-full h-full"
+                        playsInline
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  </div>
+
+                  {/* Highlights Grid */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Key Moments */}
+                    {keyMoments.length > 0 && (
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-yellow-500" />
+                          Key Moments ({keyMoments.length})
+                        </h4>
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                          {keyMoments.map((moment: any, idx: number) => {
+                            const seconds = typeof moment.timestamp === 'string'
+                              ? parseTimestamp(moment.timestamp)
+                              : moment.timestamp;
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => jumpToTime(seconds)}
+                                className="w-full text-left p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors border border-yellow-200"
+                              >
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Play className="w-3 h-3 text-yellow-600" />
+                                  <span className="text-xs font-mono font-bold text-yellow-700">
+                                    {formatTime(seconds)}
+                                  </span>
+                                  {moment.type && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 capitalize">
+                                      {moment.type.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-700">{moment.description}</p>
+                                {moment.significance && (
+                                  <p className="text-xs text-gray-500 mt-1 italic">{moment.significance}</p>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+                    )}
+
+                    {/* Scoring Runs */}
+                    {scoringRuns.length > 0 && (
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-500" />
+                          Scoring Runs ({scoringRuns.length})
+                        </h4>
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                          {scoringRuns.map((run: any, idx: number) => {
+                            // Handle videoTimestamp (new), timespan (old), or startTime formats
+                            const timeStr = run.videoTimestamp || run.timespan || run.startTime || '';
+                            // Pass quarter if available to convert game clock to video time
+                            const startSeconds = parseTimestamp(timeStr, run.quarter);
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => jumpToTime(startSeconds)}
+                                className={`w-full text-left p-3 rounded-lg transition-colors border ${
+                                  run.team?.toLowerCase() === 'home' || run.team === 'MVA'
+                                    ? 'bg-blue-50 hover:bg-blue-100 border-blue-200'
+                                    : 'bg-orange-50 hover:bg-orange-100 border-orange-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <Play className="w-3 h-3 text-gray-600" />
+                                    <span className="text-xs font-mono font-bold text-gray-700">
+                                      {run.quarter ? `Q${run.quarter} • ` : ''}{formatTime(startSeconds)}
+                                    </span>
+                                  </div>
+                                  <span className={`text-sm font-bold ${
+                                    run.team?.toLowerCase() === 'home' || run.team === 'MVA' ? 'text-blue-700' : 'text-orange-700'
+                                  }`}>
+                                    {run.run || run.score} {run.team}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-700">{run.cause || run.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* No highlights message */}
+                  {keyMoments.length === 0 && scoringRuns.length === 0 && (
+                    <div className="bg-gray-50 rounded-xl p-8 text-center">
+                      <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No highlights available yet.</p>
+                      <p className="text-sm text-gray-400 mt-1">Run AI analysis to generate key moments and scoring runs.</p>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

@@ -237,7 +237,7 @@ CLOUDFLARE_R2_ACCESS_KEY=xxx
 CLOUDFLARE_R2_SECRET_KEY=xxx
 CLOUDFLARE_R2_BUCKET=aiscoutvideos
 CLOUDFLARE_R2_ENDPOINT=https://xxx.r2.cloudflarestorage.com
-CLOUDFLARE_R2_PUBLIC_URL=https://placeholder.r2.dev
+CLOUDFLARE_R2_PUBLIC_URL=https://pub-9ea8dfd4cd974a818ae6ae814cd7fb6b.r2.dev
 
 # ML Processing (Modal)
 MODAL_TOKEN_ID=ak-xxx
@@ -345,9 +345,129 @@ Before testing video uploads:
 - **Pro**: $149/mo - 50 games/month, priority processing
 - **Team**: $299/mo - Unlimited games, API access
 
+## Gemini Video Analysis
+
+### Overview
+Gemini 2.0 Flash is used for end-to-end video understanding - player identification, play detection, stat tracking, and scouting reports. Uses a **multi-agent architecture** with specialized prompts for different aspects of analysis.
+
+### API Endpoint
+`POST /api/games/[id]/analyze-gemini` - Triggers full multi-agent analysis
+
+### Multi-Agent Two-Pass Architecture
+
+Each analysis run uses a two-phase multi-agent pipeline:
+
+**Phase 1 (25-50%): Parallel Specialist Agents**
+All 5 agents run simultaneously on the uploaded video:
+1. **OFFENSIVE SCOUT** - Tracks offensive actions, shot attempts, assists, turnovers
+2. **DEFENSIVE SCOUT** - Tracks defensive plays, steals, blocks, rebounds
+3. **JERSEY SCAN** - Identifies all players by jersey number and team color
+4. **GAME FLOW** - Tracks scoring runs, momentum shifts, key moments with **video timestamps**
+5. **COACHING STRATEGIST** - Analyzes team tendencies, play patterns, matchups
+
+**Rate Limit Cooldown (60 seconds)**
+Pause between phases to avoid Gemini API rate limits.
+
+**Phase 2 (55-75%): Player Deep Dive**
+Uses jersey scan results to run detailed analysis:
+- **HOME PLAYERS** - Individual scouting reports for home team
+- **AWAY PLAYERS** - Individual scouting reports for away team
+
+**Combining & Finalizing (75-100%)**
+- Merge all agent outputs into unified game analysis
+- Store to database with detected teams, players, and reports
+
+### Running Multiple Analysis Passes
+
+For best results, trigger analysis **twice**. Each pass may detect different players:
+- First pass: Initial detection (e.g., 6 home + 6 away = 12 players)
+- Second pass: Catches missed players (e.g., 6 home + 7 away = 13 players)
+
+Gemini's video processing can miss players on a single pass due to occlusion, fast motion, or camera angles. Running twice improves coverage.
+
+### Video Timestamps
+
+**IMPORTANT**: All timestamps use **video elapsed time** (MM:SS from video start), NOT game clock time.
+- Key moments: `"videoTimestamp": "18:45"` = 18 minutes 45 seconds into the video
+- Scoring runs: `"videoTimestamp": "12:30"` = video position to seek to
+- This allows direct video seeking when clicking on moments/runs in the UI
+
+### Key Features
+
+**Video Chunking (for long games):**
+- Videos > 45 minutes are split into 15-minute chunks
+- Chunks uploaded to Gemini in parallel
+- Results aggregated with timestamp adjustment
+- Player stats combined across chunks
+
+**Shot Log Pattern (for accurate stats):**
+The prompt uses a `shotLog` array to force Gemini to track every shot attempt:
+```json
+{
+  "shotLog": [
+    { "time": "1:23", "seconds": 83, "type": "3pt", "result": "made", "shotType": "jumper", "description": "Corner 3" }
+  ],
+  "boxScore": {
+    "points": 3,
+    "fieldGoalsMade": 1,
+    "fieldGoalsAttempted": 1,
+    "threePointersMade": 1,
+    "threePointersAttempted": 1
+  }
+}
+```
+
+**Validation Rules:**
+- `points = (FGM - 3PM) * 2 + 3PM * 3 + FTM`
+- `fieldGoalsMade = count of "made" entries where type is "2pt" or "3pt"`
+- If points > 0 but FGM = 0, the prompt instructs Gemini to check the shotLog
+
+### Files
+- `/lib/analysis/multi-agent-gemini.ts` - Multi-agent prompts and orchestration
+- `/app/api/games/[id]/analyze-gemini/route.ts` - Main analysis endpoint
+- `/scripts/reanalyze-game.ts` - CLI script to re-run analysis on a game
+- `/scripts/test-gemini-stats.ts` - Test script for stat accuracy validation
+
+### Model Configuration
+
+**IMPORTANT**: Always use Gemini 3 Pro for video analysis:
+- Model: `gemini-3-pro-preview`
+- Do NOT use older models (gemini-2.0-flash, gemini-2.5-pro, gemini-exp-1206)
+- The model is configured in `/lib/analysis/multi-agent-gemini.ts`
+
+### Environment Variables
+```env
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+### Usage
+```bash
+# Trigger via API
+curl -X POST http://localhost:3000/api/games/{gameId}/analyze-gemini
+
+# Re-analyze via CLI
+GEMINI_API_KEY=xxx npx tsx scripts/reanalyze-game.ts <game-id>
+
+# Test stat tracking
+GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
+```
+
+### Known Considerations
+- Gemini processes video at ~1fps, fast movements may be missed
+- For highest accuracy on stats, the shotLog pattern is critical
+- Google's own Basketball Coach demo uses MediaPipe + Gemini (hybrid approach)
+- Qwen-VL is a potential alternative that can be fine-tuned
+- Rate limits require 60s cooldown between phases (~5-6 min total analysis time)
+
 ## Recent Updates
 1. ✅ User role system (admin, coach, assistant_coach, player)
 2. ✅ Hudl/YouTube URL upload support
 3. ✅ Billing pages for coach and admin dashboards
 4. ✅ ML pipeline with YOLOv8x, YOLOv8x-pose, ByteTrack, PaddleOCR
 5. ✅ Mobile-responsive layouts
+6. ✅ Gemini 2.0 Flash video analysis with shotLog pattern for accurate stats
+7. ✅ Video chunking for 45+ minute games (splits into 15-min segments)
+8. ✅ Player stats aggregation across video chunks
+9. ✅ Multi-agent two-pass architecture (5 specialist agents + player deep dive)
+10. ✅ Video elapsed timestamps for Key Moments and Scoring Runs (enables video seeking)
+11. ✅ Scoreboard display with both teams, quarter breakdown, winner indicator

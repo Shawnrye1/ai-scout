@@ -349,12 +349,14 @@ You analyze the rhythm, momentum, and story of the game. Coaches use this to und
 - Any significant runs? (8-0, 12-2, etc.)
 - What caused each run?
 - How did the other team respond?
+- IMPORTANT: Include the VIDEO TIMESTAMP (elapsed time from start of video, like "12:34") when each run started
 
-**KEY MOMENTS** (with timestamps)
+**KEY MOMENTS** (with VIDEO TIMESTAMPS - elapsed time from start of video)
 - Momentum swings (when did the game change?)
 - Big plays (dunks, 3s, blocks that changed energy)
 - Costly turnovers or mistakes
 - Timeout situations (what was the situation?)
+- IMPORTANT: Use VIDEO ELAPSED TIME (like "12:34" meaning 12 minutes 34 seconds into the video), NOT game clock time
 
 **SITUATIONAL ANALYSIS**
 - End of quarter execution (who handles it better?)
@@ -375,11 +377,11 @@ Return JSON:
     "Home team dominated the glass 42-28"
   ],
   "scoringRuns": [
-    {"team": "home", "run": "15-4", "quarter": 3, "timespan": "6:30-2:15", "cause": "Full court press leading to turnovers and fast breaks"}
+    {"team": "home", "run": "15-4", "quarter": 3, "videoTimestamp": "18:45", "cause": "Full court press leading to turnovers and fast breaks"}
   ],
   "keyMoments": [
-    {"timestamp": "Q3 5:42", "type": "momentum_shift", "description": "#5 hits back-to-back 3s after timeout", "impact": "Gave home team first double-digit lead", "team": "home"},
-    {"timestamp": "Q4 8:03", "type": "foul_trouble", "description": "#23 picks up 5th foul on charge", "impact": "Away team loses best scorer", "team": "away"}
+    {"timestamp": "19:32", "type": "momentum_shift", "description": "#5 hits back-to-back 3s after timeout", "impact": "Gave home team first double-digit lead", "team": "home"},
+    {"timestamp": "26:15", "type": "foul_trouble", "description": "#23 picks up 5th foul on charge", "impact": "Away team loses best scorer", "team": "away"}
   ],
   "situational": {
     "endOfQuarter": {"home": "Execute well, get good shots", "away": "Tend to rush, take bad shots"},
@@ -550,12 +552,11 @@ export async function runMultiAgentAnalysis(
 
   const genai = new GoogleGenerativeAI(apiKey);
   const fileManager = new GoogleAIFileManager(apiKey);
+  // Use Gemini 3 Pro for best video analysis quality
   const model = genai.getGenerativeModel({
     model: 'gemini-3-pro-preview',
     generationConfig: {
       responseMimeType: 'application/json',
-      // @ts-ignore - Gemini 3 thinking config
-      thinkingConfig: { thinkingLevel: 'HIGH' },
     },
   });
 
@@ -647,14 +648,22 @@ export async function runMultiAgentAnalysis(
           }
         }
       } catch (e: any) {
-        // Check for rate limit error (429)
-        if (e.message?.includes('429') || e.message?.includes('Too Many Requests')) {
+        const errorMsg = e.message || '';
+        // Check for retryable errors (rate limit or network issues)
+        const isRetryable = errorMsg.includes('429') ||
+                           errorMsg.includes('Too Many Requests') ||
+                           errorMsg.includes('fetch failed') ||
+                           errorMsg.includes('ECONNRESET') ||
+                           errorMsg.includes('ETIMEDOUT') ||
+                           errorMsg.includes('network');
+
+        if (isRetryable && attempt < maxRetries - 1) {
           const waitTime = Math.min(60, 30 * (attempt + 1)); // 30s, 60s, 60s
-          console.log(`[${name}] Rate limited. Waiting ${waitTime}s before retry ${attempt + 1}/${maxRetries}...`);
+          console.log(`[${name}] Error: ${errorMsg}. Waiting ${waitTime}s before retry ${attempt + 1}/${maxRetries}...`);
           await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
           continue;
         }
-        console.error(`[${name}] Error:`, e.message);
+        console.error(`[${name}] Error:`, errorMsg);
         return null;
       }
     }
@@ -753,11 +762,10 @@ ${boxScore}
 
   onProgress?.(90, 'Finalizing scouting report...');
 
-  // Check if analysis is complete (all required sections populated)
-  const hasTeamScouting = !!(homeOffense?.primarySystem || awayOffense?.primarySystem);
+  // Check if analysis is complete - primarily based on player detection
   const hasPlayerScouting = homePlayersAnalyzed.length > 0 || awayPlayersAnalyzed.length > 0;
-  const hasCoachingInsights = !!(gameFlowResults?.gameNarrative || coaching?.forNextGame);
-  const analysisComplete = hasTeamScouting && hasPlayerScouting && hasCoachingInsights;
+  // Mark complete if we have players - other sections are optional
+  const analysisComplete = hasPlayerScouting;
 
   return {
     homeTeamName,
