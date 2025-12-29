@@ -742,13 +742,43 @@ ${boxScore}
     .map((p: any) => ({ ...p, team: 'away' }));
 
   // Build team scouting from offensive/defensive results
-  const offensiveArray = Array.isArray(offensiveResults) ? offensiveResults : [offensiveResults];
-  const defensiveArray = Array.isArray(defensiveResults) ? defensiveResults : [defensiveResults];
+  // Agent may return team names like "Montverde Academy" instead of "home"/"away"
+  // Match by: 1) literal "home"/"away", 2) actual team name, 3) array position fallback
+  const offensiveArray = Array.isArray(offensiveResults) ? offensiveResults.filter(Boolean) : (offensiveResults ? [offensiveResults] : []);
+  const defensiveArray = Array.isArray(defensiveResults) ? defensiveResults.filter(Boolean) : (defensiveResults ? [defensiveResults] : []);
 
-  const homeOffense = offensiveArray.find((o: any) => o?.team?.toLowerCase() === 'home');
-  const awayOffense = offensiveArray.find((o: any) => o?.team?.toLowerCase() === 'away');
-  const homeDefense = defensiveArray.find((d: any) => d?.team?.toLowerCase() === 'home');
-  const awayDefense = defensiveArray.find((d: any) => d?.team?.toLowerCase() === 'away');
+  const matchTeam = (arr: any[], teamName: string, isHome: boolean) => {
+    // First try literal match on home/away
+    const literal = arr.find((o: any) => o?.team?.toLowerCase() === (isHome ? 'home' : 'away'));
+    if (literal) return literal;
+
+    // Then try matching the actual team name
+    if (teamName) {
+      const byName = arr.find((o: any) => o?.team?.toLowerCase()?.includes(teamName.toLowerCase().split(' ')[0]));
+      if (byName) return byName;
+    }
+
+    // Fallback: assume array order is [home, away] or [first, second]
+    if (arr.length === 2) {
+      return isHome ? arr[0] : arr[1];
+    }
+
+    return null;
+  };
+
+  const homeOffense = matchTeam(offensiveArray, homeTeamName, true);
+  const awayOffense = matchTeam(offensiveArray, awayTeamName, false);
+  const homeDefense = matchTeam(defensiveArray, homeTeamName, true);
+  const awayDefense = matchTeam(defensiveArray, awayTeamName, false);
+
+  console.log('Team matching results:', {
+    homeOffense: !!homeOffense,
+    awayOffense: !!awayOffense,
+    homeDefense: !!homeDefense,
+    awayDefense: !!awayDefense,
+    homeTeamName,
+    awayTeamName,
+  });
 
   // Clean up temp files
   try {
