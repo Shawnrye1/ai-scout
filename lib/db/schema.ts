@@ -591,3 +591,74 @@ export type SportsTeam = typeof sportsTeams.$inferSelect;
 export type NewSportsTeam = typeof sportsTeams.$inferInsert;
 export type SportsTeamPlayer = typeof sportsTeamPlayers.$inferSelect;
 export type NewSportsTeamPlayer = typeof sportsTeamPlayers.$inferInsert;
+
+// ============================================
+// GEMINI PROMPT LEARNING & VERSIONING
+// ============================================
+
+// Verified examples for few-shot learning
+// These are corrections where the event was verified (not rejected)
+// Used to include examples in Gemini prompts to improve accuracy
+export const verifiedExamples = pgTable('verified_examples', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  gameId: uuid('game_id').references(() => games.id, { onDelete: 'cascade' }),
+  eventType: varchar('event_type', { length: 50 }).notNull(), // 'scoring', 'rebound', 'steal', 'block', 'assist', 'turnover'
+  team: varchar('team', { length: 10 }).notNull(), // 'home' or 'away'
+  jerseyNumber: integer('jersey_number'),
+  timestamp: varchar('timestamp', { length: 20 }).notNull(), // video timestamp e.g., "2:34"
+  timestampSeconds: integer('timestamp_seconds'), // for ordering
+  description: text('description').notNull(), // human-readable description
+  rawEventData: jsonb('raw_event_data'), // original Gemini output
+  verifiedBy: varchar('verified_by', { length: 100 }),
+  quality: varchar('quality', { length: 20 }).default('standard'), // 'standard', 'exemplary' - exemplary ones are prioritized
+  usedInPromptCount: integer('used_in_prompt_count').default(0), // how many times used
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Prompt versions - track changes to prompts and their effectiveness
+export const promptVersions = pgTable('prompt_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentType: varchar('agent_type', { length: 50 }).notNull(), // 'offensive', 'defensive', 'jersey_scan', 'game_flow', 'coaching', 'player_home', 'player_away'
+  version: varchar('version', { length: 20 }).notNull(), // e.g., 'v1.0.0'
+  promptHash: varchar('prompt_hash', { length: 64 }).notNull(), // SHA256 of prompt content
+  promptSummary: text('prompt_summary'), // human-readable summary of changes
+  changeReason: text('change_reason'), // why this version was created
+  fewShotEnabled: boolean('few_shot_enabled').default(false), // whether few-shot examples are included
+  fewShotCount: integer('few_shot_count').default(0), // number of examples included
+  // Accuracy metrics (populated after reviews)
+  gamesAnalyzed: integer('games_analyzed').default(0),
+  eventsDetected: integer('events_detected').default(0),
+  eventsVerified: integer('events_verified').default(0),
+  eventsRejected: integer('events_rejected').default(0),
+  accuracyRate: decimal('accuracy_rate', { precision: 5, scale: 2 }), // calculated: verified / (verified + rejected)
+  isActive: boolean('is_active').default(false), // currently in use
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  activatedAt: timestamp('activated_at'),
+  deactivatedAt: timestamp('deactivated_at'),
+});
+
+// Prompt suggestions - generated from rejection patterns
+export const promptSuggestions = pgTable('prompt_suggestions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentType: varchar('agent_type', { length: 50 }).notNull(),
+  suggestionType: varchar('suggestion_type', { length: 50 }).notNull(), // 'add_constraint', 'add_example', 'clarify_definition', 'raise_threshold'
+  priority: varchar('priority', { length: 20 }).default('medium'), // 'low', 'medium', 'high', 'critical'
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description').notNull(),
+  suggestedChange: text('suggested_change'), // actual prompt text to add/change
+  basedOnRejections: integer('based_on_rejections').default(0), // how many rejections led to this
+  rejectionReasons: jsonb('rejection_reasons'), // breakdown of reasons
+  status: varchar('status', { length: 20 }).default('pending'), // 'pending', 'implemented', 'dismissed'
+  implementedInVersion: varchar('implemented_in_version', { length: 20 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedBy: varchar('reviewed_by', { length: 100 }),
+});
+
+// Types for new tables
+export type VerifiedExample = typeof verifiedExamples.$inferSelect;
+export type NewVerifiedExample = typeof verifiedExamples.$inferInsert;
+export type PromptVersion = typeof promptVersions.$inferSelect;
+export type NewPromptVersion = typeof promptVersions.$inferInsert;
+export type PromptSuggestion = typeof promptSuggestions.$inferSelect;
+export type NewPromptSuggestion = typeof promptSuggestions.$inferInsert;

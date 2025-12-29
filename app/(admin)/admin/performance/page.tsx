@@ -10,10 +10,12 @@ import {
   CheckCircle,
   XCircle,
   Plus,
-  DollarSign,
   Zap,
-  Clock,
   FileText,
+  Brain,
+  Lightbulb,
+  BookOpen,
+  ThermometerSun,
 } from 'lucide-react';
 
 interface PerformanceMetrics {
@@ -42,14 +44,42 @@ interface GameStats {
   averageAnalysisTime: number;
 }
 
+interface FewShotStats {
+  enabled: boolean;
+  totalExamples: number;
+  byEventType: Record<string, number>;
+  exemplaryCount: number;
+}
+
+interface PromptSuggestion {
+  id: string;
+  agentType: string;
+  suggestionType: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  suggestedChange?: string;
+  basedOnRejections: number;
+}
+
+interface PerformanceConfig {
+  temperature: number;
+  chainOfThought: boolean;
+  fewShotMaxPerType: number;
+}
+
 export default function AIPerformancePage() {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [gameStats, setGameStats] = useState<GameStats | null>(null);
+  const [fewShotStats, setFewShotStats] = useState<FewShotStats | null>(null);
+  const [suggestions, setSuggestions] = useState<PromptSuggestion[]>([]);
+  const [config, setConfig] = useState<PerformanceConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchMetrics();
     fetchGameStats();
+    fetchPerformanceData();
   }, []);
 
   async function fetchMetrics() {
@@ -80,6 +110,23 @@ export default function AIPerformancePage() {
       }
     } catch (error) {
       console.error('Failed to fetch game stats:', error);
+    }
+  }
+
+  async function fetchPerformanceData() {
+    try {
+      const res = await fetch('/api/admin/performance');
+      if (res.ok) {
+        const data = await res.json();
+        setFewShotStats(data.fewShot);
+        setSuggestions([
+          ...(data.promptSuggestions?.pending || []),
+          ...(data.promptSuggestions?.generated || []),
+        ]);
+        setConfig(data.config);
+      }
+    } catch (error) {
+      console.error('Failed to fetch performance data:', error);
     }
   }
 
@@ -276,6 +323,128 @@ export default function AIPerformancePage() {
           </p>
         )}
       </div>
+
+      {/* AI Configuration & Few-Shot Learning */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* AI Configuration */}
+        <div className="p-6 rounded-xl border bg-white dark:bg-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Brain className="w-5 h-5 text-purple-500" />
+            AI Configuration
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center gap-2">
+                <ThermometerSun className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Temperature</span>
+              </div>
+              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                {config?.temperature || 0.2} (Low - Consistent)
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chain-of-Thought</span>
+              </div>
+              <span className={`text-sm font-bold ${config?.chainOfThought ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                {config?.chainOfThought ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Few-Shot Learning</span>
+              </div>
+              <span className={`text-sm font-bold ${fewShotStats?.enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                {fewShotStats?.enabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Few-Shot Learning Stats */}
+        <div className="p-6 rounded-xl border bg-white dark:bg-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-green-500" />
+            Few-Shot Learning Examples
+          </h2>
+          {fewShotStats && fewShotStats.totalExamples > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total Verified Examples</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{fewShotStats.totalExamples}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Exemplary (High Quality)</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400">{fewShotStats.exemplaryCount}</span>
+              </div>
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Examples by Event Type:</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(fewShotStats.byEventType).map(([type, count]) => (
+                    <span key={type} className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      {type}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                No verified examples yet. Start reviewing events to build your few-shot learning dataset.
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                Examples are automatically saved when you verify events in the Review tab.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Prompt Suggestions from Rejection Patterns */}
+      {suggestions.length > 0 && (
+        <div className="p-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Lightbulb className="w-5 h-5 text-amber-500" />
+            Auto-Generated Prompt Suggestions
+          </h2>
+          <div className="space-y-4">
+            {suggestions.slice(0, 3).map((suggestion) => (
+              <div key={suggestion.id || suggestion.title} className="p-4 rounded-lg bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-800">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                        suggestion.priority === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        suggestion.priority === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {suggestion.priority}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Based on {suggestion.basedOnRejections} rejections
+                      </span>
+                    </div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{suggestion.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{suggestion.description}</p>
+                    {suggestion.suggestedChange && (
+                      <div className="mt-2 p-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Suggested change:</p>
+                        <code className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {suggestion.suggestedChange.slice(0, 200)}...
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Review Activity */}
       <div className="p-6 rounded-xl border bg-white dark:bg-gray-800">

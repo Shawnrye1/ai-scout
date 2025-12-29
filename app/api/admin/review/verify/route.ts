@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { games, detectedPlays, corrections } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { saveVerifiedExample } from '@/lib/analysis/few-shot-learning';
 
 interface RejectionContext {
   reason: string;
@@ -140,6 +141,26 @@ export async function POST(request: NextRequest) {
         verificationMethod: 'human',
         humanVerified: true,
       });
+
+      // Save as verified example for few-shot learning
+      try {
+        await saveVerifiedExample(
+          gameId,
+          {
+            type: event.type,
+            team: event.team,
+            jerseyNumber: event.jersey,
+            timestamp: event.timestamp,
+            timestampSeconds: event.timestampSeconds,
+            description: event.reason || `${event.type} by ${event.team} team${event.jersey ? ` #${event.jersey}` : ''}`,
+            rawData: event,
+          },
+          'admin'
+        );
+      } catch (fewShotError) {
+        console.error('Failed to save few-shot example:', fewShotError);
+        // Non-fatal, continue with verification
+      }
 
       // Check if this is a scoring event
       if (event.type === 'scoring' && event.points) {

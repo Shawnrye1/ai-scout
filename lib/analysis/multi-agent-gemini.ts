@@ -3,6 +3,8 @@
  *
  * Phase 1: 5 parallel specialist agents analyze the video
  * Phase 2: Deep dive on each player identified in Phase 1
+ *
+ * Includes few-shot learning from verified examples to improve accuracy.
  */
 
 // Imports are dynamic to avoid server/client issues
@@ -10,6 +12,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { buildFewShotContext, type AgentType } from './few-shot-learning';
 
 // ============================================================================
 // BASKETBALL SCOUT KNOWLEDGE BASE
@@ -149,6 +152,26 @@ For overall player grades:
 - **B-/C+**: Rotation player, has a role
 - **C/C-**: Needs development, limited current impact
 - **D/F**: Significant liabilities, project at best
+
+---
+
+## CHAIN-OF-THOUGHT REASONING (REQUIRED)
+
+For EVERY event you detect, you MUST think through these steps before recording:
+
+1. **OBSERVE**: What exactly did you see happen in the video?
+2. **VERIFY**: Can you clearly see the action? Is the camera angle reliable?
+3. **IDENTIFY**: Which player (jersey number) performed the action? Are you certain?
+4. **CLASSIFY**: What type of event is this? Does it fit the exact definition?
+5. **CONFIDENCE**: How confident are you? Only report if confidence > 80%
+
+**CRITICAL RULES:**
+- If you cannot clearly see who did something, do NOT guess the jersey number
+- If you're unsure whether an event happened, do NOT include it
+- False positives are WORSE than missed events
+- Quality over quantity - only report events you can verify
+
+This step-by-step reasoning ensures accurate, verifiable detection.
 `;
 
 // ============================================================================
@@ -553,10 +576,12 @@ export async function runMultiAgentAnalysis(
   const genai = new GoogleGenerativeAI(apiKey);
   const fileManager = new GoogleAIFileManager(apiKey);
   // Use Gemini 3 Pro for best video analysis quality
+  // Lower temperature (0.2) for more consistent, deterministic event detection
   const model = genai.getGenerativeModel({
     model: 'gemini-3-pro-preview',
     generationConfig: {
       responseMimeType: 'application/json',
+      temperature: 0.2, // Lower temp for accurate, consistent detection
     },
   });
 
@@ -685,13 +710,20 @@ ${boxScore}
 ` : '';
 
   // Phase 1: Run all agents in parallel
+  // Build few-shot context for agents that can benefit from verified examples
+  const [offensiveFewShot, defensiveFewShot, gameFlowFewShot] = await Promise.all([
+    buildFewShotContext('offensive').catch(() => ''),
+    buildFewShotContext('defensive').catch(() => ''),
+    buildFewShotContext('game_flow').catch(() => ''),
+  ]);
+
   const jerseyPromptWithBoxScore = boxScoreContext + JERSEY_SCAN_PROMPT;
 
   const [offensiveResults, defensiveResults, jerseyResults, gameFlowResults, coachingResults] = await Promise.all([
-    runAgent(OFFENSIVE_SCOUT_PROMPT, 'OFFENSIVE SCOUT'),
-    runAgent(DEFENSIVE_SCOUT_PROMPT, 'DEFENSIVE SCOUT'),
+    runAgent(offensiveFewShot + OFFENSIVE_SCOUT_PROMPT, 'OFFENSIVE SCOUT'),
+    runAgent(defensiveFewShot + DEFENSIVE_SCOUT_PROMPT, 'DEFENSIVE SCOUT'),
     runAgent(jerseyPromptWithBoxScore, 'JERSEY SCAN'),
-    runAgent(GAME_FLOW_PROMPT, 'GAME FLOW'),
+    runAgent(gameFlowFewShot + GAME_FLOW_PROMPT, 'GAME FLOW'),
     runAgent(COACHING_STRATEGIST_PROMPT, 'COACHING STRATEGIST'),
   ]);
 
@@ -723,14 +755,19 @@ ${boxScore}
     return `#${p.jersey} ${name ? `(${name})` : ''} - ${p.position || 'unknown'} - ${p.notes || ''}`;
   }).join('\n');
 
-  // Add box score context to player deep dive for stat validation
-  const playerDeepDiveWithBoxScore = (playerList: string, teamName: string) => {
-    return boxScoreContext + PLAYER_DEEP_DIVE_PROMPT(playerList, teamName);
+  // Add box score context and few-shot examples to player deep dive for stat validation
+  const [homePlayerFewShot, awayPlayerFewShot] = await Promise.all([
+    buildFewShotContext('player_home').catch(() => ''),
+    buildFewShotContext('player_away').catch(() => ''),
+  ]);
+
+  const playerDeepDiveWithContext = (playerList: string, teamName: string, fewShotContext: string) => {
+    return fewShotContext + boxScoreContext + PLAYER_DEEP_DIVE_PROMPT(playerList, teamName);
   };
 
   const [homePlayerResults, awayPlayerResults] = await Promise.all([
-    homePlayers.length > 0 ? runAgent(playerDeepDiveWithBoxScore(homePlayerList, homeTeamName), 'HOME PLAYERS') : Promise.resolve([]),
-    awayPlayers.length > 0 ? runAgent(playerDeepDiveWithBoxScore(awayPlayerList, awayTeamName), 'AWAY PLAYERS') : Promise.resolve([]),
+    homePlayers.length > 0 ? runAgent(playerDeepDiveWithContext(homePlayerList, homeTeamName, homePlayerFewShot), 'HOME PLAYERS') : Promise.resolve([]),
+    awayPlayers.length > 0 ? runAgent(playerDeepDiveWithContext(awayPlayerList, awayTeamName, awayPlayerFewShot), 'AWAY PLAYERS') : Promise.resolve([]),
   ]);
 
   onProgress?.(75, 'Combining results...');
