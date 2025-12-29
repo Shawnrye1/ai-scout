@@ -64,7 +64,7 @@ export async function GET(
       .where(
         and(
           inArray(detectedPlayers.gameId, gameIds),
-          eq(detectedPlayers.jerseyNumber, player.jerseyNumber),
+          player.jerseyNumber ? eq(detectedPlayers.jerseyNumber, player.jerseyNumber) : undefined,
           eq(detectedTeams.isUserTeam, true)
         )
       )

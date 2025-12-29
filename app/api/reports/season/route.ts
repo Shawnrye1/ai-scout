@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { games, detectedPlayers, detectedTeams, playerAnalysis, teams, sportsTeams } from '@/lib/db/schema';
+import { games, detectedPlayers, detectedTeams, playerAnalysis, teams, sportsTeams, teamMembers } from '@/lib/db/schema';
 import { eq, desc, and, inArray, isNotNull, sql } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
@@ -28,15 +28,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get team name
+    // Get team name through teamMembers
     const userTeamData = await db
       .select({
         teamName: teams.name,
         sportsTeamName: sportsTeams.name,
       })
-      .from(teams)
+      .from(teamMembers)
+      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
       .leftJoin(sportsTeams, eq(sportsTeams.id, teams.sportsTeamId))
-      .where(eq(teams.userId, user.id))
+      .where(eq(teamMembers.userId, user.id))
       .limit(1);
 
     const teamName = userTeamData[0]?.sportsTeamName || userTeamData[0]?.teamName || 'Your Team';
