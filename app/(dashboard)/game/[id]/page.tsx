@@ -1374,16 +1374,22 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-sm font-medium text-gray-700 mb-3">Next Game Preparation</p>
 
-              {/* Players to Watch */}
+              {/* Players to Watch - with threat/counter details */}
               {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 uppercase mb-2">Players to Watch</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
-                        #{p.jersey}
-                        <span className="text-red-600 font-normal text-xs">({p.team})</span>
-                      </span>
+                      <div key={i} className="p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg font-bold text-red-700">#{p.jersey}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{p.team}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-red-800"><span className="font-semibold">Threat:</span> {p.threat}</p>
+                          <p className="text-xs text-green-700"><span className="font-semibold">Counter:</span> {p.counter}</p>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
