@@ -7,6 +7,8 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 
 > **Note:** This is a stable release. The framework and feature set should not change without discussion. Any modifications to core functionality require review.
 
+> **IMPORTANT:** Before making any code changes, read [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed workflow instructions.
+
 ## Features
 
 ### Core Functionality (v1.0)
