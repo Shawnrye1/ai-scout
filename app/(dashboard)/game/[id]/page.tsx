@@ -1992,7 +1992,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                       // Parse total FGA from box score TOTALS lines (e.g., "TOTALS26-48" means 48 FGA)
                       // Only count first 2 TOTALS (one per team) since box score may be duplicated
                       const boxScore = game.boxScore as string || '';
-                      const totalsMatches = [...boxScore.matchAll(/TOTALS(\d{1,3})-(\d{1,3})/g)].slice(0, 2);
+                      const totalsMatches = [...boxScore.matchAll(/TOTALS(\d{1,2})-(\d{2})/g)].slice(0, 2);
                       let totalFGA = 0;
                       for (const match of totalsMatches) {
                         totalFGA += parseInt(match[2]) || 0; // match[2] is FGA
