@@ -202,15 +202,24 @@ function PlayerReportPreview({ report }: { report: PlayerReport }) {
       {/* Tendencies */}
       {report.tendencies && (
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tendencies</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Player Profile</h3>
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-sm text-gray-600 dark:text-gray-300">
             {typeof report.tendencies === 'object' ? (
               <ul className="space-y-1">
+                {report.tendencies.primaryRole && (
+                  <li>• <strong>Role:</strong> {report.tendencies.primaryRole}</li>
+                )}
+                {report.tendencies.offenseStyle && (
+                  <li>• <strong>Offense:</strong> {report.tendencies.offenseStyle}</li>
+                )}
+                {report.tendencies.defenseStyle && (
+                  <li>• <strong>Defense:</strong> {report.tendencies.defenseStyle}</li>
+                )}
                 {report.tendencies.preferredHand && (
-                  <li>• Preferred hand: {report.tendencies.preferredHand}</li>
+                  <li>• <strong>Preferred hand:</strong> {report.tendencies.preferredHand}</li>
                 )}
                 {report.tendencies.preferredDirection && (
-                  <li>• Tends to go: {report.tendencies.preferredDirection}</li>
+                  <li>• <strong>Tends to go:</strong> {report.tendencies.preferredDirection}</li>
                 )}
                 {report.tendencies.primaryMoves?.slice(0, 3).map((move: string, i: number) => (
                   <li key={i}>• {move}</li>
@@ -220,6 +229,21 @@ function PlayerReportPreview({ report }: { report: PlayerReport }) {
               report.tendencies
             )}
           </div>
+        </div>
+      )}
+
+      {/* Strengths */}
+      {report.strengths && Array.isArray(report.strengths) && report.strengths.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Strengths</h3>
+          <ul className="space-y-1">
+            {report.strengths.slice(0, 4).map((strength: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <span className="text-green-500 mt-0.5">+</span>
+                <span>{typeof strength === 'string' ? strength : (strength as any)?.description || ''}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

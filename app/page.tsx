@@ -39,7 +39,7 @@ function Header() {
               href="/sign-up"
               className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-[#0f2d52] bg-white rounded-lg hover:bg-gray-100 transition-colors shadow-sm"
             >
-              Start Free
+              Sign up
             </Link>
           </div>
         </div>
