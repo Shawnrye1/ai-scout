@@ -58,161 +58,155 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get total games for this user
-    const [gamesCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(games)
-      .where(eq(games.userId, user.id));
-
-    // Get games this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [gamesThisMonth] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(games)
-      .where(
-        and(
+    // Run initial queries in parallel
+    const [gamesCountResult, gamesThisMonthResult, userGames, processingCountResult] = await Promise.all([
+      // Get total games for this user
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(games)
+        .where(eq(games.userId, user.id)),
+
+      // Get games this month
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(games)
+        .where(and(eq(games.userId, user.id), gte(games.createdAt, startOfMonth))),
+
+      // Get all user game IDs
+      db.select({ id: games.id })
+        .from(games)
+        .where(eq(games.userId, user.id)),
+
+      // Get processing games count
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(games)
+        .where(and(
           eq(games.userId, user.id),
-          gte(games.createdAt, startOfMonth)
-        )
-      );
+          sql`${games.status} IN ('queued', 'detecting', 'tracking', 'analyzing')`
+        )),
+    ]);
 
-    // Get total players across all user's games
-    const userGames = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.userId, user.id));
-
+    const gamesCount = gamesCountResult[0];
+    const gamesThisMonth = gamesThisMonthResult[0];
     const gameIds = userGames.map((g) => g.id);
+    const processingGames = processingCountResult[0]?.count || 0;
 
     let totalPlayers = 0;
     let avgGrade = 0;
-    let processingGames = 0;
+    let topPlayers: any[] = [];
+    let recentGames: any[] = [];
+    let userTeam: any[] = [];
 
     if (gameIds.length > 0) {
-      const [playersCount] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(detectedPlayers)
-        .where(inArray(detectedPlayers.gameId, gameIds));
+      // Run ALL main queries in parallel - this is the big optimization
+      const [playersCountResult, avgResult, topPlayersResult, recentGamesResult, userTeamResult] = await Promise.all([
+        // Player count
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(detectedPlayers)
+          .where(inArray(detectedPlayers.gameId, gameIds)),
 
-      totalPlayers = playersCount?.count || 0;
+        // Average grade
+        db.select({ avg: sql<number>`COALESCE(AVG(${playerAnalysis.overallGrade})::numeric(5,2), 0)` })
+          .from(playerAnalysis)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
+          .where(inArray(detectedPlayers.gameId, gameIds)),
 
-      // Get average grade
-      const [avgResult] = await db
-        .select({ avg: sql<number>`COALESCE(AVG(${playerAnalysis.overallGrade})::numeric(5,2), 0)` })
-        .from(playerAnalysis)
-        .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
-        .where(inArray(detectedPlayers.gameId, gameIds));
-
-      avgGrade = parseFloat(avgResult?.avg?.toString() || '0');
-
-      // Get processing games count
-      const [processingCount] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(games)
-        .where(
-          and(
-            eq(games.userId, user.id),
-            sql`${games.status} IN ('queued', 'detecting', 'tracking', 'analyzing')`
+        // Top performers (players with highest grades)
+        db.select({
+          id: detectedPlayers.id,
+          displayName: detectedPlayers.displayName,
+          jerseyNumber: detectedPlayers.jerseyNumber,
+          gameId: detectedPlayers.gameId,
+          teamName: detectedTeams.teamName,
+          teamLabel: detectedTeams.teamLabel,
+          gameName: games.name,
+          gameTitle: games.title,
+          overallGrade: playerAnalysis.overallGrade,
+        })
+          .from(playerAnalysis)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
+          .leftJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
+          .leftJoin(games, eq(games.id, detectedPlayers.gameId))
+          .where(
+            and(
+              eq(games.userId, user.id),
+              isNotNull(playerAnalysis.overallGrade)
+            )
           )
-        );
+          .orderBy(desc(playerAnalysis.overallGrade))
+          .limit(10),
 
-      processingGames = processingCount?.count || 0;
+        // Recent games with player counts in a single query using subquery
+        db.select({
+          id: games.id,
+          title: games.title,
+          name: games.name,
+          opponent: games.opponent,
+          sport: games.sport,
+          status: games.status,
+          createdAt: games.createdAt,
+          playerCount: sql<number>`(SELECT COUNT(*)::int FROM ${detectedPlayers} WHERE ${detectedPlayers.gameId} = ${games.id})`,
+        })
+          .from(games)
+          .where(eq(games.userId, user.id))
+          .orderBy(desc(games.createdAt))
+          .limit(5),
+
+        // User's team
+        db.select()
+          .from(teamMembers)
+          .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+          .where(eq(teamMembers.userId, user.id))
+          .limit(1),
+      ]);
+
+      totalPlayers = playersCountResult[0]?.count || 0;
+      avgGrade = parseFloat(avgResult[0]?.avg?.toString() || '0');
+      topPlayers = topPlayersResult;
+      recentGames = recentGamesResult;
+      userTeam = userTeamResult;
+    } else {
+      // No games - just get user team
+      userTeam = await db
+        .select()
+        .from(teamMembers)
+        .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+        .where(eq(teamMembers.userId, user.id))
+        .limit(1);
     }
 
-    // Get top performers (players with highest grades)
-    const topPlayers = await db
-      .select({
-        id: detectedPlayers.id,
-        displayName: detectedPlayers.displayName,
-        jerseyNumber: detectedPlayers.jerseyNumber,
-        gameId: detectedPlayers.gameId,
-        teamName: detectedTeams.teamName,
-        teamLabel: detectedTeams.teamLabel,
-        gameName: games.name,
-        gameTitle: games.title,
-        overallGrade: playerAnalysis.overallGrade,
-      })
-      .from(playerAnalysis)
-      .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
-      .leftJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-      .leftJoin(games, eq(games.id, detectedPlayers.gameId))
-      .where(
-        and(
-          eq(games.userId, user.id),
-          isNotNull(playerAnalysis.overallGrade)
-        )
-      )
-      .orderBy(desc(playerAnalysis.overallGrade))
-      .limit(10);
+    // Format recent games (player count already included in query)
+    const recentGamesWithCounts = recentGames.map((game: any) => ({
+      id: game.id,
+      title: game.name || game.title || 'Untitled Game',
+      opponent: game.opponent,
+      sport: game.sport,
+      status: game.status,
+      playerCount: game.playerCount || 0,
+      createdAt: game.createdAt?.toISOString(),
+    }));
 
-    // Get recent games
-    const recentGames = await db
-      .select({
-        id: games.id,
-        title: games.title,
-        name: games.name,
-        opponent: games.opponent,
-        sport: games.sport,
-        status: games.status,
-        createdAt: games.createdAt,
-      })
-      .from(games)
-      .where(eq(games.userId, user.id))
-      .orderBy(desc(games.createdAt))
-      .limit(5);
-
-    // Get player counts for recent games
-    const recentGamesWithCounts = await Promise.all(
-      recentGames.map(async (game) => {
-        const [playerCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(detectedPlayers)
-          .where(eq(detectedPlayers.gameId, game.id));
-
-        return {
-          id: game.id,
-          title: game.name || game.title || 'Untitled Game',
-          opponent: game.opponent,
-          sport: game.sport,
-          status: game.status,
-          playerCount: playerCount?.count || 0,
-          createdAt: game.createdAt?.toISOString(),
-        };
-      })
-    );
-
-    // Get user's team and linked sports team roster
-    const userTeam = await db
-      .select()
-      .from(teamMembers)
-      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
-      .where(eq(teamMembers.userId, user.id))
-      .limit(1);
-
+    // Get roster data if user has a linked sports team
     let roster: any[] = [];
     let sportsTeamInfo: any = null;
 
     if (userTeam.length > 0 && userTeam[0].teams.sportsTeamId) {
       const sportsTeamId = userTeam[0].teams.sportsTeamId;
 
-      // Get sports team info
-      const [teamInfo] = await db
-        .select()
-        .from(sportsTeams)
-        .where(eq(sportsTeams.id, sportsTeamId));
+      // Get sports team info and roster in parallel
+      const [teamInfoResult, rosterData] = await Promise.all([
+        db.select()
+          .from(sportsTeams)
+          .where(eq(sportsTeams.id, sportsTeamId)),
+        db.select()
+          .from(sportsTeamPlayers)
+          .where(eq(sportsTeamPlayers.sportsTeamId, sportsTeamId))
+          .orderBy(sportsTeamPlayers.jerseyNumber),
+      ]);
 
-      sportsTeamInfo = teamInfo;
-
-      // Get roster
-      const rosterData = await db
-        .select()
-        .from(sportsTeamPlayers)
-        .where(eq(sportsTeamPlayers.sportsTeamId, sportsTeamId))
-        .orderBy(sportsTeamPlayers.jerseyNumber);
-
+      sportsTeamInfo = teamInfoResult[0] || null;
       roster = rosterData.map((p) => ({
         id: p.id,
         jerseyNumber: p.jerseyNumber,
@@ -223,13 +217,27 @@ export async function GET() {
       }));
     }
 
-    // Get key moments from latest completed game
-    let recentMoments: any[] = [];
-    const latestReadyGame = recentGames.find((g) => g.status === 'ready');
+    // Find latest ready game for moments/insights
+    const latestReadyGame = recentGames.find((g: any) => g.status === 'ready');
 
+    // Run all game-dependent queries in parallel
+    let recentMoments: any[] = [];
+    let coachingInsights: string[] = [];
+    let playerDevelopment: any[] = [];
+    let statLeaders: any = { points: [], rebounds: [], assists: [] };
+    let practiceFocusAreas: any[] = [];
+    let teachingMoments: any[] = [];
+    let seasonProgression: any[] = [];
+
+    // Build all parallel queries
+    const parallelQueries: Promise<any>[] = [];
+    const queryKeys: string[] = [];
+
+    // Key moments query
     if (latestReadyGame) {
-      const moments = await db
-        .select({
+      queryKeys.push('moments');
+      parallelQueries.push(
+        db.select({
           id: keyMoments.id,
           description: keyMoments.description,
           momentType: keyMoments.momentType,
@@ -238,13 +246,154 @@ export async function GET() {
           jerseyNumber: detectedPlayers.jerseyNumber,
           displayName: detectedPlayers.displayName,
         })
-        .from(keyMoments)
-        .innerJoin(detectedPlayers, eq(detectedPlayers.id, keyMoments.detectedPlayerId))
-        .where(eq(detectedPlayers.gameId, latestReadyGame.id))
-        .orderBy(desc(keyMoments.createdAt))
-        .limit(5);
+          .from(keyMoments)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.id, keyMoments.detectedPlayerId))
+          .where(eq(detectedPlayers.gameId, latestReadyGame.id))
+          .orderBy(desc(keyMoments.createdAt))
+          .limit(5)
+      );
 
-      recentMoments = moments.map((m) => ({
+      // Coaching insights query
+      queryKeys.push('insights');
+      parallelQueries.push(
+        db.select({ geminiAnalysis: games.geminiAnalysis })
+          .from(games)
+          .where(eq(games.id, latestReadyGame.id))
+      );
+
+      // Teaching moments query (negative moments)
+      queryKeys.push('teaching');
+      parallelQueries.push(
+        db.select({
+          id: keyMoments.id,
+          description: keyMoments.description,
+          momentType: keyMoments.momentType,
+          timestampSeconds: keyMoments.timestampSeconds,
+          jerseyNumber: detectedPlayers.jerseyNumber,
+          displayName: detectedPlayers.displayName,
+        })
+          .from(keyMoments)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.id, keyMoments.detectedPlayerId))
+          .where(
+            and(
+              eq(detectedPlayers.gameId, latestReadyGame.id),
+              eq(keyMoments.sentiment, 'negative')
+            )
+          )
+          .orderBy(desc(keyMoments.createdAt))
+          .limit(5)
+      );
+    }
+
+    // Player development, stat leaders, focus areas, season progression - all depend on gameIds
+    if (gameIds.length > 0) {
+      // Player grades for development tracking
+      queryKeys.push('playerGrades');
+      parallelQueries.push(
+        db.select({
+          jerseyNumber: detectedPlayers.jerseyNumber,
+          displayName: detectedPlayers.displayName,
+          position: detectedPlayers.positionGuess,
+          gameId: detectedPlayers.gameId,
+          gameDate: games.createdAt,
+          overallGrade: playerAnalysis.overallGrade,
+          metrics: playerAnalysis.metrics,
+          developmentAreas: playerAnalysis.developmentAreas,
+        })
+          .from(detectedPlayers)
+          .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
+          .innerJoin(games, eq(games.id, detectedPlayers.gameId))
+          .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
+          .where(
+            and(
+              inArray(detectedPlayers.gameId, gameIds),
+              eq(detectedTeams.isUserTeam, true),
+              isNotNull(playerAnalysis.overallGrade)
+            )
+          )
+          .orderBy(desc(games.createdAt))
+      );
+
+      // Players with metrics for stat leaders
+      queryKeys.push('playersWithMetrics');
+      parallelQueries.push(
+        db.select({
+          jerseyNumber: detectedPlayers.jerseyNumber,
+          displayName: detectedPlayers.displayName,
+          metrics: playerAnalysis.metrics,
+          gameId: detectedPlayers.gameId,
+        })
+          .from(detectedPlayers)
+          .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
+          .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
+          .where(
+            and(
+              inArray(detectedPlayers.gameId, gameIds),
+              eq(detectedTeams.isUserTeam, true),
+              isNotNull(playerAnalysis.metrics)
+            )
+          )
+      );
+
+      // Development areas for practice focus
+      queryKeys.push('recentAnalyses');
+      parallelQueries.push(
+        db.select({
+          developmentAreas: playerAnalysis.developmentAreas,
+        })
+          .from(playerAnalysis)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
+          .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
+          .innerJoin(games, eq(games.id, detectedPlayers.gameId))
+          .where(
+            and(
+              inArray(detectedPlayers.gameId, gameIds),
+              eq(detectedTeams.isUserTeam, true),
+              isNotNull(playerAnalysis.developmentAreas)
+            )
+          )
+          .orderBy(desc(games.createdAt))
+          .limit(50)
+      );
+
+      // Season progression
+      queryKeys.push('gameGrades');
+      parallelQueries.push(
+        db.select({
+          gameId: games.id,
+          gameDate: games.createdAt,
+          gameName: games.name,
+          avgGrade: sql<number>`AVG(${playerAnalysis.overallGrade})::numeric(5,2)`,
+        })
+          .from(games)
+          .innerJoin(detectedPlayers, eq(detectedPlayers.gameId, games.id))
+          .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
+          .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
+          .where(
+            and(
+              eq(games.userId, user.id),
+              eq(detectedTeams.isUserTeam, true)
+            )
+          )
+          .groupBy(games.id, games.createdAt, games.name)
+          .orderBy(games.createdAt)
+          .limit(10)
+      );
+    }
+
+    // Execute all queries in parallel
+    const results = await Promise.all(parallelQueries);
+
+    // Process results by key
+    const resultMap = new Map<string, any>();
+    queryKeys.forEach((key, index) => {
+      resultMap.set(key, results[index]);
+    });
+
+    // Process key moments
+    if (resultMap.has('moments') && latestReadyGame) {
+      const moments = resultMap.get('moments');
+      recentMoments = moments.map((m: any) => ({
         id: m.id,
         description: m.description,
         momentType: m.momentType,
@@ -256,17 +405,11 @@ export async function GET() {
       }));
     }
 
-    // Extract coaching insights from latest game's Gemini analysis
-    let coachingInsights: string[] = [];
-    if (latestReadyGame) {
-      const [gameWithAnalysis] = await db
-        .select({ geminiAnalysis: games.geminiAnalysis })
-        .from(games)
-        .where(eq(games.id, latestReadyGame.id));
-
-      if (gameWithAnalysis?.geminiAnalysis) {
-        const analysis = gameWithAnalysis.geminiAnalysis as any;
-        // Extract insights from various Gemini analysis sections
+    // Process coaching insights
+    if (resultMap.has('insights')) {
+      const insightsResult = resultMap.get('insights');
+      if (insightsResult[0]?.geminiAnalysis) {
+        const analysis = insightsResult[0].geminiAnalysis as any;
         if (analysis.coachingInsights?.insights) {
           coachingInsights = analysis.coachingInsights.insights.slice(0, 3);
         } else if (analysis.teamScouting?.homeTeam?.tendencies) {
@@ -277,34 +420,22 @@ export async function GET() {
       }
     }
 
-    // === PLAYER DEVELOPMENT TRACKING ===
-    // Get player grades across multiple games for trend analysis
-    let playerDevelopment: any[] = [];
-    if (gameIds.length > 0) {
-      // Get all players with their grades per game
-      const playerGrades = await db
-        .select({
-          jerseyNumber: detectedPlayers.jerseyNumber,
-          displayName: detectedPlayers.displayName,
-          position: detectedPlayers.positionGuess,
-          gameId: detectedPlayers.gameId,
-          gameDate: games.createdAt,
-          overallGrade: playerAnalysis.overallGrade,
-          metrics: playerAnalysis.metrics,
-          developmentAreas: playerAnalysis.developmentAreas,
-        })
-        .from(detectedPlayers)
-        .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
-        .innerJoin(games, eq(games.id, detectedPlayers.gameId))
-        .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-        .where(
-          and(
-            inArray(detectedPlayers.gameId, gameIds),
-            eq(detectedTeams.isUserTeam, true),
-            isNotNull(playerAnalysis.overallGrade)
-          )
-        )
-        .orderBy(desc(games.createdAt));
+    // Process teaching moments
+    if (resultMap.has('teaching') && latestReadyGame) {
+      const negativeMoments = resultMap.get('teaching');
+      teachingMoments = negativeMoments.map((m: any) => ({
+        id: m.id,
+        description: m.description,
+        timestamp: m.timestampSeconds ? formatTimestamp(parseFloat(m.timestampSeconds)) : null,
+        timestampSeconds: m.timestampSeconds ? parseFloat(m.timestampSeconds) : null,
+        player: m.displayName || `#${m.jerseyNumber}`,
+        gameId: latestReadyGame.id,
+      }));
+    }
+
+    // Process player development from parallel query results
+    if (resultMap.has('playerGrades')) {
+      const playerGrades = resultMap.get('playerGrades');
 
       // Group by jersey number to calculate trends
       const playerMap = new Map<string, any[]>();
@@ -321,7 +452,7 @@ export async function GET() {
         if (grades.length === 0) continue;
 
         const latestGrade = parseFloat(grades[0].overallGrade?.toString() || '0');
-        const gradeHistory = grades.slice(0, 5).map(g => ({
+        const gradeHistory = grades.slice(0, 5).map((g: any) => ({
           grade: parseFloat(g.overallGrade?.toString() || '0'),
           date: g.gameDate?.toISOString(),
         })).reverse(); // Oldest first for chart display
@@ -332,9 +463,9 @@ export async function GET() {
           const recent = grades.slice(0, Math.min(2, grades.length));
           const older = grades.slice(Math.min(2, grades.length), Math.min(4, grades.length));
 
-          const recentAvg = recent.reduce((sum, g) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / recent.length;
+          const recentAvg = recent.reduce((sum: number, g: any) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / recent.length;
           const olderAvg = older.length > 0
-            ? older.reduce((sum, g) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / older.length
+            ? older.reduce((sum: number, g: any) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / older.length
             : recentAvg;
 
           const diff = recentAvg - olderAvg;
@@ -350,7 +481,7 @@ export async function GET() {
           gamesPlayed: grades.length,
           trend,
           gradeHistory,
-          avgGrade: grades.reduce((sum, g) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / grades.length,
+          avgGrade: grades.reduce((sum: number, g: any) => sum + parseFloat(g.overallGrade?.toString() || '0'), 0) / grades.length,
         });
       }
 
@@ -358,46 +489,9 @@ export async function GET() {
       playerDevelopment.sort((a, b) => b.currentGrade - a.currentGrade);
     }
 
-    // === POSITION BREAKDOWN ===
-    const positionStats: Record<string, { count: number; totalGrade: number; players: string[] }> = {};
-    for (const player of playerDevelopment) {
-      const pos = normalizePosition(player.position);
-      if (!positionStats[pos]) {
-        positionStats[pos] = { count: 0, totalGrade: 0, players: [] };
-      }
-      positionStats[pos].count++;
-      positionStats[pos].totalGrade += player.currentGrade;
-      positionStats[pos].players.push(player.name);
-    }
-
-    const positionBreakdown = Object.entries(positionStats).map(([position, stats]) => ({
-      position,
-      avgGrade: Math.round(stats.totalGrade / stats.count),
-      playerCount: stats.count,
-      players: stats.players.slice(0, 3),
-    })).sort((a, b) => b.avgGrade - a.avgGrade);
-
-    // === STAT LEADERS ===
-    // Extract stats from playerAnalysis.metrics
-    let statLeaders: any = { points: [], rebounds: [], assists: [] };
-    if (gameIds.length > 0) {
-      const playersWithMetrics = await db
-        .select({
-          jerseyNumber: detectedPlayers.jerseyNumber,
-          displayName: detectedPlayers.displayName,
-          metrics: playerAnalysis.metrics,
-          gameId: detectedPlayers.gameId,
-        })
-        .from(detectedPlayers)
-        .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
-        .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-        .where(
-          and(
-            inArray(detectedPlayers.gameId, gameIds),
-            eq(detectedTeams.isUserTeam, true),
-            isNotNull(playerAnalysis.metrics)
-          )
-        );
+    // Process stat leaders from parallel query results
+    if (resultMap.has('playersWithMetrics')) {
+      const playersWithMetrics = resultMap.get('playersWithMetrics');
 
       // Aggregate stats per player
       const statsMap = new Map<string, { points: number; rebounds: number; assists: number; games: number; name: string }>();
@@ -436,19 +530,19 @@ export async function GET() {
       }));
 
       statLeaders = {
-        points: allStats.sort((a, b) => b.ppg - a.ppg).slice(0, 3).map(s => ({
+        points: [...allStats].sort((a, b) => b.ppg - a.ppg).slice(0, 3).map(s => ({
           jerseyNumber: s.jerseyNumber,
           name: s.name,
           value: s.ppg.toFixed(1),
           total: s.totalPoints,
         })),
-        rebounds: allStats.sort((a, b) => b.rpg - a.rpg).slice(0, 3).map(s => ({
+        rebounds: [...allStats].sort((a, b) => b.rpg - a.rpg).slice(0, 3).map(s => ({
           jerseyNumber: s.jerseyNumber,
           name: s.name,
           value: s.rpg.toFixed(1),
           total: s.totalRebounds,
         })),
-        assists: allStats.sort((a, b) => b.apg - a.apg).slice(0, 3).map(s => ({
+        assists: [...allStats].sort((a, b) => b.apg - a.apg).slice(0, 3).map(s => ({
           jerseyNumber: s.jerseyNumber,
           name: s.name,
           value: s.apg.toFixed(1),
@@ -457,27 +551,10 @@ export async function GET() {
       };
     }
 
-    // === PRACTICE FOCUS AREAS ===
-    // Aggregate development areas from all recent player analyses
-    const focusAreaCounts = new Map<string, number>();
-    if (gameIds.length > 0) {
-      const recentAnalyses = await db
-        .select({
-          developmentAreas: playerAnalysis.developmentAreas,
-        })
-        .from(playerAnalysis)
-        .innerJoin(detectedPlayers, eq(detectedPlayers.id, playerAnalysis.detectedPlayerId))
-        .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-        .innerJoin(games, eq(games.id, detectedPlayers.gameId))
-        .where(
-          and(
-            inArray(detectedPlayers.gameId, gameIds),
-            eq(detectedTeams.isUserTeam, true),
-            isNotNull(playerAnalysis.developmentAreas)
-          )
-        )
-        .orderBy(desc(games.createdAt))
-        .limit(50);
+    // Process practice focus areas from parallel query results
+    if (resultMap.has('recentAnalyses')) {
+      const recentAnalyses = resultMap.get('recentAnalyses');
+      const focusAreaCounts = new Map<string, number>();
 
       for (const analysis of recentAnalyses) {
         const areas = analysis.developmentAreas as any;
@@ -491,80 +568,44 @@ export async function GET() {
           }
         }
       }
+
+      practiceFocusAreas = Array.from(focusAreaCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([area, count]) => ({ area, playerCount: count }));
     }
 
-    const practiceFocusAreas = Array.from(focusAreaCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([area, count]) => ({ area, playerCount: count }));
-
-    // === TEACHING MOMENTS (for film sessions) ===
-    let teachingMoments: any[] = [];
-    if (latestReadyGame) {
-      const negativeMoments = await db
-        .select({
-          id: keyMoments.id,
-          description: keyMoments.description,
-          momentType: keyMoments.momentType,
-          timestampSeconds: keyMoments.timestampSeconds,
-          jerseyNumber: detectedPlayers.jerseyNumber,
-          displayName: detectedPlayers.displayName,
-        })
-        .from(keyMoments)
-        .innerJoin(detectedPlayers, eq(detectedPlayers.id, keyMoments.detectedPlayerId))
-        .where(
-          and(
-            eq(detectedPlayers.gameId, latestReadyGame.id),
-            eq(keyMoments.sentiment, 'negative')
-          )
-        )
-        .orderBy(desc(keyMoments.createdAt))
-        .limit(5);
-
-      teachingMoments = negativeMoments.map((m) => ({
-        id: m.id,
-        description: m.description,
-        timestamp: m.timestampSeconds ? formatTimestamp(parseFloat(m.timestampSeconds)) : null,
-        timestampSeconds: m.timestampSeconds ? parseFloat(m.timestampSeconds) : null,
-        player: m.displayName || `#${m.jerseyNumber}`,
-        gameId: latestReadyGame.id,
-      }));
-    }
-
-    // === SEASON PROGRESSION ===
-    // Calculate team average grade per game over time
-    let seasonProgression: any[] = [];
-    if (gameIds.length > 0) {
-      const gameGrades = await db
-        .select({
-          gameId: games.id,
-          gameDate: games.createdAt,
-          gameName: games.name,
-          avgGrade: sql<number>`AVG(${playerAnalysis.overallGrade})::numeric(5,2)`,
-        })
-        .from(games)
-        .innerJoin(detectedPlayers, eq(detectedPlayers.gameId, games.id))
-        .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
-        .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-        .where(
-          and(
-            eq(games.userId, user.id),
-            eq(detectedTeams.isUserTeam, true)
-          )
-        )
-        .groupBy(games.id, games.createdAt, games.name)
-        .orderBy(games.createdAt)
-        .limit(10);
-
+    // Process season progression from parallel query results
+    if (resultMap.has('gameGrades')) {
+      const gameGrades = resultMap.get('gameGrades');
       seasonProgression = gameGrades
-        .filter((g) => g.avgGrade !== null && parseFloat(g.avgGrade?.toString() || '0') > 0)
-        .map((g) => ({
+        .filter((g: any) => g.avgGrade !== null && parseFloat(g.avgGrade?.toString() || '0') > 0)
+        .map((g: any) => ({
           gameId: g.gameId,
           date: g.gameDate?.toISOString(),
           name: g.gameName || 'Game',
           avgGrade: parseFloat(g.avgGrade?.toString() || '0'),
         }));
     }
+
+    // === POSITION BREAKDOWN (computed from playerDevelopment) ===
+    const positionStats: Record<string, { count: number; totalGrade: number; players: string[] }> = {};
+    for (const player of playerDevelopment) {
+      const pos = normalizePosition(player.position);
+      if (!positionStats[pos]) {
+        positionStats[pos] = { count: 0, totalGrade: 0, players: [] };
+      }
+      positionStats[pos].count++;
+      positionStats[pos].totalGrade += player.currentGrade;
+      positionStats[pos].players.push(player.name);
+    }
+
+    const positionBreakdown = Object.entries(positionStats).map(([position, stats]) => ({
+      position,
+      avgGrade: Math.round(stats.totalGrade / stats.count),
+      playerCount: stats.count,
+      players: stats.players.slice(0, 3),
+    })).sort((a, b) => b.avgGrade - a.avgGrade);
 
     return NextResponse.json({
       stats: {
