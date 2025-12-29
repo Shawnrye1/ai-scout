@@ -684,35 +684,22 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <button
-          onClick={handleSelectSeason}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-left hover:border-[#0f2d52] hover:shadow-md transition-all group"
-        >
-          <BarChart3 className="w-8 h-8 text-gray-400 group-hover:text-[#0f2d52] mb-2" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Season Report</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Team performance across all games
-          </p>
-        </button>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <User className="w-8 h-8 text-gray-400 mb-2" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Player Reports</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {players.length} players available
-          </p>
+      {/* Season Report Button */}
+      <button
+        onClick={handleSelectSeason}
+        className="w-full bg-gradient-to-r from-[#0f2d52] to-[#1a4a7a] rounded-xl p-4 text-left hover:shadow-lg transition-all mb-6"
+      >
+        <div className="flex items-center gap-4">
+          <BarChart3 className="w-10 h-10 text-white/80" />
+          <div>
+            <h3 className="font-semibold text-white text-lg">Season Report</h3>
+            <p className="text-sm text-white/70">
+              View team performance across {games.length} games
+            </p>
+          </div>
+          <ChevronRight className="w-6 h-6 text-white/60 ml-auto" />
         </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <Video className="w-8 h-8 text-gray-400 mb-2" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Game Summaries</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {games.length} games available
-          </p>
-        </div>
-      </div>
+      </button>
 
       {/* Player Reports Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
