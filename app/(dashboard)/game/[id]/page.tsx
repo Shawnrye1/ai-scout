@@ -1169,43 +1169,9 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
             )}
           </div>
 
-          {/* Players to Watch */}
-          {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Players to Watch</h4>
-              <div className="flex flex-wrap gap-2">
-                {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
-                  <div key={i} className="bg-yellow-50 rounded-lg px-3 py-2 border border-yellow-100">
-                    <span className="font-bold text-yellow-800">#{p.jersey}</span>
-                    <span className="text-xs text-yellow-600 ml-1">({p.team})</span>
-                    {p.reason && <p className="text-xs text-yellow-700 mt-1">{p.reason}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
-      {/* NEW: Practice Priorities */}
-      {coachingInsights?.practicePriorities?.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-indigo-600" />
-            Practice Priorities
-          </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {coachingInsights.practicePriorities.map((priority: any, i: number) => (
-              <div key={i} className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
-                <h4 className="font-semibold text-indigo-800 mb-2">{priority.focus}</h4>
-                {priority.drillSuggestion && (
-                  <p className="text-sm text-indigo-700">{priority.drillSuggestion}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* NEW: Exploitable Tendencies */}
       {coachingInsights?.exploitableTendencies?.length > 0 && (
