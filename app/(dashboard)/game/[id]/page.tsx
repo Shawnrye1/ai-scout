@@ -19,7 +19,9 @@ import {
   Flag,
   Film,
   Sparkles,
-  X
+  X,
+  Star,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VideoPlayerModal } from '@/components/video-player';
@@ -815,39 +817,79 @@ function renderTendency(t: any): string {
 function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel: 'home' | 'away'; teamName?: string }) {
   if (!team) return null;
 
+  const accentColor = teamLabel === 'home' ? 'blue' : 'orange';
+  const bgClass = teamLabel === 'home' ? 'bg-blue-50' : 'bg-orange-50';
+  const borderClass = teamLabel === 'home' ? 'border-blue-200' : 'border-orange-200';
+  const iconBg = teamLabel === 'home' ? 'bg-blue-100' : 'bg-orange-100';
+  const iconText = teamLabel === 'home' ? 'text-blue-600' : 'text-orange-600';
+
   return (
-    <div className={`bg-white rounded-xl border-2 p-6 ${
-      teamLabel === 'home' ? 'border-blue-200' : 'border-orange-200'
-    }`}>
+    <div className={`bg-white rounded-xl border-2 p-6 ${borderClass}`}>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          teamLabel === 'home' ? 'bg-blue-100' : 'bg-orange-100'
-        }`}>
-          <Users className={`w-5 h-5 ${teamLabel === 'home' ? 'text-blue-600' : 'text-orange-600'}`} />
+      <div className="flex items-center gap-3 mb-6">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconBg}`}>
+          <Users className={`w-6 h-6 ${iconText}`} />
         </div>
         <div>
-          <h3 className="font-bold text-gray-900">{teamName || (teamLabel === 'home' ? 'Home Team' : 'Away Team')}</h3>
+          <h3 className="text-lg font-bold text-gray-900">{teamName || (teamLabel === 'home' ? 'Home Team' : 'Away Team')}</h3>
           {team.jerseyColor && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>Jersey: {team.jerseyColor}</span>
-            </div>
+            <div className="text-sm text-gray-500">Jersey: {team.jerseyColor}</div>
           )}
         </div>
       </div>
 
-      {/* Systems */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className={`p-4 rounded-lg ${teamLabel === 'home' ? 'bg-blue-50' : 'bg-orange-50'}`}>
-          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Offensive System</div>
-          <div className="font-bold text-gray-900">{team.offensiveSystem || 'Unknown'}</div>
-          <div className="text-xs text-gray-500 mt-1">Transition: {team.transitionStyle || 'Unknown'}</div>
+      {/* Systems Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className={`p-4 rounded-lg ${bgClass}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Offense</div>
+          <div className="font-bold text-gray-900 text-sm">{team.offensiveSystem || 'Not analyzed'}</div>
+          {team.transitionStyle && (
+            <div className="text-xs text-gray-600 mt-1">Transition: {team.transitionStyle}</div>
+          )}
+          {team.spacing?.formation && (
+            <div className="text-xs text-gray-600 mt-1">Spacing: {team.spacing.formation}</div>
+          )}
         </div>
-        <div className={`p-4 rounded-lg ${teamLabel === 'home' ? 'bg-blue-50' : 'bg-orange-50'}`}>
-          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Defensive System</div>
-          <div className="font-bold text-gray-900">{team.defensiveSystem || 'Unknown'}</div>
+        <div className={`p-4 rounded-lg ${bgClass}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Defense</div>
+          <div className="font-bold text-gray-900 text-sm">{team.defensiveSystem || 'Not analyzed'}</div>
+          {team.pnrCoverage && (
+            <div className="text-xs text-gray-600 mt-1">PnR: {team.pnrCoverage}</div>
+          )}
         </div>
       </div>
+
+      {/* Key Players */}
+      {(team.keyOffensivePlayers?.length > 0 || team.keyDefenders?.length > 0) && (
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Star className="w-4 h-4 text-yellow-500" />
+            Key Players
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            {team.keyOffensivePlayers?.slice(0, 3).map((p: any, i: number) => (
+              <div key={`off-${i}`} className="bg-green-50 rounded-lg p-3 border border-green-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-green-700">#{p.jersey || '?'}</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-green-200 text-green-800 rounded">Offense</span>
+                </div>
+                <div className="text-xs text-gray-700">{p.role || p.tendency}</div>
+                {p.threat && <div className="text-xs text-green-600 mt-1">Threat: {p.threat}</div>}
+              </div>
+            ))}
+            {team.keyDefenders?.slice(0, 3).map((p: any, i: number) => (
+              <div key={`def-${i}`} className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-blue-700">#{p.jersey || '?'}</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-blue-200 text-blue-800 rounded">Defense</span>
+                </div>
+                <div className="text-xs text-gray-700">{p.role || p.strength}</div>
+                {p.assignment && <div className="text-xs text-blue-600 mt-1">Guards: {p.assignment}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Offensive Tendencies */}
       {team.offensiveTendencies?.length > 0 && (
@@ -857,7 +899,7 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
             Offensive Tendencies
           </h4>
           <ul className="space-y-2">
-            {team.offensiveTendencies.map((t: any, i: number) => (
+            {team.offensiveTendencies.slice(0, 5).map((t: any, i: number) => (
               <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
                 <span>{renderTendency(t)}</span>
@@ -871,11 +913,11 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
       {team.defensiveTendencies?.length > 0 && (
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <Target className="w-4 h-4 text-blue-500" />
+            <Shield className="w-4 h-4 text-blue-500" />
             Defensive Tendencies
           </h4>
           <ul className="space-y-2">
-            {team.defensiveTendencies.map((t: any, i: number) => (
+            {team.defensiveTendencies.slice(0, 5).map((t: any, i: number) => (
               <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
                 <span>{renderTendency(t)}</span>
@@ -885,17 +927,35 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
         </div>
       )}
 
-      {/* Weaknesses */}
-      {team.weaknesses?.length > 0 && (
-        <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+      {/* Weaknesses - Offensive */}
+      {(team.offensiveWeaknesses?.length > 0 || team.weaknesses?.length > 0) && (
+        <div className="bg-red-50 rounded-lg p-4 border border-red-100 mb-4">
           <h4 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
-            Exploitable Weaknesses
+            Offensive Weaknesses to Exploit
           </h4>
           <ul className="space-y-2">
-            {team.weaknesses.map((w: any, i: number) => (
+            {(team.offensiveWeaknesses || team.weaknesses || []).slice(0, 4).map((w: any, i: number) => (
               <li key={i} className="text-sm text-red-800 flex items-start gap-2">
                 <span className="text-red-500 mt-1">•</span>
+                <span>{renderTendency(w)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Defensive Weaknesses */}
+      {team.defensiveWeaknesses?.length > 0 && (
+        <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
+          <h4 className="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Defensive Weaknesses to Attack
+          </h4>
+          <ul className="space-y-2">
+            {team.defensiveWeaknesses.slice(0, 4).map((w: any, i: number) => (
+              <li key={i} className="text-sm text-amber-800 flex items-start gap-2">
+                <span className="text-amber-500 mt-1">•</span>
                 <span>{renderTendency(w)}</span>
               </li>
             ))}
@@ -2495,16 +2555,16 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
 
-                  {/* Highlights Grid */}
-                  <div className="grid md:grid-cols-2 gap-4">
+                  {/* Highlights Grid - always 2 columns on md+ */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {/* Key Moments */}
-                    {keyMoments.length > 0 && (
-                      <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-yellow-500" />
-                          Key Moments ({keyMoments.length})
-                        </h4>
-                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-yellow-500" />
+                        Key Moments {keyMoments.length > 0 && `(${keyMoments.length})`}
+                      </h4>
+                      {keyMoments.length > 0 ? (
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
                           {keyMoments.map((moment: any, idx: number) => {
                             const seconds = typeof moment.timestamp === 'string'
                               ? parseTimestamp(moment.timestamp)
@@ -2516,12 +2576,12 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                                 className="w-full text-left p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors border border-yellow-200"
                               >
                                 <div className="flex items-center gap-2 mb-1">
-                                  <Play className="w-3 h-3 text-yellow-600" />
+                                  <Play className="w-3 h-3 text-yellow-600 flex-shrink-0" />
                                   <span className="text-xs font-mono font-bold text-yellow-700">
                                     {formatTime(seconds)}
                                   </span>
                                   {moment.type && (
-                                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 capitalize">
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 capitalize flex-shrink-0">
                                       {moment.type.replace('_', ' ')}
                                     </span>
                                   )}
@@ -2534,17 +2594,22 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                             );
                           })}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-center py-6 text-gray-400">
+                          <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No key moments detected</p>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Scoring Runs */}
-                    {scoringRuns.length > 0 && (
-                      <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          Scoring Runs ({scoringRuns.length})
-                        </h4>
-                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                        Scoring Runs {scoringRuns.length > 0 && `(${scoringRuns.length})`}
+                      </h4>
+                      {scoringRuns.length > 0 ? (
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
                           {scoringRuns.map((run: any, idx: number) => {
                             // Handle videoTimestamp (new), timespan (old), or startTime formats
                             const timeStr = run.videoTimestamp || run.timespan || run.startTime || '';
@@ -2562,12 +2627,12 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center gap-2">
-                                    <Play className="w-3 h-3 text-gray-600" />
+                                    <Play className="w-3 h-3 text-gray-600 flex-shrink-0" />
                                     <span className="text-xs font-mono font-bold text-gray-700">
                                       {run.quarter ? `Q${run.quarter} • ` : ''}{formatTime(startSeconds)}
                                     </span>
                                   </div>
-                                  <span className={`text-sm font-bold ${
+                                  <span className={`text-sm font-bold flex-shrink-0 ${
                                     run.team?.toLowerCase() === 'home' || run.team === 'MVA' ? 'text-blue-700' : 'text-orange-700'
                                   }`}>
                                     {run.run || run.score} {run.team}
@@ -2578,8 +2643,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                             );
                           })}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-center py-6 text-gray-400">
+                          <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No scoring runs detected</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* No highlights message */}
