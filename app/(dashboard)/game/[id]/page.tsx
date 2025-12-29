@@ -801,6 +801,10 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
 function renderTendency(t: any): string {
   if (typeof t === 'string') return t;
   if (t && typeof t === 'object') {
+    // Handle weakness format: {weakness, howToExploit}
+    if (t.weakness) {
+      return t.howToExploit ? `${t.weakness} → ${t.howToExploit}` : t.weakness;
+    }
     // Handle object format: {notes, action, frequency, timestamp}
     if (t.action) return `${t.action}${t.frequency ? ` (${t.frequency})` : ''}${t.notes ? ` - ${t.notes}` : ''}`;
     if (t.notes) return t.notes;
