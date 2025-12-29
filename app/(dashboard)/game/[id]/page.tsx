@@ -972,9 +972,12 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
   );
 }
 
-function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: string }) {
+function GeminiInsights({ game }: { game: any }) {
+  const analysis = game?.geminiAnalysis;
   if (!analysis) return null;
 
+  const boxScore = game?.boxScore as string;
+  const allPlayers = game?.detectedTeams?.flatMap((team: any) => team.players || []) || [];
   const gameInfo = analysis.gameInfo;
   const coachingInsights = analysis.coachingInsights;
   const boxScoreData = parseBoxScore(boxScore || null);
@@ -1021,13 +1024,87 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
         </div>
       )}
 
-      {/* NEW: Game Narrative (from scouting format) */}
+      {/* AI Summary - Combined overview stats, teams, and game narrative */}
       {coachingInsights?.gameNarrative && (
         <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Film className="w-5 h-5 text-slate-600" />
-            Game Summary
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            AI Summary
           </h3>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
+              <div className="text-2xl font-bold text-gray-900">
+                {game.geminiAnalysis?.playerScouting?.players?.length || allPlayers.length}
+              </div>
+              <div className="text-xs text-gray-500">Players Scouted</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
+              <div className="text-2xl font-bold text-gray-900">
+                {(() => {
+                  const boxScore = game.boxScore as string || '';
+                  const totalsMatches = [...boxScore.matchAll(/TOTALS(\d{1,2})-(\d{2})/g)].slice(0, 2);
+                  let totalFGA = 0;
+                  for (const match of totalsMatches) {
+                    totalFGA += parseInt(match[2]) || 0;
+                  }
+                  return totalFGA || game.detectedPlays?.length || '-';
+                })()}
+              </div>
+              <div className="text-xs text-gray-500">Total Shots</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
+              <div className="text-2xl font-bold text-gray-900">
+                {coachingInsights?.keyMoments?.length || 0}
+              </div>
+              <div className="text-xs text-gray-500">Key Moments</div>
+            </div>
+            {game.videoDurationSeconds && (
+              <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
+                <div className="text-2xl font-bold text-gray-900">
+                  {Math.floor(game.videoDurationSeconds / 60)}:{(game.videoDurationSeconds % 60).toString().padStart(2, '0')}
+                </div>
+                <div className="text-xs text-gray-500">Duration</div>
+              </div>
+            )}
+          </div>
+
+          {/* Teams Row */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            {game.geminiAnalysis?.teamScouting ? (
+              <>
+                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                  <div className="w-4 h-4 rounded-full bg-blue-600" />
+                  <span className="font-medium text-gray-900">{game.geminiAnalysis.homeTeamName || 'Home'}</span>
+                  <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
+                  <span className="text-sm text-gray-500">
+                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'home').length || 0} players
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                  <div className="w-4 h-4 rounded-full bg-orange-500" />
+                  <span className="font-medium text-gray-900">{game.geminiAnalysis.awayTeamName || 'Away'}</span>
+                  <span className="text-sm text-gray-500">
+                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'away').length || 0} players
+                  </span>
+                </div>
+              </>
+            ) : (
+              game.detectedTeams?.map((team: any) => (
+                <div key={team.id} className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                  {team.primaryJerseyColor && (
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: team.primaryJerseyColor }} />
+                  )}
+                  <span className="font-medium text-gray-900">{team.teamName || team.teamLabel || 'Team'}</span>
+                  {team.isUserTeam && (
+                    <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
+                  )}
+                  <span className="text-sm text-gray-500">{team.players?.length || 0} players</span>
+                </div>
+              ))
+            )}
+          </div>
 
           {/* Accurate Final Score from Box Score */}
           {boxScoreData.homeTeam && boxScoreData.awayTeam && (
@@ -1944,113 +2021,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Main Content - Only show when ready */}
       {isReady && (
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Stats Overview */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900 mb-4">Overview</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Players Scouted</span>
-                  <span className="font-semibold text-gray-900">
-                    {game.geminiAnalysis?.playerScouting?.players?.length || allPlayers.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Total Shots</span>
-                  <span className="font-semibold text-gray-900">
-                    {(() => {
-                      // Parse total FGA from box score TOTALS lines (e.g., "TOTALS26-48" means 48 FGA)
-                      // Only count first 2 TOTALS (one per team) since box score may be duplicated
-                      const boxScore = game.boxScore as string || '';
-                      const totalsMatches = [...boxScore.matchAll(/TOTALS(\d{1,2})-(\d{2})/g)].slice(0, 2);
-                      let totalFGA = 0;
-                      for (const match of totalsMatches) {
-                        totalFGA += parseInt(match[2]) || 0; // match[2] is FGA
-                      }
-                      return totalFGA || game.detectedPlays?.length || '-';
-                    })()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Key Moments</span>
-                  <span className="font-semibold text-gray-900">
-                    {game.geminiAnalysis?.coachingInsights?.keyMoments?.length || 0}
-                  </span>
-                </div>
-                {game.videoDurationSeconds && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Duration</span>
-                    <span className="font-semibold text-gray-900">
-                      {Math.floor(game.videoDurationSeconds / 60)}:{(game.videoDurationSeconds % 60).toString().padStart(2, '0')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Teams - Use Gemini analysis if available, otherwise detectedTeams */}
-            {game.geminiAnalysis?.teamScouting ? (
-              <>
-                {/* Home Team */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-6 h-6 rounded-full bg-blue-600" />
-                    <h3 className="font-semibold text-gray-900">
-                      {game.geminiAnalysis.homeTeamName || 'Home'}
-                    </h3>
-                    <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'home').length || 0} players scouted
-                  </div>
-                </div>
-                {/* Away Team */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-6 h-6 rounded-full bg-orange-500" />
-                    <h3 className="font-semibold text-gray-900">
-                      {game.geminiAnalysis.awayTeamName || 'Away'}
-                    </h3>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'away').length || 0} players scouted
-                  </div>
-                </div>
-              </>
-            ) : (
-              game.detectedTeams?.map((team: any) => (
-                <div key={team.id} className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    {team.primaryJerseyColor && (
-                      <div
-                        className="w-6 h-6 rounded-full border-2 border-gray-200"
-                        style={{ backgroundColor: team.primaryJerseyColor }}
-                      />
-                    )}
-                    <h3 className="font-semibold text-gray-900">
-                      {team.teamName || team.teamLabel || 'Team'}
-                    </h3>
-                    {team.isUserTeam && (
-                      <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {team.players?.length || 0} players detected
-                  </div>
-                  {team.analysis?.tendenciesReport && (
-                    <p className="mt-3 text-sm text-gray-600 line-clamp-3">
-                      {team.analysis.tendenciesReport}
-                    </p>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Right Column - Tabbed Content */}
-          <div className="lg:col-span-2">
+        <div>
             {/* Show banner if analysis is in progress */}
             {game.geminiAnalysis && !isAnalysisComplete(game) && (
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-lg p-4 mb-6 flex items-center gap-3">
@@ -2139,7 +2110,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* AI Insights Tab */}
             {activeTab === 'insights' && isAnalysisComplete(game) && (
-              <GeminiInsights analysis={game.geminiAnalysis} boxScore={game.boxScore as string} />
+              <GeminiInsights game={game} />
             )}
 
             {/* Player Reports Tab */}
@@ -2555,7 +2526,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               );
             })()}
-          </div>
         </div>
       )}
 
