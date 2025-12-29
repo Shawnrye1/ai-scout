@@ -12,7 +12,7 @@ AI-powered sports scouting platform. Coaches upload game film, system automatica
 - Tailwind CSS
 - Drizzle ORM + Neon PostgreSQL (with pgvector)
 - Cloudflare R2 (video storage)
-- Google Gemini 2.0 Flash (video analysis - primary AI)
+- Google Gemini 3 Pro (video analysis - primary AI)
 - Stripe Billing
 - Resend Email
 - Anthropic Claude (report generation)
@@ -105,18 +105,41 @@ Coach views results in dashboard
 
 ## Video Analysis (Gemini-Only Architecture)
 
-**Note:** This project uses Gemini 2.0 Flash exclusively for video analysis. No custom ML models are trained - all detection, tracking, and analysis is done via Gemini's multi-agent prompt system.
+**Note:** This project uses Gemini 3 Pro exclusively for video analysis. No custom ML models are trained - all detection, tracking, and analysis is done via Gemini's multi-agent prompt system with self-learning capabilities.
 
 ### Why Gemini-Only?
 - Gemini outperformed custom ML pipeline (YOLOv8 + tracking) in testing
 - No training infrastructure needed
 - Faster iteration through prompt refinement
 - Better accuracy for complex game understanding
+- Self-learning via few-shot examples and box score validation
+
+### Self-Learning System
+
+The system improves over time without manual ML training:
+
+```
+Upload Video
+    ↓
+Gemini analyzes (6 specialist agents)
+    ↓
+Events detected with confidence scores
+    ↓
+Auto-Approval (3 methods):
+  1. Box Score Match - Stats match official box score → Auto-approved
+  2. Few-Shot Learning - 10+ verified examples + 90%+ confidence → Auto-approved
+  3. Human Review - Low confidence or discrepancies → Review queue
+    ↓
+Verified events become few-shot examples for future analyses
+    ↓
+System gets smarter with every game
+```
 
 ### How to Improve Accuracy
-1. **Review Events** - Verify/reject Gemini detections in `/admin/review`
-2. **Check Patterns** - View accuracy by event type in `/admin/performance`
-3. **Refine Prompts** - Update prompts in `/lib/analysis/multi-agent-gemini.ts` based on rejection patterns
+1. **Provide Box Scores** - Official stats auto-validate matching events
+2. **Review Events** - Verify/reject detections in `/admin/review`
+3. **Check Patterns** - View accuracy by event type in `/admin/performance`
+4. **View Suggestions** - Auto-generated prompt improvements based on rejection patterns
 
 See "Gemini Video Analysis" section below for full architecture details.
 
@@ -279,7 +302,7 @@ Before testing video uploads:
 ## Gemini Video Analysis
 
 ### Overview
-Gemini 2.0 Flash is used for end-to-end video understanding - player identification, play detection, stat tracking, and scouting reports. Uses a **multi-agent architecture** with specialized prompts for different aspects of analysis.
+Gemini 3 Pro is used for end-to-end video understanding - player identification, play detection, stat tracking, and scouting reports. Uses a **multi-agent architecture** with specialized prompts for different aspects of analysis.
 
 ### API Endpoint
 `POST /api/games/[id]/analyze-gemini` - Triggers full multi-agent analysis
@@ -289,12 +312,13 @@ Gemini 2.0 Flash is used for end-to-end video understanding - player identificat
 Each analysis run uses a two-phase multi-agent pipeline:
 
 **Phase 1 (25-50%): Parallel Specialist Agents**
-All 5 agents run simultaneously on the uploaded video:
-1. **OFFENSIVE SCOUT** - Tracks offensive actions, shot attempts, assists, turnovers
-2. **DEFENSIVE SCOUT** - Tracks defensive plays, steals, blocks, rebounds
+All 6 agents run simultaneously on the uploaded video:
+1. **OFFENSIVE SCOUT** - Tracks offensive systems, tendencies, key players
+2. **DEFENSIVE SCOUT** - Tracks defensive schemes, coverages, weaknesses
 3. **JERSEY SCAN** - Identifies all players by jersey number and team color
 4. **GAME FLOW** - Tracks scoring runs, momentum shifts, key moments with **video timestamps**
 5. **COACHING STRATEGIST** - Analyzes team tendencies, play patterns, matchups
+6. **STAT TRACKER** - Detects individual events (scoring, rebounds, assists, etc.) with confidence scores
 
 **Rate Limit Cooldown (60 seconds)**
 Pause between phases to avoid Gemini API rate limits.
@@ -304,8 +328,15 @@ Uses jersey scan results to run detailed analysis:
 - **HOME PLAYERS** - Individual scouting reports for home team
 - **AWAY PLAYERS** - Individual scouting reports for away team
 
-**Combining & Finalizing (75-100%)**
+**Event Processing & Auto-Review (75-85%)**
+- Parse box score (if provided) for validation
+- Compare detected stats vs official box score
+- Auto-approve events that match
+- Flag discrepancies for human review
+
+**Combining & Finalizing (85-100%)**
 - Merge all agent outputs into unified game analysis
+- Build human review queue from low-confidence events
 - Store to database with detected teams, players, and reports
 
 ### Running Multiple Analysis Passes
@@ -390,8 +421,8 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 2. ✅ Hudl/YouTube URL upload support
 3. ✅ Billing pages for coach and admin dashboards
 4. ✅ Mobile-responsive layouts
-5. ✅ **Gemini-only architecture** - Removed custom ML pipeline in favor of Gemini 2.0 Flash
-6. ✅ Multi-agent two-pass architecture (5 specialist agents + player deep dive)
+5. ✅ **Gemini-only architecture** - Removed custom ML pipeline in favor of Gemini 3 Pro
+6. ✅ Multi-agent two-pass architecture (6 specialist agents + player deep dive)
 7. ✅ Video chunking for 45+ minute games (splits into 15-min segments)
 8. ✅ Player stats aggregation across video chunks
 9. ✅ Video elapsed timestamps for Key Moments and Scoring Runs (enables video seeking)
@@ -401,3 +432,36 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 13. ✅ Analysis completion based on detected players in database (not JSON flag)
 14. ✅ Network error retry logic (fetch failed, ECONNRESET, ETIMEDOUT)
 15. ✅ Admin navigation updated for Gemini-focused workflow
+16. ✅ **Stat Tracker Agent** - Detects individual events with confidence scores
+17. ✅ **Few-Shot Learning** - Verified examples included in future prompts
+18. ✅ **Chain-of-Thought Prompting** - 5-step reasoning for accurate detection
+19. ✅ **Lower Temperature (0.2)** - More consistent, deterministic detection
+20. ✅ **AI Auto-Review** - Auto-approves high-confidence events after training
+21. ✅ **Box Score Validation** - Auto-approves events matching official stats
+22. ✅ **Prompt Suggestions** - Auto-generates improvements from rejection patterns
+23. ✅ **Prompt Versioning** - Tracks prompt changes with accuracy metrics
+
+## Self-Learning Database Tables
+
+### verified_examples
+Stores human-verified events for few-shot learning:
+- `eventType` - scoring, rebound, assist, steal, block, turnover
+- `team` - home or away
+- `jerseyNumber` - Player number
+- `timestamp` - Video timestamp
+- `description` - Event description
+- `quality` - standard or exemplary (prioritized in prompts)
+
+### prompt_versions
+Tracks prompt changes with accuracy metrics:
+- `agentType` - Which agent (offensive, defensive, etc.)
+- `version` - Semantic version (v1.0.0)
+- `promptHash` - SHA256 hash for deduplication
+- `accuracyRate` - Calculated from verified/rejected ratio
+
+### prompt_suggestions
+Auto-generated improvement suggestions:
+- `suggestionType` - raise_threshold, clarify_definition, add_constraint
+- `priority` - critical, high, medium, low
+- `basedOnRejections` - Number of rejections that triggered this
+- `suggestedChange` - Specific prompt text to add

@@ -628,6 +628,180 @@ Return JSON array:
 Be specific. Use professional scouting language. This report goes to coaches.`;
 
 // ============================================================================
+// BOX SCORE VALIDATION
+// ============================================================================
+
+interface ParsedBoxScorePlayer {
+  jersey: number;
+  team: 'home' | 'away';
+  points: number;
+  rebounds?: number;
+  assists?: number;
+  steals?: number;
+  blocks?: number;
+  turnovers?: number;
+}
+
+/**
+ * Parse box score text to extract player stats
+ * Handles common formats like:
+ * "* 32  Cooper Flagg    12  5  3  1  2  0"
+ * "#23 - 18 pts, 5 reb, 3 ast"
+ */
+function parseBoxScore(boxScoreText: string): ParsedBoxScorePlayer[] {
+  const players: ParsedBoxScorePlayer[] = [];
+  if (!boxScoreText) return players;
+
+  const lines = boxScoreText.split('\n');
+  let currentTeam: 'home' | 'away' = 'home';
+
+  for (const line of lines) {
+    // Detect team switch (common patterns)
+    if (/away|opponent|visiting/i.test(line) && !/home/i.test(line)) {
+      currentTeam = 'away';
+      continue;
+    }
+
+    // Try to extract player stats
+    // Pattern 1: "* 32  Name    PTS  REB  AST  STL  BLK  TO"
+    const pattern1 = line.match(/\*?\s*(\d{1,2})\s+[\w\s]+\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+    if (pattern1) {
+      players.push({
+        jersey: parseInt(pattern1[1]),
+        team: currentTeam,
+        points: parseInt(pattern1[2]),
+        rebounds: parseInt(pattern1[3]),
+        assists: parseInt(pattern1[4]),
+        steals: parseInt(pattern1[5]),
+        blocks: parseInt(pattern1[6]),
+        turnovers: parseInt(pattern1[7]),
+      });
+      continue;
+    }
+
+    // Pattern 2: "#23 - 18 pts" or "23: 18 points"
+    const pattern2 = line.match(/#?(\d{1,2})\s*[-:]\s*(\d+)\s*(?:pts?|points?)/i);
+    if (pattern2) {
+      players.push({
+        jersey: parseInt(pattern2[1]),
+        team: currentTeam,
+        points: parseInt(pattern2[2]),
+      });
+      continue;
+    }
+  }
+
+  return players;
+}
+
+/**
+ * Validate detected events against box score
+ * Returns events with validation status
+ */
+function validateEventsAgainstBoxScore(
+  events: DetectedEvent[],
+  boxScore: ParsedBoxScorePlayer[]
+): {
+  validatedEvents: DetectedEvent[];
+  discrepancies: Array<{
+    jersey: number;
+    team: 'home' | 'away';
+    detected: number;
+    boxScore: number;
+    type: string;
+  }>;
+} {
+  if (boxScore.length === 0) {
+    return { validatedEvents: events, discrepancies: [] };
+  }
+
+  // Aggregate detected stats by player
+  const detectedStats: Record<string, Record<string, number>> = {};
+
+  for (const event of events) {
+    if (event.jersey === null) continue;
+    const key = `${event.team}-${event.jersey}`;
+
+    if (!detectedStats[key]) {
+      detectedStats[key] = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, turnovers: 0 };
+    }
+
+    if (event.type === 'scoring' && event.points) {
+      detectedStats[key].points += event.points;
+    } else if (event.type === 'rebound') {
+      detectedStats[key].rebounds += 1;
+    } else if (event.type === 'assist') {
+      detectedStats[key].assists += 1;
+    } else if (event.type === 'steal') {
+      detectedStats[key].steals += 1;
+    } else if (event.type === 'block') {
+      detectedStats[key].blocks += 1;
+    } else if (event.type === 'turnover') {
+      detectedStats[key].turnovers += 1;
+    }
+  }
+
+  // Compare with box score
+  const discrepancies: Array<{
+    jersey: number;
+    team: 'home' | 'away';
+    detected: number;
+    boxScore: number;
+    type: string;
+  }> = [];
+
+  const matchedPlayers = new Set<string>();
+
+  for (const player of boxScore) {
+    const key = `${player.team}-${player.jersey}`;
+    const detected = detectedStats[key] || { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, turnovers: 0 };
+
+    // Check points (most important)
+    if (player.points !== undefined && detected.points !== player.points) {
+      discrepancies.push({
+        jersey: player.jersey,
+        team: player.team,
+        detected: detected.points,
+        boxScore: player.points,
+        type: 'points',
+      });
+    } else if (player.points !== undefined && detected.points === player.points) {
+      matchedPlayers.add(key);
+    }
+
+    // Check other stats if available
+    if (player.rebounds !== undefined && detected.rebounds !== player.rebounds) {
+      discrepancies.push({
+        jersey: player.jersey,
+        team: player.team,
+        detected: detected.rebounds,
+        boxScore: player.rebounds,
+        type: 'rebounds',
+      });
+    }
+  }
+
+  // Mark events from matched players as box-score validated
+  const validatedEvents = events.map(event => {
+    if (event.jersey === null) return event;
+    const key = `${event.team}-${event.jersey}`;
+
+    if (matchedPlayers.has(key)) {
+      return {
+        ...event,
+        autoApproved: true,
+        verified: true,
+        reviewStatus: 'verified' as const,
+        boxScoreValidated: true,
+      };
+    }
+    return event;
+  });
+
+  return { validatedEvents, discrepancies };
+}
+
+// ============================================================================
 // MAIN ANALYSIS FUNCTION
 // ============================================================================
 
@@ -643,6 +817,7 @@ export interface DetectedEvent {
   // Added by review process
   verified?: boolean;
   autoApproved?: boolean;
+  boxScoreValidated?: boolean;
   reviewStatus?: 'pending' | 'verified' | 'rejected';
 }
 
@@ -665,8 +840,10 @@ export interface MultiAgentAnalysisResult {
   eventSummary: {
     totalEvents: number;
     autoApproved: number;
+    boxScoreValidated: number;
     pendingReview: number;
     byType: Record<string, number>;
+    discrepancies: Array<{ jersey: number; team: string; detected: number; boxScore: number; type: string }>;
   };
   agentResults: {
     offensive: any;
@@ -954,8 +1131,7 @@ ${boxScore}
   const rawEvents: DetectedEvent[] = statTrackerResults?.events || [];
   console.log(`Stat tracker found ${rawEvents.length} events`);
 
-  // AI Auto-Review: Compare events against verified examples
-  // Events that match verified patterns with high confidence can be auto-approved
+  // AI Auto-Review Configuration
   const AUTO_APPROVE_THRESHOLD = 90; // Confidence needed for auto-approval
   const MIN_VERIFIED_EXAMPLES = 10; // Need this many examples before auto-approving
 
@@ -968,42 +1144,65 @@ ${boxScore}
     console.warn('Could not get verified example counts:', e);
   }
 
-  // Categorize events
+  // Parse box score for validation (if provided)
+  const parsedBoxScore = boxScore ? parseBoxScore(boxScore) : [];
+  console.log(`Parsed ${parsedBoxScore.length} players from box score`);
+
+  // First pass: Create typed events
+  let typedEvents: DetectedEvent[] = rawEvents.map(event => ({
+    type: event.type,
+    team: event.team,
+    jersey: event.jersey,
+    timestamp: event.timestamp,
+    timestampSeconds: event.timestampSeconds,
+    confidence: event.confidence,
+    description: event.description,
+    points: event.points,
+    reviewStatus: 'pending' as const,
+    autoApproved: false,
+    verified: false,
+  }));
+
+  // Box score validation: Auto-approve events that match official stats
+  let boxScoreDiscrepancies: Array<{ jersey: number; team: string; detected: number; boxScore: number; type: string }> = [];
+  if (parsedBoxScore.length > 0) {
+    const validation = validateEventsAgainstBoxScore(typedEvents, parsedBoxScore);
+    typedEvents = validation.validatedEvents;
+    boxScoreDiscrepancies = validation.discrepancies;
+    console.log(`Box score validation: ${validation.discrepancies.length} discrepancies found`);
+  }
+
+  // Second pass: Categorize events
   const verifiedEvents: DetectedEvent[] = [];
   const humanReviewQueue: DetectedEvent[] = [];
   const allEvents: DetectedEvent[] = [];
 
-  for (const event of rawEvents) {
-    const typedEvent: DetectedEvent = {
-      type: event.type,
-      team: event.team,
-      jersey: event.jersey,
-      timestamp: event.timestamp,
-      timestampSeconds: event.timestampSeconds,
-      confidence: event.confidence,
-      description: event.description,
-      points: event.points,
-      reviewStatus: 'pending',
-    };
+  for (const event of typedEvents) {
+    // Already validated by box score?
+    if (event.boxScoreValidated) {
+      verifiedEvents.push(event);
+      allEvents.push(event);
+      continue;
+    }
 
-    // Check if we can auto-approve this event
+    // Check if we can auto-approve via few-shot learning
     const hasEnoughExamples = (verifiedCounts[event.type] || 0) >= MIN_VERIFIED_EXAMPLES;
     const isHighConfidence = event.confidence >= AUTO_APPROVE_THRESHOLD;
     const hasJersey = event.jersey !== null;
 
     if (hasEnoughExamples && isHighConfidence && hasJersey) {
       // Auto-approve: high confidence + we have training data
-      typedEvent.autoApproved = true;
-      typedEvent.verified = true;
-      typedEvent.reviewStatus = 'verified';
-      verifiedEvents.push(typedEvent);
+      event.autoApproved = true;
+      event.verified = true;
+      event.reviewStatus = 'verified';
+      verifiedEvents.push(event);
     } else {
       // Needs human review
-      typedEvent.autoApproved = false;
-      humanReviewQueue.push(typedEvent);
+      event.autoApproved = false;
+      humanReviewQueue.push(event);
     }
 
-    allEvents.push(typedEvent);
+    allEvents.push(event);
   }
 
   // Sort review queue by confidence (lowest first - most uncertain need review first)
@@ -1015,11 +1214,15 @@ ${boxScore}
     eventsByType[event.type] = (eventsByType[event.type] || 0) + 1;
   }
 
+  const boxScoreValidatedCount = allEvents.filter(e => e.boxScoreValidated).length;
+
   const eventSummary = {
     totalEvents: allEvents.length,
     autoApproved: verifiedEvents.length,
+    boxScoreValidated: boxScoreValidatedCount,
     pendingReview: humanReviewQueue.length,
     byType: eventsByType,
+    discrepancies: boxScoreDiscrepancies,
   };
 
   console.log(`Event processing: ${verifiedEvents.length} auto-approved, ${humanReviewQueue.length} need review`);

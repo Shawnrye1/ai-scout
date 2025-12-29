@@ -117,7 +117,9 @@ export async function POST(
         events: {
           total: analysis.eventSummary?.totalEvents || 0,
           autoApproved: analysis.eventSummary?.autoApproved || 0,
+          boxScoreValidated: analysis.eventSummary?.boxScoreValidated || 0,
           pendingReview: analysis.eventSummary?.pendingReview || 0,
+          discrepancies: analysis.eventSummary?.discrepancies || [],
         },
       },
     });
