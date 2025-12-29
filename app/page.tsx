@@ -638,6 +638,53 @@ function AnimatedDashboard() {
     value: typeof value === 'number' ? (key.includes('Pct') || key.includes('pct') ? `${value}%` : value) : value,
   }));
 
+  // Mobile-friendly player card
+  const MobilePlayerCard = () => (
+    <div className="bg-white rounded-xl shadow-xl p-4">
+      {/* Header with player info */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white ${isFootball ? 'bg-[#0f2d52]' : 'bg-orange-600'}`}>
+          #{selectedPlayer.jersey}
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-900">{selectedPlayer.name}</h3>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${isFootball ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+              {selectedPlayer.position}
+            </span>
+            <span>{selectedPlayer.height}</span>
+            <span>•</span>
+            <span>{selectedPlayer.year}</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className={`text-2xl font-bold ${isFootball ? 'text-[#0f2d52]' : 'text-orange-600'}`}>
+            {selectedPlayer.overallGrade}
+          </div>
+          <div className="text-[10px] text-gray-500 uppercase">Overall</div>
+        </div>
+      </div>
+
+      {/* Grade bars */}
+      <div className="space-y-2 mb-4">
+        {gradeEntries.slice(0, 4).map((item, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-20 text-xs text-gray-600 truncate">{item.label}</div>
+            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${getGradeBarColor(item.grade)}`} style={{ width: `${item.grade}%` }} />
+            </div>
+            <div className="w-8 text-xs font-semibold text-gray-700 text-right">{item.grade}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary */}
+      <div className={`rounded-lg p-3 ${isFootball ? 'bg-blue-50' : 'bg-orange-50'}`}>
+        <p className="text-xs text-gray-700 line-clamp-3">{selectedPlayer.analysis.summary}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative p-2 sm:p-3 rounded-2xl bg-white/10 backdrop-blur-sm">
       {/* Sport toggle tabs */}
@@ -656,7 +703,13 @@ function AnimatedDashboard() {
         </button>
       </div>
 
-      <div className={`aspect-[16/9] rounded-xl bg-white shadow-2xl overflow-hidden transition-all duration-500 ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
+      {/* Mobile view - simplified card */}
+      <div className={`sm:hidden transition-all duration-500 ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
+        <MobilePlayerCard />
+      </div>
+
+      {/* Desktop view - full dashboard */}
+      <div className={`hidden sm:block aspect-[16/9] rounded-xl bg-white shadow-2xl overflow-hidden transition-all duration-500 ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
         <div className="h-full flex flex-col">
           {/* Top bar */}
           <div className="h-10 bg-gray-100 border-b flex items-center justify-between px-4">
