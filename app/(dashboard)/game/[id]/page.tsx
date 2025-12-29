@@ -1989,10 +1989,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   <span className="text-gray-500">Total Shots</span>
                   <span className="font-semibold text-gray-900">
                     {(() => {
-                      // Count total FGA from all players' box scores
-                      const players = game.geminiAnalysis?.playerScouting?.players || [];
-                      const totalFGA = players.reduce((sum: number, p: any) =>
-                        sum + (p.boxScore?.fieldGoalsAttempted || 0), 0);
+                      // Parse total FGA from box score TOTALS lines (e.g., "TOTALS26-48" means 48 FGA)
+                      const boxScore = game.boxScore as string || '';
+                      const totalsMatches = boxScore.matchAll(/TOTALS\d+-(\d+)/g);
+                      let totalFGA = 0;
+                      for (const match of totalsMatches) {
+                        totalFGA += parseInt(match[1]) || 0;
+                      }
                       return totalFGA || game.detectedPlays?.length || '-';
                     })()}
                   </span>
