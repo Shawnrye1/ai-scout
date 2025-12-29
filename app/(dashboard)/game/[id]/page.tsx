@@ -1378,16 +1378,12 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
               {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 uppercase mb-2">Players to Watch</p>
-                  <div className="grid md:grid-cols-2 gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
-                      <div key={i} className="p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-bold text-red-700">#{p.jersey}</span>
-                          <span className="text-xs text-gray-500">{p.team}</span>
-                        </div>
-                        <p className="text-xs text-red-800 mb-1"><strong>Threat:</strong> {p.threat}</p>
-                        <p className="text-xs text-green-700"><strong>Counter:</strong> {p.counter}</p>
-                      </div>
+                      <span key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                        #{p.jersey}
+                        <span className="text-red-600 font-normal text-xs">({p.team})</span>
+                      </span>
                     ))}
                   </div>
                 </div>
