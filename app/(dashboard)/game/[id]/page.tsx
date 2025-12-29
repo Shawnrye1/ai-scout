@@ -1331,86 +1331,96 @@ function GeminiInsights({ analysis, boxScore }: { analysis: any; boxScore?: stri
             Coaching Insights
           </h3>
 
-          {coachingInsights.gameSummary && (
+          {/* Game Narrative */}
+          {coachingInsights.gameNarrative && (
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-1">Game Summary</p>
-              <p className="text-gray-600">{coachingInsights.gameSummary}</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">Game Narrative</p>
+              <p className="text-gray-600">{coachingInsights.gameNarrative}</p>
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {coachingInsights.winningFormula && (
-              <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-                <p className="text-sm font-medium text-green-700 mb-1">What Worked</p>
-                <p className="text-green-800 text-sm">{coachingInsights.winningFormula}</p>
-              </div>
-            )}
-            {coachingInsights.losingFactor && (
-              <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-                <p className="text-sm font-medium text-red-700 mb-1">Areas to Improve</p>
-                <p className="text-red-800 text-sm">{coachingInsights.losingFactor}</p>
-              </div>
-            )}
-          </div>
+          {/* Deciding Factors */}
+          {coachingInsights.decidingFactors?.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Key Deciding Factors</p>
+              <ul className="space-y-2">
+                {coachingInsights.decidingFactors.map((factor: string, i: number) => (
+                  <li key={i} className="text-sm text-gray-600 flex items-start gap-2 p-2 bg-amber-50 rounded border border-amber-100">
+                    <span className="text-amber-500 mt-0.5 font-bold">{i + 1}.</span>
+                    <span>{factor}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {/* Practice Emphasis */}
-          {coachingInsights.practiceEmphasis && (
+          {/* Practice Priorities */}
+          {coachingInsights.practicePriorities?.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-sm font-medium text-gray-700 mb-3">Practice Priorities</p>
-              <div className="grid md:grid-cols-2 gap-4">
-                {coachingInsights.practiceEmphasis.home?.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase mb-2">Home Team</p>
-                    <ul className="space-y-1">
-                      {coachingInsights.practiceEmphasis.home.map((item: string, i: number) => (
-                        <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                          <span className="text-blue-500 mt-1">•</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {coachingInsights.practicePriorities.map((p: any, i: number) => (
+                  <div key={i} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-sm font-semibold text-blue-800 mb-1">{p.focus}</p>
+                    <p className="text-xs text-blue-600">{p.drillSuggestion}</p>
                   </div>
-                )}
-                {coachingInsights.practiceEmphasis.away?.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase mb-2">Away Team</p>
-                    <ul className="space-y-1">
-                      {coachingInsights.practiceEmphasis.away.map((item: string, i: number) => (
-                        <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                          <span className="text-orange-500 mt-1">•</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           )}
 
-          {/* Gameplan Suggestions */}
-          {coachingInsights.gameplanSuggestions && (
+          {/* Next Game Prep */}
+          {coachingInsights.forNextGame && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-sm font-medium text-gray-700 mb-3">Gameplan for Next Matchup</p>
+              <p className="text-sm font-medium text-gray-700 mb-3">Next Game Preparation</p>
+
+              {/* Players to Watch */}
+              {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 uppercase mb-2">Players to Watch</p>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
+                      <div key={i} className="p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-bold text-red-700">#{p.jersey}</span>
+                          <span className="text-xs text-gray-500">{p.team}</span>
+                        </div>
+                        <p className="text-xs text-red-800 mb-1"><strong>Threat:</strong> {p.threat}</p>
+                        <p className="text-xs text-green-700"><strong>Counter:</strong> {p.counter}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-2 gap-4">
-                {coachingInsights.gameplanSuggestions.vsHome?.length > 0 && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-600 uppercase mb-2">vs Home Team</p>
-                    <ul className="space-y-1">
-                      {coachingInsights.gameplanSuggestions.vsHome.map((item: string, i: number) => (
-                        <li key={i} className="text-sm text-blue-800">{item}</li>
+                {/* Attacking Their Defense */}
+                {coachingInsights.forNextGame.attackingTheirDefense?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-green-600 uppercase mb-2">Attacking Their Defense</p>
+                    <div className="space-y-2">
+                      {coachingInsights.forNextGame.attackingTheirDefense.map((a: any, i: number) => (
+                        <div key={i} className="p-2 bg-green-50 rounded border border-green-100">
+                          <p className="text-sm font-semibold text-green-800">{a.action}</p>
+                          <p className="text-xs text-green-700">{a.why}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
-                {coachingInsights.gameplanSuggestions.vsAway?.length > 0 && (
-                  <div className="p-3 bg-orange-50 rounded-lg">
-                    <p className="text-xs text-orange-600 uppercase mb-2">vs Away Team</p>
-                    <ul className="space-y-1">
-                      {coachingInsights.gameplanSuggestions.vsAway.map((item: string, i: number) => (
-                        <li key={i} className="text-sm text-orange-800">{item}</li>
+
+                {/* Defending Their Offense */}
+                {coachingInsights.forNextGame.defendingTheirOffense?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-blue-600 uppercase mb-2">Defending Their Offense</p>
+                    <div className="space-y-2">
+                      {coachingInsights.forNextGame.defendingTheirOffense.map((d: any, i: number) => (
+                        <div key={i} className="p-2 bg-blue-50 rounded border border-blue-100">
+                          <p className="text-sm font-semibold text-blue-800">{d.adjustment}</p>
+                          <p className="text-xs text-blue-700">{d.why}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
