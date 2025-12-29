@@ -117,11 +117,11 @@ function parseBoxScore(boxScore: string | null): {
 
   // Parse score by quarter table
   // Find all team quarter scores using global regex (handles both separate lines and concatenated)
-  // Skip past the header row "Team1st2nd3rd4thFinal"
-  const quarterSection = boxScore.match(/Score By Quarter[\s\S]*?Final(.+)$/);
+  // Match the line(s) after "Final" until we hit a blank line or "Game Notes"
+  const quarterSection = boxScore.match(/Score By Quarter[\s\S]*?Final([\s\S]*?)(?:\n\n|Game Notes|$)/);
   if (quarterSection) {
-    const scoresLine = quarterSection[1]; // Everything after "Final"
-    // Match pattern: TeamName (2+ chars, starting with capital) + 8-10 digits
+    const scoresLine = quarterSection[1]; // Everything after "Final" until break
+    // Match pattern: TeamName (2+ chars, starting with capital) + 8-10 digits for quarters
     const allMatches = scoresLine.matchAll(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\d{1,2})(\d{2})(\d{2})(\d{2})(\d{2,3})/g);
     for (const qMatch of allMatches) {
       quarterScores.push({
