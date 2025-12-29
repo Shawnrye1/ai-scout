@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     // Get training statistics first
     const stats = await getTrainingStats();
 
+    // Validate based on model type
     if (model_type === 'player_detection' && stats.playerAnnotations < 10) {
       return NextResponse.json({
         error: 'Insufficient training data',
@@ -34,6 +35,19 @@ export async function POST(request: NextRequest) {
         stats,
       }, { status: 400 });
     }
+
+    if (model_type === 'play_classification' && stats.playTypeAnnotations < 10) {
+      return NextResponse.json({
+        error: 'Insufficient training data',
+        message: `Need at least 10 play type classifications, have ${stats.playTypeAnnotations}. Keep classifying plays in the Analyze section!`,
+        stats,
+      }, { status: 400 });
+    }
+
+    // Set training data count based on model type
+    const trainingDataCount = model_type === 'play_classification'
+      ? stats.playTypeAnnotations
+      : stats.playerAnnotations;
 
     // Check for any currently running training
     const [runningTraining] = await db
@@ -57,7 +71,7 @@ export async function POST(request: NextRequest) {
       .values({
         modelType: model_type,
         status: 'queued',
-        trainingDataCount: stats.playerAnnotations,
+        trainingDataCount,
         epochs,
         batchSize: batch_size,
         startedAt: new Date(),
@@ -99,6 +113,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           app_url: appUrl,
           training_run_id: trainingRun.id,
+          model_type,  // Route to correct training function
           epochs,
           batch_size,
         }),
@@ -208,6 +223,14 @@ async function getTrainingStats() {
 
   const playerAnnotations = Number(playerAnnotationResult[0]?.count || 0);
 
+  // Count play type annotations
+  const playTypeResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(corrections)
+    .where(eq(corrections.correctionType, 'play_type'));
+
+  const playTypeAnnotations = Number(playTypeResult[0]?.count || 0);
+
   // Count total corrections
   const totalResult = await db
     .select({ count: sql<number>`count(*)` })
@@ -227,5 +250,6 @@ async function getTrainingStats() {
     totalCorrections,
     unusedCorrections,
     playerAnnotations,
+    playTypeAnnotations,
   };
 }

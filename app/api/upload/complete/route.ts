@@ -5,8 +5,7 @@ import { getUser } from '@/lib/db/queries';
 import { eq } from 'drizzle-orm';
 import { getPublicUrl, getDownloadPresignedUrl } from '@/lib/storage/r2';
 import { z } from 'zod';
-import { triggerModalProcessing } from '@/lib/processing/modal';
-import { fetchGameRosters } from '@/lib/processing/roster-helper';
+// Modal processing removed - using Gemini multi-agent analysis instead
 
 // Schema for file uploads
 const fileUploadSchema = z.object({
@@ -102,29 +101,21 @@ export async function POST(request: NextRequest) {
       downloadUrl = await getDownloadPresignedUrl(fileData.key, 3600 * 4); // 4 hour expiry
     }
 
-    // Trigger Modal processing job with roster data
-    try {
-      // Fetch roster data for ML validation
-      const rosterData = await fetchGameRosters(updatedGame.id);
-
-      await triggerModalProcessing({
-        gameId: updatedGame.id,
-        videoUrl: downloadUrl,
-        sport: updatedGame.sport || undefined,
-        isHomeGame: rosterData.isHomeGame ?? undefined,
-        homeTeamRoster: rosterData.homeTeamRoster,
-        awayTeamRoster: rosterData.awayTeamRoster,
-      });
-    } catch (processingError) {
-      console.error('Failed to trigger processing:', processingError);
-      // Don't fail the request - processing can be retried later
-    }
+    // Trigger Gemini analysis automatically
+    // This runs in the background - we don't wait for it
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000';
+    fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(err => {
+      console.error('Failed to trigger Gemini analysis:', err);
+    });
 
     return NextResponse.json({
       game: updatedGame,
       message: isUrlUpload
-        ? 'Video URL received. Processing will begin shortly.'
-        : 'Upload complete. Processing will begin shortly.',
+        ? 'Video URL received. Analysis starting automatically.'
+        : 'Upload complete. Analysis starting automatically.',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

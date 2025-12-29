@@ -533,6 +533,268 @@ def send_failure(app_url: str, training_run_id: str, secret: str, error: str):
         print(f"Failed to send failure webhook: {e}")
 
 
+# ============================================================
+# PLAY CLASSIFICATION TRAINING
+# ============================================================
+
+@app.function(
+    image=training_image,
+    gpu="A10G",
+    timeout=3600,  # 1 hour max
+    secrets=[modal.Secret.from_name("ai-scout-secrets")],
+)
+def train_play_classification(
+    app_url: str,
+    training_run_id: str,
+    epochs: int = 50,
+    batch_size: int = 16,
+    base_model: str = "yolov8m-cls.pt",  # Classification model
+):
+    """
+    Train a play type classification model using YOLO classification.
+
+    Uses video keyframes as input, classifies into play types.
+    """
+    import os
+    import shutil
+    import cv2
+    import numpy as np
+    from pathlib import Path
+    from datetime import datetime
+    from ultralytics import YOLO
+
+    # Get secrets
+    webhook_secret = os.environ.get("MODAL_WEBHOOK_SECRET", "")
+    r2_access_key = os.environ.get("CLOUDFLARE_R2_ACCESS_KEY", "")
+    r2_secret_key = os.environ.get("CLOUDFLARE_R2_SECRET_KEY", "")
+    r2_endpoint = os.environ.get("CLOUDFLARE_R2_ENDPOINT", "")
+    r2_bucket = os.environ.get("CLOUDFLARE_R2_BUCKET", "aiscoutvideos")
+
+    work_dir = Path("/tmp/play_classification_training")
+    work_dir.mkdir(exist_ok=True)
+
+    try:
+        # ===== STEP 1: Fetch annotations =====
+        send_progress(app_url, training_run_id, webhook_secret, "downloading", 5)
+
+        annotations_url = f"{app_url}/api/admin/training/annotations?model_type=play_classification"
+        response = requests.get(annotations_url, timeout=60)
+        response.raise_for_status()
+        data = response.json()
+
+        annotations = data.get("annotations", [])
+        class_mapping = data.get("classMapping", {})
+        play_types = data.get("playTypes", [])
+
+        if not annotations:
+            raise ValueError("No play classification annotations found")
+
+        print(f"Got {len(annotations)} play annotations across {len(play_types)} types")
+        print(f"Play types: {play_types}")
+
+        # ===== STEP 2: Download videos and extract keyframes =====
+        send_progress(app_url, training_run_id, webhook_secret, "converting", 10)
+
+        # Create YOLO classification dataset structure
+        # datasets/play_classification/train/{class_name}/image.jpg
+        dataset_dir = work_dir / "datasets" / "play_classification"
+        train_dir = dataset_dir / "train"
+        val_dir = dataset_dir / "val"
+
+        # Create directories for each class
+        for play_type in play_types:
+            (train_dir / play_type).mkdir(parents=True, exist_ok=True)
+            (val_dir / play_type).mkdir(parents=True, exist_ok=True)
+
+        video_cache: dict = {}
+        frame_count = 0
+
+        for idx, ann in enumerate(annotations):
+            try:
+                video_url = ann.get("videoUrl")
+                play_type = ann.get("playType")
+                start_time = ann.get("startTime")
+                end_time = ann.get("endTime")
+
+                if not video_url or not play_type:
+                    continue
+
+                # Download video if not cached
+                if video_url not in video_cache:
+                    video_path = work_dir / f"video_{len(video_cache)}.mp4"
+                    print(f"Downloading video for annotation {idx}...")
+
+                    video_response = requests.get(video_url, timeout=120)
+                    video_response.raise_for_status()
+
+                    with open(video_path, "wb") as f:
+                        f.write(video_response.content)
+
+                    video_cache[video_url] = str(video_path)
+
+                video_path = video_cache[video_url]
+                cap = cv2.VideoCapture(video_path)
+                fps = cap.get(cv2.CAP_PROP_FPS) or 30
+                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+                # Calculate frame range for this play
+                start_frame = int((start_time or 0) * fps)
+                end_frame = int((end_time or (total_frames / fps)) * fps)
+                end_frame = min(end_frame, total_frames - 1)
+
+                # Extract 3 keyframes: start, middle, end of play
+                keyframes = [
+                    start_frame,
+                    (start_frame + end_frame) // 2,
+                    end_frame
+                ]
+
+                # Use train/val split (80/20)
+                target_dir = train_dir if idx % 5 != 0 else val_dir
+
+                for kf_idx, frame_num in enumerate(keyframes):
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+                    ret, frame = cap.read()
+
+                    if ret and frame is not None:
+                        # Resize to 224x224 for classification
+                        frame = cv2.resize(frame, (224, 224))
+
+                        # Save frame
+                        frame_path = target_dir / play_type / f"{ann['correctionId']}_{kf_idx}.jpg"
+                        cv2.imwrite(str(frame_path), frame)
+                        frame_count += 1
+
+                cap.release()
+
+                if idx % 10 == 0:
+                    progress = 10 + int((idx / len(annotations)) * 10)
+                    send_progress(app_url, training_run_id, webhook_secret, "converting", progress)
+
+            except Exception as e:
+                print(f"Error processing annotation {idx}: {e}")
+                continue
+
+        print(f"Extracted {frame_count} keyframes for training")
+
+        if frame_count < 10:
+            raise ValueError(f"Not enough training frames: {frame_count}")
+
+        # ===== STEP 3: Train YOLO classifier =====
+        send_progress(app_url, training_run_id, webhook_secret, "training", 20, 0, epochs)
+
+        # Load pretrained classification model
+        model = YOLO(base_model)
+
+        # Add callback for epoch progress
+        def on_train_epoch_end(trainer):
+            current = trainer.epoch + 1
+            total = trainer.epochs
+            epoch_progress = 20 + int((current / total) * 60)
+            send_progress(app_url, training_run_id, webhook_secret, "training", epoch_progress, current, total)
+            print(f"Epoch {current}/{total} complete - {epoch_progress}%")
+
+        model.add_callback("on_train_epoch_end", on_train_epoch_end)
+
+        # Train classifier
+        start_time = datetime.now()
+        results = model.train(
+            data=str(dataset_dir),
+            epochs=epochs,
+            batch=batch_size,
+            imgsz=224,
+            patience=20,
+            device=0,
+            project=str(work_dir / "runs"),
+            name="play_classification",
+            exist_ok=True,
+            verbose=True,
+        )
+
+        training_time = (datetime.now() - start_time).total_seconds()
+        print(f"Training completed in {training_time:.0f} seconds")
+
+        # ===== STEP 4: Validate and get metrics =====
+        send_progress(app_url, training_run_id, webhook_secret, "validating", 80)
+
+        metrics = model.val()
+
+        # Classification metrics
+        model_metrics = {
+            "accuracy": float(metrics.top1) * 100 if hasattr(metrics, 'top1') else 0,
+            "mAP50": float(metrics.top1) * 100 if hasattr(metrics, 'top1') else 0,  # Use top1 as primary
+            "mAP5095": float(metrics.top5) * 100 if hasattr(metrics, 'top5') else 0,  # Use top5 as secondary
+            "precision": float(metrics.top1) * 100 if hasattr(metrics, 'top1') else 0,
+            "recall": float(metrics.top1) * 100 if hasattr(metrics, 'top1') else 0,
+            "f1Score": float(metrics.top1) * 100 if hasattr(metrics, 'top1') else 0,
+            "classMetrics": {
+                "playTypes": play_types,
+                "classMapping": class_mapping,
+            },
+        }
+
+        print(f"Metrics: Top-1 Accuracy={model_metrics['accuracy']:.1f}%")
+
+        # ===== STEP 5: Upload model =====
+        send_progress(app_url, training_run_id, webhook_secret, "uploading", 90)
+
+        best_model_path = work_dir / "runs" / "play_classification" / "weights" / "best.pt"
+        if not best_model_path.exists():
+            best_model_path = work_dir / "runs" / "play_classification" / "weights" / "last.pt"
+
+        model_size = best_model_path.stat().st_size if best_model_path.exists() else 0
+        version = f"v1.{len(annotations)}.{int(datetime.now().timestamp()) % 10000}"
+        model_key = f"models/play_classification/{version}/best.pt"
+
+        # Upload to R2 if credentials available
+        model_url = None
+        if r2_access_key and r2_secret_key and r2_endpoint:
+            try:
+                import boto3
+                s3 = boto3.client(
+                    "s3",
+                    endpoint_url=r2_endpoint,
+                    aws_access_key_id=r2_access_key,
+                    aws_secret_access_key=r2_secret_key,
+                )
+                with open(best_model_path, "rb") as f:
+                    s3.upload_fileobj(f, r2_bucket, model_key)
+                model_url = f"{r2_endpoint}/{r2_bucket}/{model_key}"
+                print(f"Model uploaded to R2: {model_key}")
+            except Exception as e:
+                print(f"Failed to upload to R2: {e}")
+
+        # ===== STEP 6: Send results =====
+        result = {
+            "success": True,
+            "trainingRunId": training_run_id,
+            "version": version,
+            "trainingDataCount": len(annotations),
+            "epochs": epochs,
+            "batchSize": batch_size,
+            "durationSeconds": int(training_time),
+            "metrics": model_metrics,
+            "modelPath": model_key if model_url else None,
+            "modelSizeBytes": model_size,
+        }
+
+        send_completion(app_url, training_run_id, webhook_secret, result)
+        return result
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Play classification training failed: {error_msg}")
+        send_failure(app_url, training_run_id, webhook_secret, error_msg)
+        return {"success": False, "trainingRunId": training_run_id, "error": error_msg}
+
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
+
+
+# ============================================================
+# TRAINING TRIGGER ENDPOINT
+# ============================================================
+
 # Entry point for Modal web endpoint
 @app.function(
     image=training_image,
@@ -547,12 +809,14 @@ def trigger_training(request: dict):
     {
         "app_url": "https://your-app.ngrok.dev",
         "training_run_id": "uuid-here",
+        "model_type": "player_detection" or "play_classification",
         "epochs": 50,
         "batch_size": 16
     }
     """
     app_url = request.get("app_url", "")
     training_run_id = request.get("training_run_id", "")
+    model_type = request.get("model_type", "player_detection")
     epochs = request.get("epochs", 50)
     batch_size = request.get("batch_size", 16)
     base_model = request.get("base_model", "yolov8m.pt")
@@ -560,18 +824,28 @@ def trigger_training(request: dict):
     if not app_url or not training_run_id:
         return {"error": "app_url and training_run_id required"}
 
-    # Spawn training in background
-    train_player_detection.spawn(
-        app_url=app_url,
-        training_run_id=training_run_id,
-        epochs=epochs,
-        batch_size=batch_size,
-        base_model=base_model,
-    )
+    # Route to correct training function based on model type
+    if model_type == "play_classification":
+        train_play_classification.spawn(
+            app_url=app_url,
+            training_run_id=training_run_id,
+            epochs=epochs,
+            batch_size=batch_size,
+            base_model="yolov8m-cls.pt",  # Classification model
+        )
+    else:
+        # Default: player_detection
+        train_player_detection.spawn(
+            app_url=app_url,
+            training_run_id=training_run_id,
+            epochs=epochs,
+            batch_size=batch_size,
+            base_model=base_model,
+        )
 
     return {
         "success": True,
-        "message": "Training started",
+        "message": f"Training started for {model_type}",
         "training_run_id": training_run_id,
     }
 

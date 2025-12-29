@@ -48,20 +48,28 @@ async function clipExists(clipKey: string): Promise<boolean> {
 /**
  * GET /api/admin/training/annotations
  *
- * Export player annotations in a format suitable for YOLO training.
+ * Export training annotations for different model types.
  * This endpoint is called by the Modal training function.
  *
- * IMPORTANT: Uses extracted clips (not full videos) so frame numbers match.
- * Clips are stored at: clips/{gameId}/{playId}.mp4
+ * Query params:
+ * - model_type: 'player_detection' (default) or 'play_classification'
  *
- * Returns annotations with:
- * - videoUrl: Pre-signed URL to download the CLIP from R2
- * - frameNumber: Frame to extract (relative to clip start, NOT full video)
- * - imageWidth/imageHeight: Dimensions
- * - bboxes: Array of {x, y, width, height, class}
+ * For player_detection:
+ * - Returns bounding boxes for YOLO training
+ *
+ * For play_classification:
+ * - Returns play clips with type labels for classification training
  */
 export async function GET(request: NextRequest) {
   try {
+    const modelType = request.nextUrl.searchParams.get('model_type') || 'player_detection';
+
+    // Route to appropriate handler based on model type
+    if (modelType === 'play_classification') {
+      return await getPlayClassificationAnnotations();
+    }
+
+    // Default: player_detection
     // Get all player_annotation corrections
     const playerAnnotations = await db
       .select({
@@ -230,4 +238,116 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Get play classification annotations for training
+ * Returns play clips with their corrected play type labels
+ */
+async function getPlayClassificationAnnotations() {
+  // Get all play_type corrections (from the analyze section)
+  const playTypeCorrections = await db
+    .select({
+      id: corrections.id,
+      playId: corrections.playId,
+      gameId: corrections.gameId,
+      correctedData: corrections.correctedData,
+      usedForTraining: corrections.usedForTraining,
+    })
+    .from(corrections)
+    .where(eq(corrections.correctionType, 'play_type'));
+
+  // Also get play data to access video info
+  const annotations: Array<{
+    correctionId: string;
+    playId: string | null;
+    gameId: string | null;
+    playType: string;
+    videoUrl: string | null;
+    clipKey: string | null;
+    startTime: number | null;
+    endTime: number | null;
+  }> = [];
+
+  const clipUrlCache: Record<string, string | null> = {};
+
+  for (const correction of playTypeCorrections) {
+    const correctedData = correction.correctedData as any;
+    if (!correctedData?.playType) continue;
+
+    // Build clip key - try Label Studio clip first, then standard clip path
+    let clipKey: string | null = null;
+    let videoUrl: string | null = null;
+
+    // Check for Label Studio extracted clip
+    if (correction.gameId && correction.playId) {
+      // Try the clips directory (from Label Studio)
+      const lsClipPattern = `clips/${correction.gameId}/`;
+
+      // Standard clip path
+      clipKey = `clips/${correction.gameId}/${correction.playId}.mp4`;
+
+      if (clipUrlCache[clipKey] === undefined) {
+        if (await clipExists(clipKey)) {
+          clipUrlCache[clipKey] = await getPresignedUrl(clipKey);
+        } else {
+          clipUrlCache[clipKey] = null;
+        }
+      }
+      videoUrl = clipUrlCache[clipKey];
+    }
+
+    // If no clip, try to get the full game video
+    if (!videoUrl && correction.gameId) {
+      const gameVideoKey = `games/${correction.gameId}/video.mp4`;
+      if (clipUrlCache[gameVideoKey] === undefined) {
+        if (await clipExists(gameVideoKey)) {
+          clipUrlCache[gameVideoKey] = await getPresignedUrl(gameVideoKey);
+        } else {
+          clipUrlCache[gameVideoKey] = null;
+        }
+      }
+      if (clipUrlCache[gameVideoKey]) {
+        videoUrl = clipUrlCache[gameVideoKey];
+        clipKey = gameVideoKey;
+      }
+    }
+
+    annotations.push({
+      correctionId: correction.id,
+      playId: correction.playId,
+      gameId: correction.gameId,
+      playType: correctedData.playType,
+      videoUrl,
+      clipKey,
+      startTime: correctedData.actualStartTime || null,
+      endTime: correctedData.actualEndTime || null,
+    });
+  }
+
+  // Filter to only those with video access
+  const validAnnotations = annotations.filter((a) => a.videoUrl);
+
+  // Get unique play types for class mapping
+  const playTypes = [...new Set(validAnnotations.map((a) => a.playType))].sort();
+  const classMapping = Object.fromEntries(playTypes.map((t, i) => [t, i]));
+
+  // Count by play type
+  const countByType: Record<string, number> = {};
+  for (const ann of validAnnotations) {
+    countByType[ann.playType] = (countByType[ann.playType] || 0) + 1;
+  }
+
+  return NextResponse.json({
+    annotations: validAnnotations,
+    classMapping,
+    playTypes,
+    stats: {
+      totalAnnotations: validAnnotations.length,
+      uniquePlayTypes: playTypes.length,
+      countByType,
+      unusedForTraining: playTypeCorrections.filter((a) => !a.usedForTraining).length,
+      annotationsWithoutVideo: annotations.length - validAnnotations.length,
+    },
+  });
 }
