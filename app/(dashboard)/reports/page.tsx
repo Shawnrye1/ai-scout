@@ -533,8 +533,8 @@ function ReportModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-4 sm:inset-8 lg:inset-16 z-50 flex items-start justify-center overflow-hidden print:inset-0 print:static">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-3xl max-h-full overflow-hidden flex flex-col print:border-0 print:shadow-none print:max-w-none print:rounded-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 lg:p-16 print:inset-0 print:static print:p-0">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col print:border-0 print:shadow-none print:max-w-none print:rounded-none print:max-h-none">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 print:hidden flex-shrink-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
