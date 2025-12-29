@@ -1990,11 +1990,12 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   <span className="font-semibold text-gray-900">
                     {(() => {
                       // Parse total FGA from box score TOTALS lines (e.g., "TOTALS26-48" means 48 FGA)
+                      // Limit to 1-3 digits to avoid matching concatenated stats
                       const boxScore = game.boxScore as string || '';
-                      const totalsMatches = boxScore.matchAll(/TOTALS\d+-(\d+)/g);
+                      const totalsMatches = boxScore.matchAll(/TOTALS(\d{1,3})-(\d{1,3})/g);
                       let totalFGA = 0;
                       for (const match of totalsMatches) {
-                        totalFGA += parseInt(match[1]) || 0;
+                        totalFGA += parseInt(match[2]) || 0; // match[2] is FGA
                       }
                       return totalFGA || game.detectedPlays?.length || '-';
                     })()}
