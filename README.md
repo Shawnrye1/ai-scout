@@ -1,15 +1,30 @@
-# AI Scout
+# AI Scout v1.0
 
 AI-powered sports scouting platform for high school and college athletics. Upload game film, get automated scouting reports.
 
+**Version:** 1.0.0 - Stable Release
+**Last Updated:** December 2024
+
+> **Note:** This is a stable release. The framework and feature set should not change without discussion. Any modifications to core functionality require review.
+
 ## Features
 
-- **Automatic Sport Detection** - System identifies football vs basketball from video
-- **Player Tracking** - Detects and tracks all players via jersey numbers
-- **Team Separation** - Identifies home vs away teams by jersey color
-- **Play Segmentation** - Breaks game film into individual plays/possessions
-- **Scouting Reports** - AI-generated reports for each player with grades, tendencies, strengths, and development areas
-- **Team Analysis** - Formation breakdowns, play tendencies, situational analysis
+### Core Functionality (v1.0)
+- **Video Analysis** - Upload game film or paste YouTube/Hudl URLs
+- **Player Detection** - AI identifies all players by jersey number
+- **Team Separation** - Automatically identifies home vs away teams
+- **Scouting Reports** - Individual player reports with grades, stats, strengths, and development areas
+- **Game Summaries** - Team-level analysis with scoring runs and key moments
+- **Season Reports** - Aggregate performance across multiple games
+- **Box Score Integration** - Official stats validation
+
+### Coach Dashboard
+- **Home** - Quick stats, recent games, team roster, coaching insights
+- **Games** - All uploaded games with processing status
+- **Roster** - Team roster management linked to sports team
+- **Player Insights** - Player development hub with trends and comparisons
+- **Reports** - Exportable player, game, and season reports
+- **Settings** - Account, billing, and security management
 
 ## Tech Stack
 
@@ -17,27 +32,41 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 - Next.js 14 (App Router)
 - TypeScript
 - Tailwind CSS
-- Drizzle ORM
+- SWR for data fetching
 
-### Backend/Infrastructure
+### Backend
+- Drizzle ORM
 - Neon PostgreSQL (with pgvector)
 - Cloudflare R2 (video storage)
-- Modal.com (GPU compute for ML pipeline)
 - Stripe (billing)
-- Plunk (email)
+- Resend (email)
 
-### ML Pipeline
-- YOLOv8 (player/ball detection)
-- ViTPose (pose estimation)
-- ByteTrack (multi-object tracking)
-- Sport-specific action recognition models
-- Claude API (report generation)
+### AI/Analysis
+- **Google Gemini 3 Pro** - Primary video analysis (multi-agent architecture)
+- **Anthropic Claude** - Report generation and text processing
 
-## Prerequisites
+## Architecture
 
-- **Python 3.10+** - Required for Label Studio
-- **ngrok** - Required for Modal webhooks (`brew install ngrok`)
-- **Node.js 18+**
+### Gemini Multi-Agent Analysis
+The system uses a two-phase multi-agent pipeline:
+
+**Phase 1 - Specialist Agents (parallel):**
+1. Offensive Scout - Offensive systems and tendencies
+2. Defensive Scout - Defensive schemes and coverages
+3. Jersey Scan - Player identification by jersey number
+4. Game Flow - Scoring runs and momentum shifts
+5. Coaching Strategist - Team tendencies and matchups
+6. Stat Tracker - Individual player statistics
+
+**Phase 2 - Player Deep Dive:**
+- Detailed scouting reports for each detected player
+- Strengths, development areas, tendencies
+
+### Data Model
+```
+Game → DetectedTeams → DetectedPlayers → PlayerAnalysis
+                                      → KeyMoments
+```
 
 ## Getting Started
 
@@ -47,76 +76,57 @@ npm install
 
 # 2. Set up environment variables
 cp .env.example .env
-# Add your keys: POSTGRES_URL, AUTH_SECRET, STRIPE keys, etc.
+# Required: POSTGRES_URL, AUTH_SECRET, GEMINI_API_KEY, R2 credentials
 
-# 3. Set up Label Studio (REQUIRED)
-python3 -m venv .venv-labelstudio
-source .venv-labelstudio/bin/activate
-pip install label-studio
-
-# 4. Start Label Studio
-source .venv-labelstudio/bin/activate && label-studio start --port 8080
-# - Open http://localhost:8080
-# - Create account or sign in
-# - Go to Account & Settings > Access Token
-# - Copy token to LABEL_STUDIO_API_KEY in .env
-
-# 5. Run database migrations
+# 3. Run database migrations
 npm run db:migrate
 
-# 6. Start ngrok tunnel (REQUIRED for Modal webhooks)
-ngrok http 3000
-# Update BASE_URL in .env with the ngrok URL
-
-# 7. Start development server
+# 4. Start development server
 npm run dev
 ```
 
 ## Environment Variables
 
 ```
+# Database
 POSTGRES_URL=postgresql://...
+
+# Auth
 AUTH_SECRET=...
-STRIPE_SECRET_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-PLUNK_SECRET_KEY=sk_...
-ANTHROPIC_API_KEY=sk-ant-...
+
+# Video Analysis (Required)
+GEMINI_API_KEY=...
+
+# Video Storage
 CLOUDFLARE_R2_ACCESS_KEY=...
 CLOUDFLARE_R2_SECRET_KEY=...
 CLOUDFLARE_R2_BUCKET=aiscoutvideos
-CLOUDFLARE_R2_PUBLIC_URL=https://pub-9ea8dfd4cd974a818ae6ae814cd7fb6b.r2.dev
-MODAL_TOKEN_ID=...
-MODAL_TOKEN_SECRET=...
+CLOUDFLARE_R2_PUBLIC_URL=...
+
+# Payments
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Email
+RESEND_API_KEY=re_...
 ```
 
-## Project Structure
+## Version History
 
-```
-ai-scout/
-├── app/                    # Next.js app router pages
-│   ├── (dashboard)/        # Protected coach dashboard
-│   │   ├── games/          # Game list and upload
-│   │   ├── game/[id]/      # Individual game analysis
-│   │   └── players/        # Player database
-│   ├── api/                # API routes
-│   │   ├── games/          # Game CRUD + processing triggers
-│   │   ├── upload/         # Video upload handling
-│   │   └── webhooks/       # Modal processing callbacks
-│   └── (auth)/             # Auth pages
-├── lib/
-│   ├── db/                 # Database schema and queries
-│   ├── ai/                 # Claude integration
-│   ├── storage/            # R2 video storage
-│   └── processing/         # ML pipeline triggers
-├── ml/                     # Python ML service (Modal)
-│   ├── detection/          # Player/ball detection
-│   ├── tracking/           # Multi-object tracking
-│   ├── pose/               # Pose estimation
-│   ├── analysis/           # Sport-specific analysis
-│   └── main.py             # Modal entry point
-└── components/             # React components
-```
+### v1.0.0 (December 2024)
+- Stable coach dashboard with full functionality
+- Gemini-based video analysis (replaced custom ML pipeline)
+- Player Insights with development tracking
+- Reports tab with exportable player/game/season reports
+- Box score integration for stats validation
+- Complete billing and subscription management
+
+## Development Guidelines
+
+1. **No breaking changes** without discussion
+2. **Test locally** before pushing to main
+3. **Document** any new features in CLAUDE.md
+4. **Follow existing patterns** for consistency
 
 ## License
 
