@@ -200,9 +200,9 @@ export default function CoachDashboard() {
   const decliningPlayers = playerDevelopment.filter((p) => p.trend === 'down').slice(0, 3);
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             {sportsTeam ? sportsTeam.name : 'Coach Dashboard'}
@@ -222,60 +222,60 @@ export default function CoachDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Games</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Games</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {isLoading ? '...' : stats.totalGames}
               </p>
             </div>
-            <Video className="w-8 h-8 text-blue-500 opacity-50" />
+            <Video className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Roster</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Roster</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {isLoading ? '...' : roster.length || stats.totalPlayers}
               </p>
             </div>
-            <Users className="w-8 h-8 text-green-500 opacity-50" />
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Team Grade</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Team Grade</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {isLoading ? '...' : stats.avgPlayerGrade.toFixed(0)}
               </p>
             </div>
-            <Award className="w-8 h-8 text-purple-500 opacity-50" />
+            <Award className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 opacity-50" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Processing</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Processing</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {isLoading ? '...' : stats.processingGames}
               </p>
             </div>
-            <Clock className="w-8 h-8 text-orange-500 opacity-50" />
+            <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 opacity-50" />
           </div>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Left Column - 2 cols */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           {/* Season Progression */}
           {seasonProgression.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
@@ -301,7 +301,7 @@ export default function CoachDashboard() {
           )}
 
           {/* Player Development Grid */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Improving Players */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -368,7 +368,7 @@ export default function CoachDashboard() {
           </div>
 
           {/* Position Breakdown & Stat Leaders */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Position Breakdown */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -464,7 +464,7 @@ export default function CoachDashboard() {
           </div>
 
           {/* Practice Focus & Teaching Moments */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Practice Focus Areas */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -597,7 +597,7 @@ export default function CoachDashboard() {
         </div>
 
         {/* Right Column */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-6">
           {/* Coaching Insights */}
           {coachingInsights.length > 0 && (
             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800 p-4 sm:p-5">
