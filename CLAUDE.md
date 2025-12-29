@@ -191,10 +191,11 @@ modal deploy main.py
 ### Admin (Admin role only)
 - `/admin` - Admin overview
 - `/admin/corrections` - Correction queue
+- `/admin/review` - Video clip review and verification
 - `/admin/games` - All games across platform
 - `/admin/players` - Player database
 - `/admin/models` - ML model management
-- `/admin/billing` - Revenue & subscriptions (NEW)
+- `/admin/billing` - Revenue & subscriptions
 - `/admin/activity` - Platform activity log
 - `/admin/settings` - Platform settings
 
@@ -465,9 +466,13 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 3. ✅ Billing pages for coach and admin dashboards
 4. ✅ ML pipeline with YOLOv8x, YOLOv8x-pose, ByteTrack, PaddleOCR
 5. ✅ Mobile-responsive layouts
-6. ✅ Gemini 2.0 Flash video analysis with shotLog pattern for accurate stats
+6. ✅ Gemini 3 Pro video analysis with shotLog pattern for accurate stats
 7. ✅ Video chunking for 45+ minute games (splits into 15-min segments)
 8. ✅ Player stats aggregation across video chunks
 9. ✅ Multi-agent two-pass architecture (5 specialist agents + player deep dive)
 10. ✅ Video elapsed timestamps for Key Moments and Scoring Runs (enables video seeking)
 11. ✅ Scoreboard display with both teams, quarter breakdown, winner indicator
+12. ✅ Admin review system for video clip verification (`/admin/review`)
+13. ✅ Analysis completion based on detected players in database (not JSON flag)
+14. ✅ Network error retry logic (fetch failed, ECONNRESET, ETIMEDOUT)
+15. ✅ Training metrics endpoint for ML model tracking
