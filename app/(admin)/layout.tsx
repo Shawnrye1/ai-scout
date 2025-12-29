@@ -4,27 +4,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Flag,
+  CheckCircle,
   Users,
   Settings,
-  Database,
   Activity,
   Video,
-  Brain,
+  BarChart3,
   CreditCard,
-  Scissors,
-  Play,
   ClipboardList,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/annotate', label: 'Annotate Videos', icon: Scissors },
-  { href: '/admin/corrections', label: 'Correction Queue', icon: Flag },
+  { href: '/admin/review', label: 'Review Events', icon: CheckCircle },
   { href: '/admin/games', label: 'All Games', icon: Video },
   { href: '/admin/teams', label: 'Team Database', icon: ClipboardList },
   { href: '/admin/players', label: 'Player Database', icon: Users },
-  { href: '/admin/models', label: 'ML Models', icon: Brain },
+  { href: '/admin/performance', label: 'AI Performance', icon: BarChart3 },
   { href: '/admin/billing', label: 'Billing', icon: CreditCard },
   { href: '/admin/activity', label: 'Activity Log', icon: Activity },
   { href: '/admin/settings', label: 'Settings', icon: Settings },

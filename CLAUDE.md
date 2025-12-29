@@ -12,7 +12,7 @@ AI-powered sports scouting platform. Coaches upload game film, system automatica
 - Tailwind CSS
 - Drizzle ORM + Neon PostgreSQL (with pgvector)
 - Cloudflare R2 (video storage)
-- Modal.com (GPU compute for ML)
+- Google Gemini 2.0 Flash (video analysis - primary AI)
 - Stripe Billing
 - Resend Email
 - Anthropic Claude (report generation)
@@ -103,75 +103,22 @@ Coach views results in dashboard
 - `POST /api/webhooks/modal` - Receive processing updates from Modal
 - `POST /api/webhooks/stripe` - Stripe webhook events
 
-## ML Pipeline (Modal.com)
+## Video Analysis (Gemini-Only Architecture)
 
-Located in `/ml` directory. Runs on Modal A10G GPUs.
+**Note:** This project uses Gemini 2.0 Flash exclusively for video analysis. No custom ML models are trained - all detection, tracking, and analysis is done via Gemini's multi-agent prompt system.
 
-### Models Used
-- **YOLOv8x** - Player/ball detection (state-of-the-art object detection)
-- **YOLOv8x-pose** - Pose estimation (17 COCO keypoints)
-- **BoT-SORT** - Multi-object tracking (built into YOLO, better than ByteTrack for sports)
-- **PaddleOCR 3.x** - Jersey number reading (anchors player identity)
+### Why Gemini-Only?
+- Gemini outperformed custom ML pipeline (YOLOv8 + tracking) in testing
+- No training infrastructure needed
+- Faster iteration through prompt refinement
+- Better accuracy for complex game understanding
 
-### Label Studio ML Backend (`ml_backend.py`)
+### How to Improve Accuracy
+1. **Review Events** - Verify/reject Gemini detections in `/admin/review`
+2. **Check Patterns** - View accuracy by event type in `/admin/performance`
+3. **Refine Prompts** - Update prompts in `/lib/analysis/multi-agent-gemini.ts` based on rejection patterns
 
-Current version: `yolov8x-jersey-v3`
-
-**Pipeline:**
-1. Download video clip from R2
-2. Initialize PaddleOCR (optional, continues without if fails)
-3. Run BoT-SORT tracking on ALL frames for continuity
-4. Save keyframes every 10 frames
-5. Attempt OCR on player crops every 30 frames (more chances to read)
-6. Vote on jersey numbers per track (most common wins)
-7. Merge fragmented tracks by jersey number
-8. Merge spatially adjacent tracks (within 30 frames, 10% distance)
-9. Filter: skip small boxes (<3% width), skip crowd area (top 15%)
-10. Output top 13 tracks as Label Studio videorectangle format
-
-**Key Improvements Made:**
-- Switched from ByteTrack to BoT-SORT (has ReID features)
-- Process EVERY frame for tracker continuity (not just keyframes)
-- Added court filtering to remove sideline/crowd detections
-- Jersey number OCR to anchor player identity across track fragments
-- Track merging: combine fragments with same jersey number
-- Spatial merging: combine nearby tracks that end/start within 30 frames
-- PaddleOCR 3.x compatibility (handles multiple result formats)
-- Increased OCR frequency (every 30 frames instead of 50)
-
-**Known Limitations:**
-- Basketball tracking is hard (fast movement, similar jerseys, occlusion)
-- Track fragmentation still occurs when players cross paths
-- OCR accuracy depends on video quality and jersey visibility
-- Long videos (8+ min) create many track fragments
-
-### Processing Stages
-1. `detect_sport` - Classify football vs basketball
-2. `detect_players` - YOLOv8x player detection
-3. `track_players` - BoT-SORT multi-object tracking
-4. `read_jerseys` - PaddleOCR for jersey numbers
-5. `estimate_pose` - YOLOv8x-pose body keypoints
-6. `segment_plays` - Break into plays/possessions
-7. `analyze_players` - Extract metrics per player
-8. `generate_reports` - Claude API for natural language
-
-### Triggering Processing
-```typescript
-// From Next.js API route
-import { triggerProcessing } from '@/lib/processing/modal';
-
-await triggerProcessing({
-  gameId: game.id,
-  videoUrl: game.videoUrl,
-  sport: game.sport, // or 'auto' for detection
-});
-```
-
-### Deploying to Modal
-```bash
-cd ml
-modal deploy main.py
-```
+See "Gemini Video Analysis" section below for full architecture details.
 
 ## Frontend Routes
 
@@ -189,12 +136,12 @@ modal deploy main.py
   - `/dashboard/security` - Password & security
 
 ### Admin (Admin role only)
-- `/admin` - Admin overview
-- `/admin/corrections` - Correction queue
-- `/admin/review` - Video clip review and verification
+- `/admin` - Admin overview (Gemini accuracy metrics)
+- `/admin/review` - Review AI detections (verify/reject events)
+- `/admin/performance` - AI accuracy tracking by event type
 - `/admin/games` - All games across platform
+- `/admin/teams` - Team database
 - `/admin/players` - Player database
-- `/admin/models` - ML model management
 - `/admin/billing` - Revenue & subscriptions
 - `/admin/activity` - Platform activity log
 - `/admin/settings` - Platform settings
@@ -240,11 +187,8 @@ CLOUDFLARE_R2_BUCKET=aiscoutvideos
 CLOUDFLARE_R2_ENDPOINT=https://xxx.r2.cloudflarestorage.com
 CLOUDFLARE_R2_PUBLIC_URL=https://pub-9ea8dfd4cd974a818ae6ae814cd7fb6b.r2.dev
 
-# ML Processing (Modal)
-MODAL_TOKEN_ID=ak-xxx
-MODAL_TOKEN_SECRET=ak-xxx
-MODAL_WEBHOOK_SECRET=your-webhook-secret
-MODAL_ENDPOINT=https://your-modal-endpoint.modal.run
+# Video Analysis (Gemini)
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ## Video Upload Methods
@@ -309,37 +253,23 @@ Reports should sound like a real scout:
 # Start dev server
 npm run dev
 
-# Start Label Studio (REQUIRED for video analysis)
-# NOTE: Runs via pip, NOT Docker
-source .venv-labelstudio/bin/activate && label-studio start --port 8080
-
-# Start ngrok tunnel (REQUIRED for Modal webhooks)
-ngrok http 3000
-# Update BASE_URL in .env with the ngrok URL
-# Verify tunnel is active: curl http://localhost:4040/api/tunnels
-
 # Database commands
 npm run db:generate  # Generate migrations
 npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio
 
-# ML development (in /ml directory)
-modal serve main.py  # Local Modal dev
-modal deploy main.py # Deploy to Modal
-
 # Build
 npm run build
+
+# Trigger Gemini analysis on a game
+curl -X POST http://localhost:3000/api/games/{gameId}/analyze-gemini
 ```
 
 ## Development Checklist
 Before testing video uploads:
 1. ✅ Dev server running (`npm run dev`)
-2. ✅ Label Studio running via pip (`source .venv-labelstudio/bin/activate && label-studio start --port 8080`)
-3. ✅ ngrok tunnel active (`ngrok http 3000`)
-4. ✅ BASE_URL in .env matches ngrok URL
-5. ✅ Verify ngrok is forwarding: `curl -s http://localhost:4040/api/tunnels`
-
-**Common Issue**: If Modal webhooks aren't working, check if ngrok tunnel died (ERR_NGROK_3200). Restart with `ngrok http 3000`.
+2. ✅ GEMINI_API_KEY set in `.env`
+3. ✅ Cloudflare R2 credentials configured
 
 ## Pricing Tiers
 - **Starter**: $49/mo - 10 games/month
@@ -436,11 +366,6 @@ The prompt uses a `shotLog` array to force Gemini to track every shot attempt:
 - Do NOT use older models (gemini-2.0-flash, gemini-2.5-pro, gemini-exp-1206)
 - The model is configured in `/lib/analysis/multi-agent-gemini.ts`
 
-### Environment Variables
-```env
-GEMINI_API_KEY=your-gemini-api-key
-```
-
 ### Usage
 ```bash
 # Trigger via API
@@ -464,15 +389,15 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 1. ✅ User role system (admin, coach, assistant_coach, player)
 2. ✅ Hudl/YouTube URL upload support
 3. ✅ Billing pages for coach and admin dashboards
-4. ✅ ML pipeline with YOLOv8x, YOLOv8x-pose, ByteTrack, PaddleOCR
-5. ✅ Mobile-responsive layouts
-6. ✅ Gemini 3 Pro video analysis with shotLog pattern for accurate stats
+4. ✅ Mobile-responsive layouts
+5. ✅ **Gemini-only architecture** - Removed custom ML pipeline in favor of Gemini 2.0 Flash
+6. ✅ Multi-agent two-pass architecture (5 specialist agents + player deep dive)
 7. ✅ Video chunking for 45+ minute games (splits into 15-min segments)
 8. ✅ Player stats aggregation across video chunks
-9. ✅ Multi-agent two-pass architecture (5 specialist agents + player deep dive)
-10. ✅ Video elapsed timestamps for Key Moments and Scoring Runs (enables video seeking)
-11. ✅ Scoreboard display with both teams, quarter breakdown, winner indicator
-12. ✅ Admin review system for video clip verification (`/admin/review`)
+9. ✅ Video elapsed timestamps for Key Moments and Scoring Runs (enables video seeking)
+10. ✅ Scoreboard display with both teams, quarter breakdown, winner indicator
+11. ✅ **Admin Review tab** - Verify/reject Gemini detections (`/admin/review`)
+12. ✅ **AI Performance dashboard** - Track accuracy by event type (`/admin/performance`)
 13. ✅ Analysis completion based on detected players in database (not JSON flag)
 14. ✅ Network error retry logic (fetch failed, ECONNRESET, ETIMEDOUT)
-15. ✅ Training metrics endpoint for ML model tracking
+15. ✅ Admin navigation updated for Gemini-focused workflow

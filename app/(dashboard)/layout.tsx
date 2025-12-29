@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { use, useState, Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X, CreditCard, ClipboardList } from 'lucide-react';
+import { Home, LogOut, Video, Settings, Users, BarChart3, LayoutDashboard, Menu, X, CreditCard, ClipboardList, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,6 +104,14 @@ function UserMenu() {
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
+        {user.role === 'admin' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/admin" className="flex w-full items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Admin</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <form action={handleSignOut} className="w-full">
           <button type="submit" className="flex w-full">
             <DropdownMenuItem className="w-full flex-1 cursor-pointer">
@@ -158,6 +166,7 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 
 function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: user } = useSWR<User>('/api/user', fetcher);
 
   return (
     <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
@@ -218,6 +227,11 @@ function Header() {
             <MobileNavLink href="/dashboard" icon={Settings} onClick={() => setMobileMenuOpen(false)}>
               Settings
             </MobileNavLink>
+            {user?.role === 'admin' && (
+              <MobileNavLink href="/admin" icon={Shield} onClick={() => setMobileMenuOpen(false)}>
+                Admin
+              </MobileNavLink>
+            )}
           </div>
         </nav>
       )}
