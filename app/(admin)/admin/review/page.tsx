@@ -536,16 +536,30 @@ export default function ReviewQueue() {
                           const video = e.currentTarget;
                           video.currentTime = clipSeekTo;
                         }}
-                        onTimeUpdate={(e) => {
+                        onPlay={(e) => {
+                          // Start interval to check for clip end (more reliable than onTimeUpdate)
                           const video = e.currentTarget;
-                          // Loop back to start when reaching end of clip
-                          if (clipEndTime > 0 && video.currentTime >= clipEndTime) {
-                            video.currentTime = clipSeekTo;
-                            video.play();
+                          const checkInterval = setInterval(() => {
+                            if (video.paused || video.ended) {
+                              clearInterval(checkInterval);
+                              return;
+                            }
+                            if (clipEndTime > 0 && video.currentTime >= clipEndTime) {
+                              video.currentTime = clipSeekTo;
+                            }
+                          }, 100); // Check every 100ms
+                          // Store interval ID on video element for cleanup
+                          (video as any)._clipInterval = checkInterval;
+                        }}
+                        onPause={(e) => {
+                          // Clear interval when paused
+                          const video = e.currentTarget;
+                          if ((video as any)._clipInterval) {
+                            clearInterval((video as any)._clipInterval);
                           }
                         }}
                         onEnded={(e) => {
-                          // Also loop if video ends naturally
+                          // Loop if video ends naturally
                           const video = e.currentTarget;
                           video.currentTime = clipSeekTo;
                           video.play();
