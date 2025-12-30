@@ -518,13 +518,21 @@ export default function ReviewQueue() {
                       <video
                         ref={videoRef}
                         key={`${selectedEvent.id}-${selectedEvent.timestampSeconds}`}
-                        src={clipUrl}
+                        src={`${clipUrl}#t=${clipSeekTo},${clipSeekTo + 8}`}
                         className="w-full h-full rounded-lg"
                         controls
                         autoPlay
                         onLoadedMetadata={(e) => {
                           const video = e.currentTarget;
                           video.currentTime = clipSeekTo;
+                        }}
+                        onTimeUpdate={(e) => {
+                          const video = e.currentTarget;
+                          const endTime = clipSeekTo + 8;
+                          // Loop back to start when reaching end of clip
+                          if (video.currentTime >= endTime) {
+                            video.currentTime = clipSeekTo;
+                          }
                         }}
                       />
                       {/* Clip info overlay */}
