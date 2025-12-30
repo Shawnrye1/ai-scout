@@ -2,10 +2,66 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { games } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { execSync } from 'child_process';
+import { getDownloadPresignedUrl } from '@/lib/storage/r2';
+import { execSync, exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+
+// Track download progress for remote videos
+const downloadingVideos = new Map<string, Promise<string>>();
+
+async function downloadRemoteVideo(videoUrl: string, gameId: string): Promise<string> {
+  const cacheDir = path.join(os.tmpdir(), 'ai-scout-videos');
+  const cachedPath = path.join(cacheDir, `${gameId}.mp4`);
+
+  // Create cache directory if it doesn't exist
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+
+  // Return cached file if it exists and is not empty
+  if (fs.existsSync(cachedPath)) {
+    const stat = fs.statSync(cachedPath);
+    if (stat.size > 0) {
+      return cachedPath;
+    }
+    // Remove empty/corrupt file
+    fs.unlinkSync(cachedPath);
+  }
+
+  // Check if already downloading
+  if (downloadingVideos.has(gameId)) {
+    return downloadingVideos.get(gameId)!;
+  }
+
+  // Start download
+  const downloadPromise = new Promise<string>((resolve, reject) => {
+    console.log(`Downloading video for game ${gameId}...`);
+
+    // Use curl for reliable downloading
+    exec(
+      `curl -L -s -o "${cachedPath}" "${videoUrl}"`,
+      { timeout: 600000 }, // 10 minute timeout for large videos
+      (error) => {
+        downloadingVideos.delete(gameId);
+        if (error) {
+          // Clean up partial download
+          if (fs.existsSync(cachedPath)) {
+            fs.unlinkSync(cachedPath);
+          }
+          reject(error);
+        } else {
+          console.log(`Downloaded video for game ${gameId}`);
+          resolve(cachedPath);
+        }
+      }
+    );
+  });
+
+  downloadingVideos.set(gameId, downloadPromise);
+  return downloadPromise;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,21 +74,47 @@ export async function GET(request: NextRequest) {
 
     const timestampSeconds = parseFloat(timestamp);
 
-    // Get the game
+    // Get the game with both videoUrl and videoKey
     const [game] = await db
-      .select({ videoUrl: games.videoUrl })
+      .select({
+        videoUrl: games.videoUrl,
+        videoKey: games.videoKey,
+      })
       .from(games)
       .where(eq(games.id, gameId));
 
-    if (!game || !game.videoUrl) {
-      return NextResponse.json({ error: 'Game or video not found' }, { status: 404 });
+    if (!game) {
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    const videoPath = game.videoUrl;
+    let videoPath: string | null = null;
 
-    // Check if it's a local file
-    if (!videoPath.startsWith('/')) {
-      return NextResponse.json({ error: 'Only local files supported for clips' }, { status: 400 });
+    // Priority 1: If there's a videoKey (R2 storage), get presigned URL and download
+    if (game.videoKey) {
+      try {
+        const presignedUrl = await getDownloadPresignedUrl(game.videoKey, 3600);
+        videoPath = await downloadRemoteVideo(presignedUrl, gameId);
+      } catch (downloadError) {
+        console.error('Failed to download video from R2:', downloadError);
+        return NextResponse.json({ error: 'Failed to download video for clip extraction' }, { status: 500 });
+      }
+    }
+    // Priority 2: If there's a remote URL (https://), download it
+    else if (game.videoUrl && (game.videoUrl.startsWith('http://') || game.videoUrl.startsWith('https://'))) {
+      try {
+        videoPath = await downloadRemoteVideo(game.videoUrl, gameId);
+      } catch (downloadError) {
+        console.error('Failed to download video:', downloadError);
+        return NextResponse.json({ error: 'Failed to download video for clip extraction' }, { status: 500 });
+      }
+    }
+    // Priority 3: Local file path
+    else if (game.videoUrl && game.videoUrl.startsWith('/')) {
+      videoPath = game.videoUrl;
+    }
+
+    if (!videoPath) {
+      return NextResponse.json({ error: 'No video available for this game' }, { status: 404 });
     }
 
     if (!fs.existsSync(videoPath)) {

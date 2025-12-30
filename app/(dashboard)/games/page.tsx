@@ -24,16 +24,16 @@ function GameCard({ game }: { game: any }) {
 
   return (
     <Link href={`/game/${game.id}`}>
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 hover:shadow-md transition-shadow cursor-pointer">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5 hover:shadow-md transition-shadow cursor-pointer">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#0f2d52]/10 flex items-center justify-center flex-shrink-0">
-              <Video className="w-5 h-5 sm:w-6 sm:h-6 text-[#0f2d52]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#0f2d52]/10 dark:bg-[#0f2d52]/30 flex items-center justify-center flex-shrink-0">
+              <Video className="w-5 h-5 sm:w-6 sm:h-6 text-[#0f2d52] dark:text-blue-400" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{game.title}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{game.title}</h3>
               {game.opponent && (
-                <p className="text-xs sm:text-sm text-gray-500 truncate">vs {game.opponent}</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">vs {game.opponent}</p>
               )}
             </div>
           </div>
@@ -46,17 +46,17 @@ function GameCard({ game }: { game: any }) {
         {/* Progress bar for processing */}
         {isProcessing && (
           <div className="mb-3">
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#0f2d52] transition-all duration-500"
                 style={{ width: `${game.processingProgress || 0}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">{game.processingProgress || 0}% complete</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{game.processingProgress || 0}% complete</p>
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2 sm:gap-4">
             {game.sport && (
               <span className="capitalize">{game.sport}</span>
@@ -82,8 +82,8 @@ export default function GamesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Game Film</h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">Upload and analyze your game footage</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Game Film</h1>
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">Upload and analyze your game footage</p>
         </div>
         <Link href="/games/new" className="w-full sm:w-auto">
           <Button className="bg-[#0f2d52] hover:bg-[#1a4a7a] w-full sm:w-auto">
@@ -99,16 +99,16 @@ export default function GamesPage() {
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       ) : error ? (
-        <div className="bg-red-50 text-red-600 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg p-4">
           Failed to load games. Please try again.
         </div>
       ) : !data?.games || data.games.length === 0 ? (
-        <div className="bg-gray-50 rounded-xl p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
             <Video className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No games yet</h3>
-          <p className="text-gray-500 mb-6">Upload your first game film to get started with AI scouting.</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No games yet</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Upload your first game film to get started with AI scouting.</p>
           <Link href="/games/new">
             <Button className="bg-[#0f2d52] hover:bg-[#1a4a7a]">
               <Plus className="w-4 h-4 mr-2" />

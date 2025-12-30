@@ -1,0 +1,30 @@
+# Dependencies and build artifacts
+node_modules
+.next
+
+# Python/ML (not needed for Next.js deployment)
+.venv-labelstudio
+ml
+*.pyc
+__pycache__
+
+# Video files
+*.mp4
+*.mov
+*.avi
+
+# Large archives
+*.tar.gz
+*.zip
+
+# Development files
+*.log
+.env.local
+.env.development
+
+# IDE
+.idea
+.vscode
+
+# Test files
+test-*.mp4

@@ -477,28 +477,28 @@ function PlayerRow({
   onDelete: (id: number) => void;
 }) {
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50">
+    <tr className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
       <td className="py-3 px-4">
         <div className="w-10 h-10 rounded-full bg-[#0f2d52] text-white flex items-center justify-center font-bold">
           {player.jerseyNumber}
         </div>
       </td>
-      <td className="py-3 px-4 font-medium text-gray-900">{player.name || '-'}</td>
-      <td className="py-3 px-4 text-gray-600">{player.position || '-'}</td>
-      <td className="py-3 px-4 text-gray-600">{player.height || '-'}</td>
-      <td className="py-3 px-4 text-gray-600">{player.weight ? `${player.weight} lbs` : '-'}</td>
-      <td className="py-3 px-4 text-gray-600">{player.yearGrade || '-'}</td>
+      <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{player.name || '-'}</td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{player.position || '-'}</td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{player.height || '-'}</td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{player.weight ? `${player.weight} lbs` : '-'}</td>
+      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{player.yearGrade || '-'}</td>
       <td className="py-3 px-4">
         <div className="flex items-center gap-2">
           <button
             onClick={() => onEdit(player)}
-            className="p-1.5 text-gray-400 hover:text-[#0f2d52] hover:bg-gray-100 rounded"
+            className="p-1.5 text-gray-400 hover:text-[#0f2d52] dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(player.id)}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -533,7 +533,7 @@ function PlayerForm({
   const positions = POSITIONS[sport as keyof typeof POSITIONS] || POSITIONS.basketball;
 
   return (
-    <tr className="border-b border-gray-100 bg-blue-50">
+    <tr className="border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
       <td className="py-3 px-4">
         <input
           type="number"
@@ -542,7 +542,7 @@ function PlayerForm({
           value={form.jerseyNumber}
           onChange={(e) => setForm({ ...form, jerseyNumber: e.target.value })}
           placeholder="#"
-          className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center"
+          className="w-16 px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded text-center"
         />
       </td>
       <td className="py-3 px-4">
@@ -551,14 +551,14 @@ function PlayerForm({
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="Player Name"
-          className="w-full px-2 py-1.5 border border-gray-300 rounded"
+          className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded"
         />
       </td>
       <td className="py-3 px-4">
         <select
           value={form.position}
           onChange={(e) => setForm({ ...form, position: e.target.value })}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded"
+          className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded"
         >
           <option value="">Position</option>
           {positions.map((pos) => (
@@ -574,7 +574,7 @@ function PlayerForm({
           value={form.height}
           onChange={(e) => setForm({ ...form, height: e.target.value })}
           placeholder="6'2&quot;"
-          className="w-20 px-2 py-1.5 border border-gray-300 rounded"
+          className="w-20 px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded"
         />
       </td>
       <td className="py-3 px-4">
@@ -583,14 +583,14 @@ function PlayerForm({
           value={form.weight}
           onChange={(e) => setForm({ ...form, weight: e.target.value })}
           placeholder="180"
-          className="w-20 px-2 py-1.5 border border-gray-300 rounded"
+          className="w-20 px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded"
         />
       </td>
       <td className="py-3 px-4">
         <select
           value={form.yearGrade}
           onChange={(e) => setForm({ ...form, yearGrade: e.target.value })}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded"
+          className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded"
         >
           <option value="">Year</option>
           {YEARS.map((year) => (
@@ -605,13 +605,13 @@ function PlayerForm({
           <button
             onClick={() => onSave({ ...form, jerseyNumber: parseInt(form.jerseyNumber), weight: form.weight ? parseInt(form.weight) : undefined })}
             disabled={loading || !form.jerseyNumber}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+            className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           </button>
           <button
             onClick={onCancel}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
             <X className="w-4 h-4" />
           </button>
@@ -706,8 +706,8 @@ export default function RosterPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Team Roster</h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Team Roster</h1>
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">
             Manage your team's players for accurate game analysis
           </p>
         </div>
@@ -715,7 +715,7 @@ export default function RosterPage() {
 
       {/* Error Banner */}
       {actionError && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg flex items-center gap-2">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
           {actionError}
           <button onClick={() => setActionError('')} className="ml-auto">
@@ -729,17 +729,17 @@ export default function RosterPage() {
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       ) : error ? (
-        <div className="bg-red-50 text-red-600 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg p-4">
           Failed to load roster. Please try again.
         </div>
       ) : !sportsTeam ? (
         /* No team linked - show create team prompt */
-        <div className="bg-gray-50 rounded-xl p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Team Set Up</h3>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Team Set Up</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
             Create your team to start managing your roster. This helps us identify players
             correctly when analyzing game film.
           </p>
@@ -755,11 +755,11 @@ export default function RosterPage() {
         /* Team exists - show roster */
         <div>
           {/* Team Info Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{sportsTeam.name}</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{sportsTeam.name}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {sportsTeam.city && sportsTeam.state
                     ? `${sportsTeam.city}, ${sportsTeam.state} • `
                     : ''}
@@ -770,19 +770,19 @@ export default function RosterPage() {
                 {sportsTeam.jerseyColorHome && (
                   <div className="text-center">
                     <div
-                      className="w-8 h-8 rounded-full border-2 border-gray-200"
+                      className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600"
                       style={{ backgroundColor: sportsTeam.jerseyColorHome.toLowerCase() }}
                     />
-                    <span className="text-xs text-gray-500">Home</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Home</span>
                   </div>
                 )}
                 {sportsTeam.jerseyColorAway && (
                   <div className="text-center">
                     <div
-                      className="w-8 h-8 rounded-full border-2 border-gray-200"
+                      className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600"
                       style={{ backgroundColor: sportsTeam.jerseyColorAway.toLowerCase() }}
                     />
-                    <span className="text-xs text-gray-500">Away</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Away</span>
                   </div>
                 )}
               </div>
@@ -790,9 +790,9 @@ export default function RosterPage() {
           </div>
 
           {/* Roster Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
                 Players ({players.length})
               </h3>
               <div className="flex items-center gap-2">
@@ -822,7 +822,7 @@ export default function RosterPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 text-left text-sm text-gray-500">
+                  <tr className="bg-gray-50 dark:bg-gray-700/50 text-left text-sm text-gray-500 dark:text-gray-400">
                     <th className="py-3 px-4 font-medium">#</th>
                     <th className="py-3 px-4 font-medium">Name</th>
                     <th className="py-3 px-4 font-medium">Position</th>
@@ -864,7 +864,7 @@ export default function RosterPage() {
                   )}
                   {players.length === 0 && !addingPlayer && (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-gray-500">
+                      <td colSpan={7} className="py-12 text-center text-gray-500 dark:text-gray-400">
                         No players on roster. Add your first player above.
                       </td>
                     </tr>
@@ -875,7 +875,7 @@ export default function RosterPage() {
           </div>
 
           {/* Tip */}
-          <div className="mt-6 bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
             <strong>Tip:</strong> Adding your full roster helps AI Scout correctly identify players
             in game film by matching jersey numbers to player names.
           </div>
