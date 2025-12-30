@@ -527,8 +527,8 @@ export default function ReviewQueue() {
                     <>
                       <video
                         ref={videoRef}
-                        key={`${selectedEvent.id}-${selectedEvent.timestampSeconds}`}
-                        src={`${clipUrl}#t=${clipSeekTo},${clipEndTime}`}
+                        key={`${selectedEvent.id}-${clipSeekTo}-${clipEndTime}`}
+                        src={clipUrl}
                         className="w-full h-full rounded-lg"
                         controls
                         autoPlay
@@ -539,9 +539,16 @@ export default function ReviewQueue() {
                         onTimeUpdate={(e) => {
                           const video = e.currentTarget;
                           // Loop back to start when reaching end of clip
-                          if (video.currentTime >= clipEndTime) {
+                          if (clipEndTime > 0 && video.currentTime >= clipEndTime) {
                             video.currentTime = clipSeekTo;
+                            video.play();
                           }
+                        }}
+                        onEnded={(e) => {
+                          // Also loop if video ends naturally
+                          const video = e.currentTarget;
+                          video.currentTime = clipSeekTo;
+                          video.play();
                         }}
                       />
                       {/* Clip info overlay */}
