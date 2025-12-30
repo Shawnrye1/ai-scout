@@ -124,19 +124,19 @@ export default function BillingPage() {
 
   return (
     <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
+      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 dark:text-white mb-6">
         Billing & Subscription
       </h1>
 
       {/* Current Plan */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-8">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-[#0f2d52]" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#0f2d52] dark:text-blue-400" />
               Current Plan
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Manage your subscription and billing
             </p>
           </div>
@@ -152,18 +152,18 @@ export default function BillingPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-gray-900">{currentPlan}</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{currentPlan}</span>
               {isSubscribed && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
                   Active
                 </span>
               )}
             </div>
             {subscription?.currentPeriodEnd && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {subscription.status === 'active'
                   ? `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
                   : `Expires ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`}
@@ -173,8 +173,8 @@ export default function BillingPage() {
 
           {subscription && subscription.gamesLimit > 0 && (
             <div className="text-right">
-              <div className="text-sm text-gray-500">Games this month</div>
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Games this month</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 {subscription.gamesUsed} / {subscription.gamesLimit === -1 ? '∞' : subscription.gamesLimit}
               </div>
             </div>
@@ -182,11 +182,11 @@ export default function BillingPage() {
         </div>
 
         {!isSubscribed && (
-          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-800">No active subscription</p>
-              <p className="text-sm text-amber-700 mt-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">No active subscription</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
                 Upgrade to a paid plan to unlock all features and start analyzing games.
               </p>
             </div>
@@ -196,7 +196,7 @@ export default function BillingPage() {
 
       {/* Available Plans */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           {isSubscribed ? 'Change Plan' : 'Choose a Plan'}
         </h2>
 
@@ -207,12 +207,12 @@ export default function BillingPage() {
             return (
               <div
                 key={plan.name}
-                className={`relative rounded-xl bg-white p-6 border-2 transition-all ${
+                className={`relative rounded-xl bg-white dark:bg-gray-800 p-6 border-2 transition-all ${
                   plan.highlighted
-                    ? 'border-[#0f2d52] shadow-sm'
+                    ? 'border-[#0f2d52] dark:border-blue-500 shadow-sm'
                     : isCurrent
                     ? 'border-green-500'
-                    : 'border-gray-200'
+                    : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 {plan.highlighted && !isCurrent && (
@@ -231,16 +231,16 @@ export default function BillingPage() {
                   </div>
                 )}
 
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{plan.name}</h3>
                 <div className="mt-2 mb-4">
-                  <span className="text-3xl font-bold text-gray-900">${plan.price}</span>
-                  <span className="text-gray-500">/month</span>
+                  <span className="text-3xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
+                  <span className="text-gray-500 dark:text-gray-400">/month</span>
                 </div>
 
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                      <Check className="w-4 h-4 text-[#0f2d52]" />
+                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <Check className="w-4 h-4 text-[#0f2d52] dark:text-blue-400" />
                       {feature}
                     </li>
                   ))}
@@ -277,33 +277,33 @@ export default function BillingPage() {
 
       {/* Invoice History */}
       {invoices.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoice History</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Invoice History</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Date</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Amount</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Invoice</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Invoice</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-gray-100">
-                    <td className="py-3 px-4 text-sm text-gray-900">
+                  <tr key={invoice.id} className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                       {new Date(invoice.date).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-900">
+                    <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                       ${(invoice.amount / 100).toFixed(2)}
                     </td>
                     <td className="py-3 px-4">
                       <span
                         className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
                           invoice.status === 'paid'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         {invoice.status}
@@ -314,7 +314,7 @@ export default function BillingPage() {
                         href={invoice.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-[#0f2d52] hover:underline"
+                        className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline"
                       >
                         Download
                       </a>
@@ -328,9 +328,9 @@ export default function BillingPage() {
       )}
 
       {/* Need Help */}
-      <div className="mt-8 text-center text-sm text-gray-500">
+      <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
         Questions about billing?{' '}
-        <Link href="/contact" className="text-[#0f2d52] hover:underline">
+        <Link href="/contact" className="text-[#0f2d52] dark:text-blue-400 hover:underline">
           Contact support
         </Link>
       </div>
