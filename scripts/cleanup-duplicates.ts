@@ -35,7 +35,7 @@ async function main() {
   for (const teamId of teamsToDelete) {
     const players = await db.select({ id: detectedPlayers.id }).from(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, teamId));
     for (const p of players) {
-      try { await db.delete(keyMoments).where(eq(keyMoments.playerId, p.id)); } catch (e) {}
+      try { await db.delete(keyMoments).where(eq(keyMoments.playId, p.id)); } catch (e) {}
       try { await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, p.id)); } catch (e) {}
     }
     await db.delete(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, teamId));
@@ -73,7 +73,7 @@ async function main() {
     }
 
     for (const playerId of toDelete) {
-      try { await db.delete(keyMoments).where(eq(keyMoments.playerId, playerId)); } catch (e) {}
+      try { await db.delete(keyMoments).where(eq(keyMoments.playId, playerId)); } catch (e) {}
       try { await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, playerId)); } catch (e) {}
       await db.delete(detectedPlayers).where(eq(detectedPlayers.id, playerId));
     }
