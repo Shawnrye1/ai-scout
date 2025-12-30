@@ -815,6 +815,9 @@ export interface DetectedEvent {
   confidence: number;
   description: string;
   points?: number;
+  // Clip boundaries for video review
+  clipStartSeconds?: number;
+  clipEndSeconds?: number;
   // Added by review process
   verified?: boolean;
   autoApproved?: boolean;
@@ -1187,6 +1190,14 @@ ${boxScore}
   const allEvents: DetectedEvent[] = [];
 
   for (const event of typedEvents) {
+    // Ensure clip boundaries are set (fallback to 3s before / 5s after if not provided)
+    if (event.clipStartSeconds === undefined || event.clipStartSeconds === null) {
+      event.clipStartSeconds = Math.max(0, event.timestampSeconds - 3);
+    }
+    if (event.clipEndSeconds === undefined || event.clipEndSeconds === null) {
+      event.clipEndSeconds = event.timestampSeconds + 5;
+    }
+
     // Already validated by box score?
     if (event.boxScoreValidated) {
       verifiedEvents.push(event);
