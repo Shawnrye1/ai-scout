@@ -1,5 +1,11 @@
 # AI Scout - Claude Code Context
 
+## UI Rules
+- Do NOT modify styles, layouts, or visual components unless explicitly asked
+- Preserve existing CSS/styling when editing files
+- Ask before changing any component in /app/ or /components/
+- Only update DATA (database, API responses), not presentation
+
 ## What This Is
 AI-powered sports scouting platform. Coaches upload game film, system automatically analyzes and generates scouting reports for every player.
 

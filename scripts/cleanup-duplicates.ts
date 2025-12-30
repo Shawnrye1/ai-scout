@@ -19,67 +19,76 @@ async function main() {
     // Check if any player has a real name (not just '#X' format)
     const hasRealNames = players.some(p => {
       if (!p.displayName) return false;
-      // Real name if it doesn't match #number or #undefined
       return !/^#\d+$/.test(p.displayName) && !/^#undefined$/.test(p.displayName);
     });
 
     if (players.length > 0 && hasRealNames) {
       teamsToKeep.push(team.id);
-      console.log('KEEP:', team.displayName || team.id, '- has', players.length, 'players with real names');
+      console.log('KEEP:', team.teamName || team.id, '- has', players.length, 'players');
     } else {
       teamsToDelete.push(team.id);
-      console.log('DELETE:', team.displayName || team.id, '- players:', players.length);
+      console.log('DELETE:', team.teamName || team.id, '- players:', players.length);
     }
   }
 
-  // Delete the duplicate teams
+  // Delete empty teams
   for (const teamId of teamsToDelete) {
-    // Delete player analysis first
     const players = await db.select({ id: detectedPlayers.id }).from(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, teamId));
     for (const p of players) {
-      try {
-        await db.delete(keyMoments).where(eq(keyMoments.playerId, p.id));
-      } catch (e) {}
-      try {
-        await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, p.id));
-      } catch (e) {}
+      try { await db.delete(keyMoments).where(eq(keyMoments.playerId, p.id)); } catch (e) {}
+      try { await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, p.id)); } catch (e) {}
     }
-    // Delete players
     await db.delete(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, teamId));
-    // Delete team
     await db.delete(detectedTeams).where(eq(detectedTeams.id, teamId));
   }
 
-  console.log('\nDeleted', teamsToDelete.length, 'duplicate teams');
-  console.log('Kept', teamsToKeep.length, 'teams');
+  console.log('\nDeleted', teamsToDelete.length, 'empty teams');
 
-  // Now clean up duplicate players within kept teams (remove ones with #X format names)
+  // Now deduplicate players within each kept team (keep first occurrence of each jersey)
   for (const teamId of teamsToKeep) {
     const players = await db.select().from(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, teamId));
 
-    const toDelete = players.filter(p => {
-      if (!p.displayName) return true;
-      return /^#\d+$/.test(p.displayName) || /^#undefined$/.test(p.displayName);
-    });
+    const seenJerseys = new Set<string>();
+    const toDelete: string[] = [];
 
-    for (const p of toDelete) {
-      try {
-        await db.delete(keyMoments).where(eq(keyMoments.playerId, p.id));
-      } catch (e) {}
-      try {
-        await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, p.id));
-      } catch (e) {}
-      await db.delete(detectedPlayers).where(eq(detectedPlayers.id, p.id));
-      console.log('Deleted duplicate player:', p.displayName, 'jersey', p.jerseyNumber);
+    for (const p of players) {
+      const jersey = p.jerseyNumber || 'null';
+      if (seenJerseys.has(jersey)) {
+        // Duplicate jersey - mark for deletion
+        toDelete.push(p.id);
+        console.log('Duplicate:', p.displayName, 'jersey', p.jerseyNumber);
+      } else {
+        seenJerseys.add(jersey);
+      }
+    }
+
+    // Also delete players with no displayName or #undefined
+    for (const p of players) {
+      if (!p.displayName || /^#\d+$/.test(p.displayName) || /^#undefined$/.test(p.displayName)) {
+        if (!toDelete.includes(p.id)) {
+          toDelete.push(p.id);
+          console.log('Bad name:', p.displayName, 'jersey', p.jerseyNumber);
+        }
+      }
+    }
+
+    for (const playerId of toDelete) {
+      try { await db.delete(keyMoments).where(eq(keyMoments.playerId, playerId)); } catch (e) {}
+      try { await db.delete(playerAnalysis).where(eq(playerAnalysis.detectedPlayerId, playerId)); } catch (e) {}
+      await db.delete(detectedPlayers).where(eq(detectedPlayers.id, playerId));
+    }
+
+    if (toDelete.length > 0) {
+      console.log('Deleted', toDelete.length, 'duplicate/invalid players from team');
     }
   }
 
-  // Verify final count
+  // Final count
   const finalTeams = await db.select().from(detectedTeams).where(eq(detectedTeams.gameId, gameId));
   let totalPlayers = 0;
   for (const team of finalTeams) {
     const players = await db.select().from(detectedPlayers).where(eq(detectedPlayers.detectedTeamId, team.id));
-    console.log(`\n${team.displayName}: ${players.length} players`);
+    console.log(`\n${team.teamName}: ${players.length} players`);
     totalPlayers += players.length;
   }
   console.log(`\nTotal: ${finalTeams.length} teams, ${totalPlayers} players`);

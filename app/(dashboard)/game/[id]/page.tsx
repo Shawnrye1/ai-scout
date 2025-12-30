@@ -995,35 +995,6 @@ function GeminiInsights({ game }: { game: any }) {
 
   return (
     <div className="space-y-6">
-      {/* Score Banner */}
-      {scoring && (
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <div className="text-sm font-medium opacity-80">HOME</div>
-              <div className="text-5xl font-bold">{scoring.home || 0}</div>
-            </div>
-            <div className="text-2xl font-light opacity-60">vs</div>
-            <div className="text-center flex-1">
-              <div className="text-sm font-medium opacity-80">AWAY</div>
-              <div className="text-5xl font-bold">{scoring.away || 0}</div>
-            </div>
-          </div>
-          {stats && (
-            <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="opacity-70">HOME Stats</div>
-                <div>REB: {stats.home?.rebounds || 0} | STL: {stats.home?.steals || 0} | BLK: {stats.home?.blocks || 0} | TO: {stats.home?.turnovers || 0}</div>
-              </div>
-              <div className="text-right">
-                <div className="opacity-70">AWAY Stats</div>
-                <div>REB: {stats.away?.rebounds || 0} | STL: {stats.away?.steals || 0} | BLK: {stats.away?.blocks || 0} | TO: {stats.away?.turnovers || 0}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* AI Summary - Combined overview stats, teams, and game narrative */}
       {coachingInsights?.gameNarrative && (
         <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-6">
