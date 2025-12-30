@@ -93,10 +93,47 @@ export default function ReviewQueue() {
   const [addEventJersey, setAddEventJersey] = useState('');
   const [addEventNotes, setAddEventNotes] = useState('');
 
+  // Clip URL state
+  const [clipUrl, setClipUrl] = useState<string | null>(null);
+  const [clipSeekTo, setClipSeekTo] = useState<number>(0);
+  const [clipError, setClipError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchGamesWithReview();
     fetchTrainingMetrics();
   }, []);
+
+  // Fetch clip URL when selected event changes
+  useEffect(() => {
+    if (!selectedGame || !selectedEvent) {
+      setClipUrl(null);
+      return;
+    }
+
+    const fetchClipUrl = async () => {
+      setVideoLoading(true);
+      setClipError(null);
+      try {
+        const response = await fetch(
+          `/api/admin/review/clip?gameId=${selectedGame.id}&timestamp=${selectedEvent.timestampSeconds}`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to load video');
+        }
+        const data = await response.json();
+        setClipUrl(data.videoUrl);
+        setClipSeekTo(data.seekTo || 0);
+      } catch (e) {
+        console.error('Failed to fetch clip URL:', e);
+        setClipError('Failed to load video clip');
+        setClipUrl(null);
+      } finally {
+        setVideoLoading(false);
+      }
+    };
+
+    fetchClipUrl();
+  }, [selectedGame?.id, selectedEvent?.timestampSeconds]);
 
   async function fetchTrainingMetrics() {
     try {
@@ -466,21 +503,38 @@ export default function ReviewQueue() {
             <div className="bg-black rounded-lg aspect-video mb-6 flex items-center justify-center relative">
               {selectedGame && selectedEvent ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    key={`${selectedEvent.id}-${selectedEvent.timestampSeconds}`}
-                    src={`/api/admin/review/clip?gameId=${selectedGame.id}&timestamp=${selectedEvent.timestampSeconds}`}
-                    className="w-full h-full rounded-lg"
-                    controls
-                    autoPlay
-                    loop
-                  />
-                  {/* Clip info overlay */}
-                  <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm">
-                    <span className="font-medium capitalize">{selectedEvent.type}</span>
-                    <span className="mx-2 text-gray-400">•</span>
-                    <span>{selectedEvent.timestamp}</span>
-                  </div>
+                  {videoLoading ? (
+                    <div className="text-gray-400 flex flex-col items-center">
+                      <Loader2 className="w-12 h-12 mb-2 animate-spin" />
+                      <span>Loading video...</span>
+                    </div>
+                  ) : clipError ? (
+                    <div className="text-red-400 flex flex-col items-center">
+                      <AlertTriangle className="w-12 h-12 mb-2" />
+                      <span>{clipError}</span>
+                    </div>
+                  ) : clipUrl ? (
+                    <>
+                      <video
+                        ref={videoRef}
+                        key={`${selectedEvent.id}-${selectedEvent.timestampSeconds}`}
+                        src={clipUrl}
+                        className="w-full h-full rounded-lg"
+                        controls
+                        autoPlay
+                        onLoadedMetadata={(e) => {
+                          const video = e.currentTarget;
+                          video.currentTime = clipSeekTo;
+                        }}
+                      />
+                      {/* Clip info overlay */}
+                      <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm">
+                        <span className="font-medium capitalize">{selectedEvent.type}</span>
+                        <span className="mx-2 text-gray-400">•</span>
+                        <span>{selectedEvent.timestamp}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </>
               ) : (
                 <div className="text-gray-400 flex flex-col items-center">

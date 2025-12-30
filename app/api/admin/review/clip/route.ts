@@ -87,100 +87,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    let videoPath: string | null = null;
+    // For serverless environments (Vercel), redirect to the video URL with timestamp fragment
+    // ffmpeg is not available in serverless, so we can't extract clips
+    let videoUrl: string | null = null;
 
-    // Priority 1: If there's a videoKey (R2 storage), get presigned URL and download
     if (game.videoKey) {
       try {
-        const presignedUrl = await getDownloadPresignedUrl(game.videoKey, 3600);
-        videoPath = await downloadRemoteVideo(presignedUrl, gameId);
-      } catch (downloadError) {
-        console.error('Failed to download video from R2:', downloadError);
-        return NextResponse.json({ error: 'Failed to download video for clip extraction' }, { status: 500 });
-      }
-    }
-    // Priority 2: If there's a remote URL (https://), download it
-    else if (game.videoUrl && (game.videoUrl.startsWith('http://') || game.videoUrl.startsWith('https://'))) {
-      try {
-        videoPath = await downloadRemoteVideo(game.videoUrl, gameId);
-      } catch (downloadError) {
-        console.error('Failed to download video:', downloadError);
-        return NextResponse.json({ error: 'Failed to download video for clip extraction' }, { status: 500 });
-      }
-    }
-    // Priority 3: Local file path
-    else if (game.videoUrl && game.videoUrl.startsWith('/')) {
-      videoPath = game.videoUrl;
-    }
-
-    if (!videoPath) {
-      return NextResponse.json({ error: 'No video available for this game' }, { status: 404 });
-    }
-
-    if (!fs.existsSync(videoPath)) {
-      return NextResponse.json({ error: 'Video file not found' }, { status: 404 });
-    }
-
-    // Create a unique clip filename
-    const clipId = `${gameId}-${Math.floor(timestampSeconds)}`;
-    const clipPath = path.join(os.tmpdir(), `clip-${clipId}.mp4`);
-
-    // Extract 8-second clip (3 seconds before, 5 seconds after)
-    const startTime = Math.max(0, timestampSeconds - 3);
-
-    // Only extract if clip doesn't exist (cache)
-    if (!fs.existsSync(clipPath)) {
-      try {
-        execSync(
-          `ffmpeg -y -ss ${startTime} -i "${videoPath}" -t 8 -c:v libx264 -preset ultrafast -c:a aac "${clipPath}" 2>/dev/null`,
-          { timeout: 30000 }
-        );
+        videoUrl = await getDownloadPresignedUrl(game.videoKey, 3600);
       } catch (e) {
-        // Try with copy codec if re-encoding fails
-        execSync(
-          `ffmpeg -y -ss ${startTime} -i "${videoPath}" -t 8 -c copy "${clipPath}" 2>/dev/null`,
-          { timeout: 30000 }
-        );
+        console.error('Failed to get presigned URL:', e);
       }
+    } else if (game.videoUrl) {
+      videoUrl = game.videoUrl;
     }
 
-    // Read and return the clip
-    const clipBuffer = fs.readFileSync(clipPath);
-    const stat = fs.statSync(clipPath);
-
-    const range = request.headers.get('range');
-
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
-      const chunkSize = end - start + 1;
-
-      const chunk = clipBuffer.subarray(start, end + 1);
-
-      return new NextResponse(chunk, {
-        status: 206,
-        headers: {
-          'Content-Type': 'video/mp4',
-          'Content-Length': String(chunkSize),
-          'Content-Range': `bytes ${start}-${end}/${stat.size}`,
-          'Accept-Ranges': 'bytes',
-          'Cache-Control': 'public, max-age=3600',
-        },
-      });
+    if (!videoUrl) {
+      return NextResponse.json({ error: 'No video available' }, { status: 404 });
     }
 
-    return new NextResponse(clipBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'video/mp4',
-        'Content-Length': String(stat.size),
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=3600',
-      },
+    // Return a redirect to the video with the timestamp as a query param
+    // The client will handle seeking to the timestamp
+    const startTime = Math.max(0, timestampSeconds - 3);
+    const redirectUrl = `${videoUrl}#t=${startTime}`;
+
+    // Return JSON with the video URL and seek time - let client handle playback
+    return NextResponse.json({
+      videoUrl,
+      seekTo: startTime,
+      timestamp: timestampSeconds,
     });
   } catch (error) {
-    console.error('Failed to extract clip:', error);
-    return NextResponse.json({ error: 'Failed to extract clip' }, { status: 500 });
+    console.error('Failed to get clip info:', error);
+    return NextResponse.json({ error: 'Failed to get clip info' }, { status: 500 });
   }
 }

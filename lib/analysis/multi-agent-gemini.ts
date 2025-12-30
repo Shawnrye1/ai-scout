@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { buildFewShotContext, getAllVerifiedExampleCounts, type AgentType, type EventType } from './few-shot-learning';
+import { getSportPrompts, type Sport, type SportPrompts } from './sport-router';
 
 // ============================================================================
 // BASKETBALL SCOUT KNOWLEDGE BASE
@@ -822,6 +823,7 @@ export interface DetectedEvent {
 }
 
 export interface MultiAgentAnalysisResult {
+  sport: Sport;
   homeTeamName?: string;
   awayTeamName?: string;
   analysisComplete: boolean;
@@ -860,7 +862,8 @@ export interface MultiAgentAnalysisResult {
 export async function runMultiAgentAnalysis(
   videoPath: string,
   onProgress?: (progress: number, message: string) => void,
-  boxScore?: string
+  boxScore?: string,
+  sport: Sport = 'basketball'
 ): Promise<MultiAgentAnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -929,7 +932,11 @@ export async function runMultiAgentAnalysis(
     throw new Error('Video processing failed');
   }
 
-  onProgress?.(25, 'Running Phase 1: Parallel specialist agents...');
+  // Get sport-specific prompts
+  const sportPrompts = getSportPrompts(sport);
+  console.log(`Using ${sportPrompts.sport} prompts for analysis`);
+
+  onProgress?.(25, `Running Phase 1: Parallel ${sportPrompts.sport} specialist agents...`);
 
   // Helper to run an agent with retry logic for rate limiting
   async function runAgent(prompt: string, name: string, maxRetries = 3): Promise<any> {
@@ -1014,15 +1021,16 @@ ${boxScore}
     buildFewShotContext('game_flow').catch(() => ''),
   ]);
 
-  const jerseyPromptWithBoxScore = boxScoreContext + JERSEY_SCAN_PROMPT;
+  // Use sport-specific prompts from router
+  const jerseyPromptWithBoxScore = boxScoreContext + sportPrompts.jerseyScanPrompt;
 
   const [offensiveResults, defensiveResults, jerseyResults, gameFlowResults, coachingResults, statTrackerResults] = await Promise.all([
-    runAgent(offensiveFewShot + OFFENSIVE_SCOUT_PROMPT, 'OFFENSIVE SCOUT'),
-    runAgent(defensiveFewShot + DEFENSIVE_SCOUT_PROMPT, 'DEFENSIVE SCOUT'),
+    runAgent(offensiveFewShot + sportPrompts.offensiveScoutPrompt, 'OFFENSIVE SCOUT'),
+    runAgent(defensiveFewShot + sportPrompts.defensiveScoutPrompt, 'DEFENSIVE SCOUT'),
     runAgent(jerseyPromptWithBoxScore, 'JERSEY SCAN'),
-    runAgent(gameFlowFewShot + GAME_FLOW_PROMPT, 'GAME FLOW'),
-    runAgent(COACHING_STRATEGIST_PROMPT, 'COACHING STRATEGIST'),
-    runAgent(STAT_TRACKER_PROMPT, 'STAT TRACKER'),
+    runAgent(gameFlowFewShot + sportPrompts.gameFlowPrompt, 'GAME FLOW'),
+    runAgent(sportPrompts.coachingStrategistPrompt, 'COACHING STRATEGIST'),
+    runAgent(sportPrompts.statTrackerPrompt, 'STAT TRACKER'),
   ]);
 
   onProgress?.(50, 'Phase 1 complete. Starting Phase 2: Player deep dive...');
@@ -1059,8 +1067,9 @@ ${boxScore}
     buildFewShotContext('player_away').catch(() => ''),
   ]);
 
+  // Use sport-specific player deep dive prompt
   const playerDeepDiveWithContext = (playerList: string, teamName: string, fewShotContext: string) => {
-    return fewShotContext + boxScoreContext + PLAYER_DEEP_DIVE_PROMPT(playerList, teamName);
+    return fewShotContext + boxScoreContext + sportPrompts.playerDeepDivePrompt(playerList, teamName);
   };
 
   const [homePlayerResults, awayPlayerResults] = await Promise.all([
@@ -1235,6 +1244,7 @@ ${boxScore}
   const analysisComplete = hasPlayerScouting;
 
   return {
+    sport,
     homeTeamName,
     awayTeamName,
     analysisMethod: 'multi-agent-two-pass',

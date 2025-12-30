@@ -4,6 +4,7 @@ import { games, detectedTeams, detectedPlayers, playerAnalysis, keyMoments } fro
 import { eq } from 'drizzle-orm';
 import { getDownloadPresignedUrl } from '@/lib/storage/r2';
 import { runMultiAgentAnalysis } from '@/lib/analysis/multi-agent-gemini';
+import { type Sport } from '@/lib/analysis/sport-router';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -69,6 +70,10 @@ export async function POST(
     fs.writeFileSync(tempPath, Buffer.from(videoBuffer));
     console.log(`Video downloaded to ${tempPath}`);
 
+    // Determine sport (default to basketball for backwards compatibility)
+    const sport: Sport = (game.sport as Sport) || 'basketball';
+    console.log(`Running ${sport} analysis for game ${gameId}`);
+
     // Run multi-agent analysis with progress updates
     const analysis = await runMultiAgentAnalysis(
       tempPath,
@@ -79,7 +84,8 @@ export async function POST(
           .set({ processingProgress: progress })
           .where(eq(games.id, gameId));
       },
-      game.boxScore || undefined // Pass box score if available
+      game.boxScore || undefined, // Pass box score if available
+      sport // Pass the sport for sport-specific prompts
     );
 
     // Store results in database
@@ -108,8 +114,9 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Multi-agent Gemini analysis complete',
+      message: `Multi-agent ${sport} analysis complete`,
       analysis: {
+        sport: analysis.sport,
         method: 'multi-agent-two-pass',
         playersDetected: playerCount,
         homeTeam: analysis.homeTeamName,
