@@ -135,19 +135,13 @@ function RotatingText() {
     return () => clearInterval(interval);
   }, []);
 
-  // "Player" is the longest word, so we use it to set fixed width
   return (
     <span
-      className="inline-block relative overflow-hidden text-left"
-      style={{ height: '1.3em', lineHeight: '1.3em', minWidth: '3.5em' }}
+      className={`transition-all duration-300 ease-in-out ${
+        isAnimating ? 'opacity-0' : 'opacity-100'
+      }`}
     >
-      <span
-        className={`block transition-all duration-300 ease-in-out ${
-          isAnimating ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
-        }`}
-      >
-        {words[currentIndex]}
-      </span>
+      {words[currentIndex]}
     </span>
   );
 }
@@ -1071,7 +1065,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative">
         {/* Animated gradient background */}
         <AnimatedGradient />
 
@@ -1099,7 +1093,7 @@ export default function HomePage() {
 
               {/* Rotating text subtitle */}
               <p className="mt-6 text-xl sm:text-2xl text-white/70 font-medium">
-                For Every <span className="text-orange-400 font-bold inline-block align-baseline"><RotatingText /></span>
+                For Every <span className="text-orange-400 font-bold inline-block w-[5.5ch]"><RotatingText /></span>
               </p>
 
               {/* Subheading */}
@@ -1145,83 +1139,50 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Dashboard Preview with Feature Callouts */}
-            <div className="mt-16 max-w-6xl mx-auto relative">
-              {/* Feature callouts - desktop only */}
-              <div className="hidden lg:block">
-                {/* Left callout - Player Detection */}
-                <div className="absolute -left-4 top-1/4 transform -translate-x-full animate-pulse" style={{ animationDuration: '3s' }}>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-green-400" />
-                      </div>
-                      <span className="text-white font-semibold text-sm">Auto Detection</span>
-                    </div>
-                    <p className="text-white/60 text-xs">AI identifies every player by jersey number automatically</p>
-                  </div>
-                  <div className="w-8 h-0.5 bg-gradient-to-r from-white/20 to-transparent ml-auto mt-2" />
-                </div>
-
-                {/* Right callout - AI Grades */}
-                <div className="absolute -right-4 top-1/3 transform translate-x-full animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}>
-                  <div className="w-8 h-0.5 bg-gradient-to-l from-white/20 to-transparent mb-2" />
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                        <BarChart3 className="w-4 h-4 text-orange-400" />
-                      </div>
-                      <span className="text-white font-semibold text-sm">AI Grades</span>
-                    </div>
-                    <p className="text-white/60 text-xs">Position-specific skill ratings with detailed breakdowns</p>
-                  </div>
-                </div>
-
-                {/* Bottom left callout - Key Moments */}
-                <div className="absolute -left-4 bottom-1/4 transform -translate-x-full animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <Play className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <span className="text-white font-semibold text-sm">Video Clips</span>
-                    </div>
-                    <p className="text-white/60 text-xs">Key moments auto-clipped with timestamps for film review</p>
-                  </div>
-                  <div className="w-8 h-0.5 bg-gradient-to-r from-white/20 to-transparent ml-auto mt-2" />
-                </div>
-
-                {/* Bottom right callout - Scout Report */}
-                <div className="absolute -right-4 bottom-1/4 transform translate-x-full animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '1.5s' }}>
-                  <div className="w-8 h-0.5 bg-gradient-to-l from-white/20 to-transparent mb-2" />
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <Target className="w-4 h-4 text-blue-400" />
-                      </div>
-                      <span className="text-white font-semibold text-sm">Scout Reports</span>
-                    </div>
-                    <p className="text-white/60 text-xs">Natural language analysis of strengths & development areas</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dashboard */}
+            {/* Dashboard Preview */}
+            <div className="mt-16 max-w-6xl mx-auto">
               <AnimatedDashboard />
 
-              {/* Mobile feature pills */}
-              <div className="lg:hidden mt-6 flex flex-wrap justify-center gap-2">
-                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                  <span className="text-white/80 text-xs font-medium">🎯 Auto Player Detection</span>
+              {/* Feature highlights grid - below dashboard */}
+              <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white font-semibold text-sm">Auto Detection</span>
+                  </div>
+                  <p className="text-white/60 text-xs">AI identifies every player by jersey number</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                  <span className="text-white/80 text-xs font-medium">📊 AI Skill Grades</span>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-orange-400" />
+                    </div>
+                    <span className="text-white font-semibold text-sm">AI Grades</span>
+                  </div>
+                  <p className="text-white/60 text-xs">Position-specific skill ratings & breakdowns</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                  <span className="text-white/80 text-xs font-medium">🎬 Video Clips</span>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <span className="text-white font-semibold text-sm">Video Clips</span>
+                  </div>
+                  <p className="text-white/60 text-xs">Key moments auto-clipped with timestamps</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                  <span className="text-white/80 text-xs font-medium">📝 Scout Reports</span>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition-colors">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <Target className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <span className="text-white font-semibold text-sm">Scout Reports</span>
+                  </div>
+                  <p className="text-white/60 text-xs">Strengths & development areas analysis</p>
                 </div>
               </div>
             </div>
@@ -1336,7 +1297,8 @@ export default function HomePage() {
                 What You Get
               </h2>
               <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                Everything a scout sees, <span className="text-[#0f2d52] font-semibold">powered by AI</span>
+                Everything a scout sees, and more<br />
+                <span className="text-[#0f2d52] font-semibold">Powered by AI</span>
               </p>
             </div>
           </AnimatedSection>
