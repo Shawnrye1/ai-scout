@@ -87,18 +87,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // For serverless environments (Vercel), redirect to the video URL with timestamp fragment
-    // ffmpeg is not available in serverless, so we can't extract clips
+    // For serverless environments (Vercel), return the video URL
+    // Prefer public URL over presigned URL for reliability
     let videoUrl: string | null = null;
 
-    if (game.videoKey) {
+    // Priority 1: Use existing public videoUrl if available
+    if (game.videoUrl && game.videoUrl.startsWith('http')) {
+      videoUrl = game.videoUrl;
+    }
+    // Priority 2: Generate presigned URL from video key
+    else if (game.videoKey) {
       try {
         videoUrl = await getDownloadPresignedUrl(game.videoKey, 3600);
       } catch (e) {
         console.error('Failed to get presigned URL:', e);
       }
-    } else if (game.videoUrl) {
-      videoUrl = game.videoUrl;
     }
 
     if (!videoUrl) {
