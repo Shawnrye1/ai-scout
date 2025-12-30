@@ -118,21 +118,6 @@ export default function CoachReportPage({ params }: { params: Promise<{ id: stri
       <div className="max-w-4xl mx-auto px-4 py-8">
         {coachReport ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 print:shadow-none print:border-none">
-            {/* Score Banner */}
-            <div className="mb-8 p-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl text-white print:bg-blue-600">
-              <div className="flex items-center justify-between">
-                <div className="text-center flex-1">
-                  <div className="text-sm font-medium opacity-80">HOME</div>
-                  <div className="text-5xl font-bold">{scoring.home}</div>
-                </div>
-                <div className="text-2xl font-light opacity-60">vs</div>
-                <div className="text-center flex-1">
-                  <div className="text-sm font-medium opacity-80">AWAY</div>
-                  <div className="text-5xl font-bold">{scoring.away}</div>
-                </div>
-              </div>
-            </div>
-
             {/* Markdown Report */}
             <article className="prose prose-lg dark:prose-invert max-w-none">
               <ReactMarkdown
