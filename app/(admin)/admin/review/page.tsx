@@ -550,17 +550,23 @@ export default function ReviewQueue() {
                           if ((video as any)._clipInterval) {
                             clearInterval((video as any)._clipInterval);
                           }
+                          let isLooping = false;
                           const checkInterval = setInterval(() => {
-                            if (video.paused || video.ended) {
+                            if (video.ended) {
                               clearInterval(checkInterval);
                               return;
+                            }
+                            if (video.paused || isLooping) {
+                              return; // Don't clear, just skip this tick
                             }
                             // Use refs to get current values (avoid stale closure)
                             const endTime = clipEndTimeRef.current;
                             const startTime = clipSeekToRef.current;
                             if (endTime > 0 && video.currentTime >= endTime) {
-                              console.log(`Looping: currentTime=${video.currentTime}, endTime=${endTime}, startTime=${startTime}`);
+                              isLooping = true;
+                              console.log(`Looping: seeking from ${video.currentTime} to ${startTime}`);
                               video.currentTime = startTime;
+                              setTimeout(() => { isLooping = false; }, 200);
                             }
                           }, 100); // Check every 100ms
                           // Store interval ID on video element for cleanup
