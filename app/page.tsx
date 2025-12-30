@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Play, Users, BarChart3, Clock, Upload, Zap, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, Play, Users, BarChart3, Clock, Upload, Zap, Target, TrendingUp, ChevronDown, Quote } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 function Header() {
@@ -79,6 +79,36 @@ function RotatingText() {
         {words[currentIndex]}
       </span>
     </span>
+  );
+}
+
+// FAQ Accordion Item component
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="font-semibold text-gray-900 pr-4">{question}</span>
+        <ChevronDown
+          className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-200 ${
+          isOpen ? 'max-h-96' : 'max-h-0'
+        }`}
+      >
+        <div className="px-6 pb-6 text-gray-600 leading-relaxed">
+          {answer}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -988,15 +1018,20 @@ export default function HomePage() {
               {/* Badge */}
               <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/30 mb-6">
                 <span className="text-sm font-medium text-orange-300">
-                  Football & Basketball
+                  Football & Basketball Analysis
                 </span>
               </div>
 
-              {/* Headline with rotating text */}
+              {/* Headline - New tagline */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
-                Your AI Scouting Assistant
+                Smarter Scouting
               </h1>
-              <p className="mt-2 text-4xl sm:text-5xl lg:text-6xl font-bold text-white/60 flex items-baseline justify-center gap-4">
+              <p className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold text-white/80">
+                Powered by AI
+              </p>
+
+              {/* Rotating text subtitle */}
+              <p className="mt-4 text-xl sm:text-2xl text-white/60 flex items-baseline justify-center gap-2">
                 <span>For Every</span>
                 <RotatingText />
               </p>
@@ -1004,7 +1039,7 @@ export default function HomePage() {
               {/* Subheading */}
               <p className="mt-6 text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
                 Upload game film. Get detailed scouting reports in minutes.
-                AI-powered analysis for coaches who want the edge.
+                Professional-grade analysis for coaches who want the edge.
               </p>
 
               {/* CTA buttons */}
@@ -1047,6 +1082,45 @@ export default function HomePage() {
             {/* Dashboard Preview - now with animation */}
             <div className="mt-16 max-w-5xl mx-auto">
               <AnimatedDashboard />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Integration Logos Strip */}
+      <section className="py-8 sm:py-12 bg-gray-50 border-y border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs sm:text-sm font-medium text-gray-500 mb-6 sm:mb-8">
+            Works with your existing tools
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-12 lg:gap-16">
+            {/* Hudl */}
+            <div className="flex items-center gap-1.5 sm:gap-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              <span className="font-semibold text-sm sm:text-lg">Hudl</span>
+            </div>
+            {/* YouTube */}
+            <div className="flex items-center gap-1.5 sm:gap-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              <span className="font-semibold text-sm sm:text-lg">YouTube</span>
+            </div>
+            {/* Vimeo */}
+            <div className="flex items-center gap-1.5 sm:gap-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.977 6.416c-.105 2.338-1.739 5.543-4.894 9.609-3.268 4.247-6.026 6.37-8.29 6.37-1.409 0-2.578-1.294-3.553-3.881L5.322 11.4C4.603 8.816 3.834 7.522 3.01 7.522c-.179 0-.806.378-1.881 1.132L0 7.197a315.065 315.065 0 0 0 3.501-3.128C5.08 2.701 6.266 1.984 7.055 1.91c1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.507.539 2.45 1.131 3.674 1.776 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.868 3.434-5.757 6.762-5.637 2.473.06 3.628 1.664 3.493 4.797l-.013.01z"/>
+              </svg>
+              <span className="font-semibold text-sm sm:text-lg">Vimeo</span>
+            </div>
+            {/* MP4 */}
+            <div className="flex items-center gap-1.5 sm:gap-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-gray-300 flex items-center justify-center text-[10px] sm:text-xs font-bold text-gray-600">
+                MP4
+              </div>
+              <span className="font-semibold text-sm sm:text-lg">Direct Upload</span>
             </div>
           </div>
         </div>
@@ -1160,8 +1234,92 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Sample Report Section */}
+      {/* Testimonials Section */}
       <section className="py-20 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              What Coaches Are Saying
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+              Hear from coaches and players who use AI Scout
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Testimonial 1 - Football Coach */}
+            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
+              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-[#0f2d52] flex items-center justify-center text-white font-bold text-xl">
+                  MT
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">Coach Mike Thompson</div>
+                  <div className="text-sm text-gray-500">Lincoln High School Football</div>
+                </div>
+              </div>
+              <p className="text-gray-700 leading-relaxed">
+                "We used to spend 6 hours breaking down film after every game. AI Scout gives us better analysis in 10 minutes. It catches things we'd miss and lets us focus on actually coaching."
+              </p>
+            </div>
+
+            {/* Testimonial 2 - Basketball Coach */}
+            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
+              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold text-xl">
+                  SC
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">Sarah Chen</div>
+                  <div className="text-sm text-gray-500">Eastside Basketball Academy</div>
+                </div>
+              </div>
+              <p className="text-gray-700 leading-relaxed">
+                "Finally, I have time to actually coach instead of doing spreadsheets. The tendencies reports have completely changed how we prepare for opponents."
+              </p>
+            </div>
+
+            {/* Testimonial 3 - Scout */}
+            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
+              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-xl">
+                  JR
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">James Rodriguez</div>
+                  <div className="text-sm text-gray-500">Independent Scout, Texas</div>
+                </div>
+              </div>
+              <p className="text-gray-700 leading-relaxed">
+                "The scouting reports are better than what I was writing manually. The consistency and detail help me evaluate more players without sacrificing quality."
+              </p>
+            </div>
+
+            {/* Testimonial 4 - Player */}
+            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
+              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                  DW
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">Devon Williams</div>
+                  <div className="text-sm text-gray-500">Point Guard, Westbrook High</div>
+                </div>
+              </div>
+              <p className="text-gray-700 leading-relaxed">
+                "Now I'm able to see exactly what I need to work on. The AI shows me my tendencies I never noticed - like how I always pull up for jumpers going left. That's helped me add new moves to my game."
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sample Report Section */}
+      <section className="py-20 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -1214,6 +1372,118 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Case Study Section */}
+      <section className="py-20 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-br from-[#0f2d52] to-[#1a4a7a] rounded-3xl p-8 sm:p-12 lg:p-16">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              <div>
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-6">
+                  Real Results
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+                  Montverde Academy Case Study
+                </h2>
+                <p className="text-lg text-white/80 mb-8">
+                  One of Florida's top basketball programs used AI Scout to analyze their preseason tournament games, identifying key patterns that led to a championship run.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-white/90">8 games analyzed in one week</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-white/90">96 players scouted with individual reports</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-white/90">10 minutes per game vs 6 hours manual</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 sm:p-8">
+                <div className="text-center mb-6">
+                  <div className="text-5xl sm:text-6xl font-bold text-white mb-2">97%</div>
+                  <div className="text-white/60">Time Saved on Film Review</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/10 rounded-xl p-4 text-center">
+                    <div className="text-2xl font-bold text-white">8</div>
+                    <div className="text-xs text-white/60">Games</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-4 text-center">
+                    <div className="text-2xl font-bold text-white">96</div>
+                    <div className="text-xs text-white/60">Players</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-4 text-center">
+                    <div className="text-2xl font-bold text-white">384</div>
+                    <div className="text-xs text-white/60">Key Moments</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-4 text-center">
+                    <div className="text-2xl font-bold text-white">80min</div>
+                    <div className="text-xs text-white/60">Total Time</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-20 sm:py-24 bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              Frequently Asked Questions
+            </h2>
+            <p className="mt-4 text-lg text-gray-600">
+              Everything you need to know about AI Scout
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <FAQItem
+              question="What video formats do you support?"
+              answer="We support MP4, MOV, AVI, and WebM files up to 5GB. You can also paste a link from YouTube, Hudl, or Vimeo and we'll analyze directly from the URL."
+            />
+            <FAQItem
+              question="How accurate is the AI analysis?"
+              answer="Our AI achieves 90%+ accuracy on jersey detection and player tracking. The system improves with every game analyzed, and you can make corrections that help it learn your team's specific context."
+            />
+            <FAQItem
+              question="Can I try it before paying?"
+              answer="Yes! Your first game analysis is completely free. Upload a game and see the full scouting reports before deciding if it's right for you."
+            />
+            <FAQItem
+              question="Does it work for youth sports?"
+              answer="Absolutely. AI Scout works for any level - youth leagues, middle school, high school, club, and college. The analysis adapts to the level of play and provides age-appropriate insights."
+            />
+            <FAQItem
+              question="How long does analysis take?"
+              answer="Most games are fully analyzed in under 10 minutes. You'll receive a notification when your reports are ready."
+            />
+            <FAQItem
+              question="Can I share reports with players and parents?"
+              answer="Yes! Reports can be exported as PDFs or shared via secure links. Perfect for recruiting or helping players understand their development areas."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* CTA section */}
       <section className="py-20 sm:py-24 bg-[#0f2d52]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -1221,7 +1491,7 @@ export default function HomePage() {
             Ready to Scout Smarter?
           </h2>
           <p className="text-lg text-white/70 mb-8">
-            Join coaches who are using AI to find the edge.
+            Join coaches who are using AI to find the edge. First game analysis is free.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
