@@ -1,8 +1,78 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Play, Users, BarChart3, Clock, Upload, Zap, Target, TrendingUp, ChevronDown, Quote } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowRight, Play, Users, BarChart3, Clock, Upload, Zap, Target, TrendingUp, ChevronDown, Quote, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+
+// Scroll-triggered animation hook
+function useScrollAnimation() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isVisible };
+}
+
+// Animated section wrapper
+function AnimatedSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const { ref, isVisible } = useScrollAnimation();
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${className}`}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+        transitionDelay: `${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Animated gradient background
+function AnimatedGradient() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* Base gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f3a] via-[#0f2d52] to-[#1a4a7a]" />
+
+      {/* Animated orbs */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] animate-pulse"
+           style={{ animationDuration: '4s' }} />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-orange-500/15 rounded-full blur-[100px] animate-pulse"
+           style={{ animationDuration: '5s', animationDelay: '1s' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px] animate-pulse"
+           style={{ animationDuration: '6s', animationDelay: '2s' }} />
+
+      {/* Subtle grid overlay */}
+      <div className="absolute inset-0 opacity-[0.02]"
+           style={{
+             backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+             backgroundSize: '50px 50px'
+           }} />
+    </div>
+  );
+}
 
 function Header() {
   return (
@@ -1001,13 +1071,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-[#0f2d52] overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0f2d52] via-[#1a4a7a] to-[#0f2d52] opacity-50" />
-
-        {/* Decorative elements */}
-        <div className="absolute top-20 right-10 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden">
+        {/* Animated gradient background */}
+        <AnimatedGradient />
 
         <div className="relative">
           <Header />
@@ -1015,73 +1081,150 @@ export default function HomePage() {
           {/* Hero content */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 lg:pt-20 pb-20 sm:pb-24 lg:pb-32">
             <div className="text-center max-w-4xl mx-auto">
-              {/* Badge */}
-              <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/30 mb-6">
-                <span className="text-sm font-medium text-orange-300">
+              {/* Badge with sparkle */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 mb-8 animate-pulse" style={{ animationDuration: '3s' }}>
+                <Sparkles className="w-4 h-4 text-orange-400" />
+                <span className="text-sm font-semibold text-orange-300">
                   Football & Basketball Analysis
                 </span>
               </div>
 
-              {/* Headline - New tagline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
+              {/* Headline - BOLD */}
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1]">
                 Smarter Scouting
               </h1>
-              <p className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold text-white/80">
+              <p className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-orange-400 via-orange-300 to-yellow-400 bg-clip-text text-transparent">
                 Powered by AI
               </p>
 
               {/* Rotating text subtitle */}
-              <p className="mt-4 text-xl sm:text-2xl text-white/60 flex items-baseline justify-center gap-2">
+              <p className="mt-6 text-xl sm:text-2xl text-white/70 flex items-baseline justify-center gap-2 font-medium">
                 <span>For Every</span>
-                <RotatingText />
+                <span className="text-orange-400 font-bold"><RotatingText /></span>
               </p>
 
               {/* Subheading */}
-              <p className="mt-6 text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
+              <p className="mt-8 text-lg sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
                 Upload game film. Get detailed scouting reports in minutes.
-                Professional-grade analysis for coaches who want the edge.
+                <span className="text-white/80 font-medium"> Professional-grade analysis</span> for coaches who want the edge.
               </p>
 
-              {/* CTA buttons */}
-              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+              {/* CTA buttons - bolder */}
+              <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/sign-up"
-                  className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-[#0f2d52] bg-white rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
+                  className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-[#0f2d52] bg-white rounded-xl hover:bg-orange-50 transition-all shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-orange-500/20 hover:scale-[1.02]"
                 >
-                  Start Analyzing
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  Start Analyzing Free
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
                   href="#how-it-works"
-                  className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white border-2 border-white/30 rounded-xl hover:bg-white/10 transition-colors"
+                  className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white border-2 border-white/30 rounded-xl hover:bg-white/10 hover:border-white/50 transition-all"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   See How It Works
                 </Link>
               </div>
 
-              {/* Social proof */}
-              <div className="mt-12 flex items-center justify-center gap-8 text-white/60">
+              {/* Social proof - bigger numbers */}
+              <div className="mt-16 flex items-center justify-center gap-8 sm:gap-12">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-white">500+</div>
-                  <div className="text-sm">Games Analyzed</div>
+                  <div className="text-3xl sm:text-4xl font-black text-white">500+</div>
+                  <div className="text-sm text-white/50 font-medium">Games Analyzed</div>
                 </div>
-                <div className="w-px h-10 bg-white/20" />
+                <div className="w-px h-12 bg-white/20" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-white">50+</div>
-                  <div className="text-sm">Coaches</div>
+                  <div className="text-3xl sm:text-4xl font-black text-white">50+</div>
+                  <div className="text-sm text-white/50 font-medium">Coaches</div>
                 </div>
-                <div className="w-px h-10 bg-white/20" />
+                <div className="w-px h-12 bg-white/20" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-white">10k+</div>
-                  <div className="text-sm">Players Scouted</div>
+                  <div className="text-3xl sm:text-4xl font-black text-white">10k+</div>
+                  <div className="text-sm text-white/50 font-medium">Players Scouted</div>
                 </div>
               </div>
             </div>
 
-            {/* Dashboard Preview - now with animation */}
-            <div className="mt-16 max-w-5xl mx-auto">
+            {/* Dashboard Preview with Feature Callouts */}
+            <div className="mt-16 max-w-6xl mx-auto relative">
+              {/* Feature callouts - desktop only */}
+              <div className="hidden lg:block">
+                {/* Left callout - Player Detection */}
+                <div className="absolute -left-4 top-1/4 transform -translate-x-full animate-pulse" style={{ animationDuration: '3s' }}>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-green-400" />
+                      </div>
+                      <span className="text-white font-semibold text-sm">Auto Detection</span>
+                    </div>
+                    <p className="text-white/60 text-xs">AI identifies every player by jersey number automatically</p>
+                  </div>
+                  <div className="w-8 h-0.5 bg-gradient-to-r from-white/20 to-transparent ml-auto mt-2" />
+                </div>
+
+                {/* Right callout - AI Grades */}
+                <div className="absolute -right-4 top-1/3 transform translate-x-full animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+                  <div className="w-8 h-0.5 bg-gradient-to-l from-white/20 to-transparent mb-2" />
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                        <BarChart3 className="w-4 h-4 text-orange-400" />
+                      </div>
+                      <span className="text-white font-semibold text-sm">AI Grades</span>
+                    </div>
+                    <p className="text-white/60 text-xs">Position-specific skill ratings with detailed breakdowns</p>
+                  </div>
+                </div>
+
+                {/* Bottom left callout - Key Moments */}
+                <div className="absolute -left-4 bottom-1/4 transform -translate-x-full animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <Play className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <span className="text-white font-semibold text-sm">Video Clips</span>
+                    </div>
+                    <p className="text-white/60 text-xs">Key moments auto-clipped with timestamps for film review</p>
+                  </div>
+                  <div className="w-8 h-0.5 bg-gradient-to-r from-white/20 to-transparent ml-auto mt-2" />
+                </div>
+
+                {/* Bottom right callout - Scout Report */}
+                <div className="absolute -right-4 bottom-1/4 transform translate-x-full animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '1.5s' }}>
+                  <div className="w-8 h-0.5 bg-gradient-to-l from-white/20 to-transparent mb-2" />
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 max-w-[200px] border border-white/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <Target className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <span className="text-white font-semibold text-sm">Scout Reports</span>
+                    </div>
+                    <p className="text-white/60 text-xs">Natural language analysis of strengths & development areas</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard */}
               <AnimatedDashboard />
+
+              {/* Mobile feature pills */}
+              <div className="lg:hidden mt-6 flex flex-wrap justify-center gap-2">
+                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <span className="text-white/80 text-xs font-medium">🎯 Auto Player Detection</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <span className="text-white/80 text-xs font-medium">📊 AI Skill Grades</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <span className="text-white/80 text-xs font-medium">🎬 Video Clips</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <span className="text-white/80 text-xs font-medium">📝 Scout Reports</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1129,14 +1272,16 @@ export default function HomePage() {
       {/* How It Works */}
       <section id="how-it-works" className="py-20 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              How It Works
-            </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              From upload to scouting report in three simple steps
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+                How It Works
+              </h2>
+              <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                From upload to scouting report in three simple steps
+              </p>
+            </div>
+          </AnimatedSection>
 
           <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             {[
@@ -1145,33 +1290,39 @@ export default function HomePage() {
                 icon: Upload,
                 title: 'Upload Game Film',
                 description: 'Drop in your game footage - MP4, MOV, or link from YouTube/Hudl. Any angle works.',
+                time: '30 seconds',
               },
               {
                 step: '02',
                 icon: Zap,
                 title: 'AI Analyzes Everything',
                 description: 'Our AI detects players, tracks movements, identifies plays, and evaluates performance automatically.',
+                time: '~10 minutes',
               },
               {
                 step: '03',
                 icon: BarChart3,
                 title: 'Get Scouting Reports',
                 description: 'Receive detailed reports for every player with grades, tendencies, strengths, and areas to develop.',
+                time: 'Ready to view',
               },
             ].map((item, i) => (
-              <div key={i} className="relative">
-                {i < 2 && (
-                  <div className="hidden md:block absolute top-12 left-full w-full h-0.5 bg-gray-200 -translate-x-1/2 z-0" />
-                )}
-                <div className="relative z-10 text-center">
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-[#0f2d52] mb-6">
-                    <item.icon className="w-10 h-10 text-white" />
+              <AnimatedSection key={i} delay={i * 150}>
+                <div className="relative">
+                  {i < 2 && (
+                    <div className="hidden md:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-[#0f2d52] to-transparent -translate-x-1/2 z-0" />
+                  )}
+                  <div className="relative z-10 text-center">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-[#0f2d52] to-[#1a4a7a] mb-6 shadow-lg shadow-[#0f2d52]/30 hover:scale-105 transition-transform">
+                      <item.icon className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="text-sm font-bold text-orange-500 mb-2">STEP {item.step}</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                    <p className="text-xs text-[#0f2d52] font-semibold mb-3">{item.time}</p>
+                    <p className="text-gray-600">{item.description}</p>
                   </div>
-                  <div className="text-sm font-bold text-[#0f2d52] mb-2">STEP {item.step}</div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
                 </div>
-              </div>
+              </AnimatedSection>
             ))}
           </div>
         </div>
@@ -1180,55 +1331,65 @@ export default function HomePage() {
       {/* Features */}
       <section id="features" className="py-20 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              What You Get
-            </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Everything a scout sees, powered by AI
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+                What You Get
+              </h2>
+              <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                Everything a scout sees, <span className="text-[#0f2d52] font-semibold">powered by AI</span>
+              </p>
+            </div>
+          </AnimatedSection>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: Users,
                 title: 'Auto Player Detection',
                 description: 'AI identifies every player on the field by jersey number. No manual tagging required.',
+                color: 'from-green-500 to-emerald-600',
               },
               {
                 icon: Target,
                 title: 'Position-Specific Analysis',
                 description: 'QB reads, WR routes, RB vision, OL technique - analysis tailored to each position.',
+                color: 'from-blue-500 to-indigo-600',
               },
               {
                 icon: TrendingUp,
                 title: 'Tendencies & Patterns',
                 description: 'Discover habits opponents can exploit and strengths to build on.',
+                color: 'from-purple-500 to-violet-600',
               },
               {
                 icon: BarChart3,
                 title: 'Objective Grades',
                 description: 'Every player graded on athleticism, technique, decision-making, and consistency.',
+                color: 'from-orange-500 to-red-500',
               },
               {
                 icon: Clock,
                 title: 'Key Moments',
                 description: 'Highlights and teaching moments auto-clipped with timestamps for film review.',
+                color: 'from-pink-500 to-rose-600',
               },
               {
                 icon: Zap,
                 title: 'Fast Turnaround',
                 description: 'Full game analysis in under an hour. Get reports before your next practice.',
+                color: 'from-yellow-500 to-orange-500',
               },
             ].map((feature, i) => (
-              <div key={i} className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-lg bg-[#0f2d52]/10 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-[#0f2d52]" />
+              <AnimatedSection key={i} delay={i * 100}>
+                <div className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200 hover:-translate-y-1">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <feature.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
+              </AnimatedSection>
             ))}
           </div>
         </div>
@@ -1237,83 +1398,93 @@ export default function HomePage() {
       {/* Testimonials Section */}
       <section className="py-20 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              What Coaches Are Saying
-            </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Hear from coaches and players who use AI Scout
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+                What Coaches Are Saying
+              </h2>
+              <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                Hear from coaches and players who use AI Scout
+              </p>
+            </div>
+          </AnimatedSection>
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Testimonial 1 - Football Coach */}
-            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
-              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-[#0f2d52] flex items-center justify-center text-white font-bold text-xl">
-                  MT
+            <AnimatedSection delay={0}>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 relative border border-gray-200 hover:shadow-lg transition-shadow">
+                <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0f2d52] to-[#1a4a7a] flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    MT
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">Coach Mike Thompson</div>
+                    <div className="text-sm text-gray-500">Lincoln High School Football</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Coach Mike Thompson</div>
-                  <div className="text-sm text-gray-500">Lincoln High School Football</div>
-                </div>
+                <p className="text-gray-700 leading-relaxed text-lg italic">
+                  "We used to spend 6 hours breaking down film after every game. AI Scout gives us better analysis in 10 minutes. It catches things we'd miss and lets us focus on actually coaching."
+                </p>
               </div>
-              <p className="text-gray-700 leading-relaxed">
-                "We used to spend 6 hours breaking down film after every game. AI Scout gives us better analysis in 10 minutes. It catches things we'd miss and lets us focus on actually coaching."
-              </p>
-            </div>
+            </AnimatedSection>
 
             {/* Testimonial 2 - Basketball Coach */}
-            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
-              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold text-xl">
-                  SC
+            <AnimatedSection delay={100}>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 relative border border-gray-200 hover:shadow-lg transition-shadow">
+                <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    SC
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">Sarah Chen</div>
+                    <div className="text-sm text-gray-500">Eastside Basketball Academy</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Sarah Chen</div>
-                  <div className="text-sm text-gray-500">Eastside Basketball Academy</div>
-                </div>
+                <p className="text-gray-700 leading-relaxed text-lg italic">
+                  "Finally, I have time to actually coach instead of doing spreadsheets. The tendencies reports have completely changed how we prepare for opponents."
+                </p>
               </div>
-              <p className="text-gray-700 leading-relaxed">
-                "Finally, I have time to actually coach instead of doing spreadsheets. The tendencies reports have completely changed how we prepare for opponents."
-              </p>
-            </div>
+            </AnimatedSection>
 
             {/* Testimonial 3 - Scout */}
-            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
-              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-xl">
-                  JR
+            <AnimatedSection delay={200}>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 relative border border-gray-200 hover:shadow-lg transition-shadow">
+                <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    JR
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">James Rodriguez</div>
+                    <div className="text-sm text-gray-500">Independent Scout, Texas</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900">James Rodriguez</div>
-                  <div className="text-sm text-gray-500">Independent Scout, Texas</div>
-                </div>
+                <p className="text-gray-700 leading-relaxed text-lg italic">
+                  "The scouting reports are better than what I was writing manually. The consistency and detail help me evaluate more players without sacrificing quality."
+                </p>
               </div>
-              <p className="text-gray-700 leading-relaxed">
-                "The scouting reports are better than what I was writing manually. The consistency and detail help me evaluate more players without sacrificing quality."
-              </p>
-            </div>
+            </AnimatedSection>
 
             {/* Testimonial 4 - Player */}
-            <div className="bg-gray-50 rounded-2xl p-6 sm:p-8 relative">
-              <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                  DW
+            <AnimatedSection delay={300}>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 relative border border-gray-200 hover:shadow-lg transition-shadow">
+                <Quote className="absolute top-6 right-6 w-10 h-10 text-gray-200" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    DW
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">Devon Williams</div>
+                    <div className="text-sm text-gray-500">Point Guard, Westbrook High</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Devon Williams</div>
-                  <div className="text-sm text-gray-500">Point Guard, Westbrook High</div>
-                </div>
+                <p className="text-gray-700 leading-relaxed text-lg italic">
+                  "Now I'm able to see exactly what I need to work on. The AI shows me my tendencies I never noticed - like how I always pull up for jumpers going left. That's helped me add new moves to my game."
+                </p>
               </div>
-              <p className="text-gray-700 leading-relaxed">
-                "Now I'm able to see exactly what I need to work on. The AI shows me my tendencies I never noticed - like how I always pull up for jumpers going left. That's helped me add new moves to my game."
-              </p>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -1321,11 +1492,12 @@ export default function HomePage() {
       {/* Sample Report Section */}
       <section className="py-20 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                Reports That Sound Like a Real Scout
-              </h2>
+          <AnimatedSection>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-6">
+                  Reports That Sound Like a <span className="text-[#0f2d52]">Real Scout</span>
+                </h2>
               <p className="text-lg text-gray-600 mb-8">
                 Not just numbers - you get natural language analysis that identifies what makes
                 each player special and what they need to work on.
@@ -1367,23 +1539,25 @@ export default function HomePage() {
                   Recommend drill work on checkdown timing and pocket movement.
                 </p>
               </div>
+              </div>
             </div>
-          </div>
+          </AnimatedSection>
         </div>
       </section>
 
       {/* Case Study Section */}
       <section className="py-20 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-br from-[#0f2d52] to-[#1a4a7a] rounded-3xl p-8 sm:p-12 lg:p-16">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div>
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-6">
-                  Real Results
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-                  Montverde Academy Case Study
-                </h2>
+          <AnimatedSection>
+            <div className="bg-gradient-to-br from-[#0f2d52] to-[#1a4a7a] rounded-3xl p-8 sm:p-12 lg:p-16">
+              <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+                <div>
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-6">
+                    Real Results
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-6">
+                    Montverde Academy Case Study
+                  </h2>
                 <p className="text-lg text-white/80 mb-8">
                   One of Florida's top basketball programs used AI Scout to analyze their preseason tournament games, identifying key patterns that led to a championship run.
                 </p>
@@ -1436,24 +1610,27 @@ export default function HomePage() {
                     <div className="text-2xl font-bold text-white">80min</div>
                     <div className="text-xs text-white/60">Total Time</div>
                   </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </AnimatedSection>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 sm:py-24 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              Frequently Asked Questions
-            </h2>
-            <p className="mt-4 text-lg text-gray-600">
-              Everything you need to know about AI Scout
-            </p>
-          </div>
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+                Frequently Asked Questions
+              </h2>
+              <p className="mt-4 text-lg text-gray-600">
+                Everything you need to know about AI Scout
+              </p>
+            </div>
+          </AnimatedSection>
 
           <div className="space-y-4">
             <FAQItem
