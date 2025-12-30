@@ -98,12 +98,15 @@ export default function ReviewQueue() {
   const [clipSeekTo, setClipSeekTo] = useState<number>(0);
   const [clipEndTime, setClipEndTime] = useState<number>(0);
   const [clipError, setClipError] = useState<string | null>(null);
+  const [loopCount, setLoopCount] = useState(0); // Used to force video remount on loop
 
   // Refs for interval access (avoids stale closure)
   const clipSeekToRef = useRef(clipSeekTo);
   const clipEndTimeRef = useRef(clipEndTime);
+  const loopCountRef = useRef(loopCount);
   clipSeekToRef.current = clipSeekTo;
   clipEndTimeRef.current = clipEndTime;
+  loopCountRef.current = loopCount;
 
   useEffect(() => {
     fetchGamesWithReview();
@@ -116,6 +119,9 @@ export default function ReviewQueue() {
       setClipUrl(null);
       return;
     }
+
+    // Reset loop count when event changes
+    setLoopCount(0);
 
     const fetchClipUrl = async () => {
       setVideoLoading(true);
@@ -534,56 +540,19 @@ export default function ReviewQueue() {
                     <>
                       <video
                         ref={videoRef}
-                        key={`${selectedEvent.id}-${clipSeekTo}-${clipEndTime}`}
-                        src={clipUrl}
+                        key={`${selectedEvent.id}-${loopCount}`}
+                        src={`${clipUrl}#t=${clipSeekTo}`}
                         className="w-full h-full rounded-lg"
                         controls
                         autoPlay
-                        onLoadedMetadata={(e) => {
+                        onTimeUpdate={(e) => {
                           const video = e.currentTarget;
-                          video.currentTime = clipSeekTo;
-                        }}
-                        onPlay={(e) => {
-                          // Start interval to check for clip end (more reliable than onTimeUpdate)
-                          const video = e.currentTarget;
-                          // Clear any existing interval
-                          if ((video as any)._clipInterval) {
-                            clearInterval((video as any)._clipInterval);
+                          const endTime = clipEndTimeRef.current;
+                          if (endTime > 0 && video.currentTime >= endTime) {
+                            video.pause();
+                            // Increment loopCount to force React to remount with fresh seek
+                            setLoopCount(prev => prev + 1);
                           }
-                          let isLooping = false;
-                          const checkInterval = setInterval(() => {
-                            if (video.ended) {
-                              clearInterval(checkInterval);
-                              return;
-                            }
-                            if (video.paused || isLooping) {
-                              return; // Don't clear, just skip this tick
-                            }
-                            // Use refs to get current values (avoid stale closure)
-                            const endTime = clipEndTimeRef.current;
-                            const startTime = clipSeekToRef.current;
-                            if (endTime > 0 && video.currentTime >= endTime) {
-                              isLooping = true;
-                              console.log(`Looping: seeking from ${video.currentTime} to ${startTime}`);
-                              video.currentTime = startTime;
-                              setTimeout(() => { isLooping = false; }, 200);
-                            }
-                          }, 100); // Check every 100ms
-                          // Store interval ID on video element for cleanup
-                          (video as any)._clipInterval = checkInterval;
-                        }}
-                        onPause={(e) => {
-                          // Clear interval when paused
-                          const video = e.currentTarget;
-                          if ((video as any)._clipInterval) {
-                            clearInterval((video as any)._clipInterval);
-                          }
-                        }}
-                        onEnded={(e) => {
-                          // Loop if video ends naturally
-                          const video = e.currentTarget;
-                          video.currentTime = clipSeekToRef.current;
-                          video.play();
                         }}
                       />
                       {/* Clip info overlay */}
