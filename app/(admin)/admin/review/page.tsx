@@ -99,6 +99,12 @@ export default function ReviewQueue() {
   const [clipEndTime, setClipEndTime] = useState<number>(0);
   const [clipError, setClipError] = useState<string | null>(null);
 
+  // Refs for interval access (avoids stale closure)
+  const clipSeekToRef = useRef(clipSeekTo);
+  const clipEndTimeRef = useRef(clipEndTime);
+  clipSeekToRef.current = clipSeekTo;
+  clipEndTimeRef.current = clipEndTime;
+
   useEffect(() => {
     fetchGamesWithReview();
     fetchTrainingMetrics();
@@ -539,13 +545,21 @@ export default function ReviewQueue() {
                         onPlay={(e) => {
                           // Start interval to check for clip end (more reliable than onTimeUpdate)
                           const video = e.currentTarget;
+                          // Clear any existing interval
+                          if ((video as any)._clipInterval) {
+                            clearInterval((video as any)._clipInterval);
+                          }
                           const checkInterval = setInterval(() => {
                             if (video.paused || video.ended) {
                               clearInterval(checkInterval);
                               return;
                             }
-                            if (clipEndTime > 0 && video.currentTime >= clipEndTime) {
-                              video.currentTime = clipSeekTo;
+                            // Use refs to get current values (avoid stale closure)
+                            const endTime = clipEndTimeRef.current;
+                            const startTime = clipSeekToRef.current;
+                            if (endTime > 0 && video.currentTime >= endTime) {
+                              console.log(`Looping: currentTime=${video.currentTime}, endTime=${endTime}, startTime=${startTime}`);
+                              video.currentTime = startTime;
                             }
                           }, 100); // Check every 100ms
                           // Store interval ID on video element for cleanup
@@ -561,7 +575,7 @@ export default function ReviewQueue() {
                         onEnded={(e) => {
                           // Loop if video ends naturally
                           const video = e.currentTarget;
-                          video.currentTime = clipSeekTo;
+                          video.currentTime = clipSeekToRef.current;
                           video.play();
                         }}
                       />
