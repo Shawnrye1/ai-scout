@@ -56,6 +56,7 @@ export function VideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [hoveredMarker, setHoveredMarker] = useState<TimelineMarker | null>(null);
   const [buffered, setBuffered] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -85,16 +86,33 @@ export function VideoPlayer({
       setIsPlaying(false);
     };
 
+    const handleError = (e: Event) => {
+      const videoEl = e.target as HTMLVideoElement;
+      const errorCode = videoEl.error?.code;
+      const errorMessage = videoEl.error?.message || 'Unknown error';
+      console.error('Video error:', errorCode, errorMessage);
+      setError(`Video error: ${errorMessage} (code: ${errorCode})`);
+      setIsPlaying(false);
+    };
+
+    const handleCanPlay = () => {
+      setError(null);
+    };
+
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('progress', handleProgress);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('error', handleError);
+    video.addEventListener('canplay', handleCanPlay);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('progress', handleProgress);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('canplay', handleCanPlay);
     };
   }, [initialTime, onTimeUpdate]);
 
@@ -268,8 +286,27 @@ export function VideoPlayer({
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+            <div className="text-center text-white p-6 max-w-md">
+              <div className="text-red-400 mb-2">⚠️ Video Error</div>
+              <p className="text-sm text-gray-300 mb-4">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  videoRef.current?.load();
+                }}
+                className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Play/Pause Center Button */}
-        {!isPlaying && (
+        {!isPlaying && !error && (
           <button
             onClick={togglePlay}
             className="absolute inset-0 flex items-center justify-center"

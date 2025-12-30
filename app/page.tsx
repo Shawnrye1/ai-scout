@@ -1108,7 +1108,7 @@ export default function HomePage() {
                   href="/sign-up"
                   className="group inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-[#0f2d52] bg-white rounded-xl hover:bg-orange-50 transition-all shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-orange-500/20 hover:scale-[1.02]"
                 >
-                  Start Analyzing Free
+                  Start Analyzing
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
@@ -1636,7 +1636,7 @@ export default function HomePage() {
               href="/sign-up"
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-[#0f2d52] font-semibold hover:bg-gray-100 transition-colors text-lg"
             >
-              Get Started Free
+              Sign Up
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link
