@@ -522,6 +522,14 @@ Use chain-of-thought reasoning for EVERY event before recording.
 - **50-69**: Camera angle issues or fast action
 - **Below 50**: Do NOT include
 
+### CLIP BOUNDARIES (Important for review!)
+
+For each event, also provide:
+- **clipStartSeconds**: When the play BEGINS (e.g., ball is snapped)
+- **clipEndSeconds**: When the play ENDS (e.g., whistle, tackle)
+
+This helps human reviewers see exactly what you saw.
+
 Return JSON:
 {
   "events": [
@@ -531,6 +539,8 @@ Return JSON:
       "jersey": 12,
       "timestamp": "4:30",
       "timestampSeconds": 270,
+      "clipStartSeconds": 268,
+      "clipEndSeconds": 276,
       "confidence": 95,
       "description": "15-yard completion to slot, first down",
       "details": {

@@ -96,6 +96,7 @@ export default function ReviewQueue() {
   // Clip URL state
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [clipSeekTo, setClipSeekTo] = useState<number>(0);
+  const [clipEndTime, setClipEndTime] = useState<number>(0);
   const [clipError, setClipError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -114,15 +115,24 @@ export default function ReviewQueue() {
       setVideoLoading(true);
       setClipError(null);
       try {
-        const response = await fetch(
-          `/api/admin/review/clip?gameId=${selectedGame.id}&timestamp=${selectedEvent.timestampSeconds}`
-        );
+        // Build URL with optional clip boundaries from Gemini
+        const event = selectedEvent as any;
+        let url = `/api/admin/review/clip?gameId=${selectedGame.id}&timestamp=${selectedEvent.timestampSeconds}`;
+        if (event.clipStartSeconds) {
+          url += `&clipStart=${event.clipStartSeconds}`;
+        }
+        if (event.clipEndSeconds) {
+          url += `&clipEnd=${event.clipEndSeconds}`;
+        }
+
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to load video');
         }
         const data = await response.json();
         setClipUrl(data.videoUrl);
         setClipSeekTo(data.seekTo || 0);
+        setClipEndTime(data.endTime || data.seekTo + 8);
       } catch (e) {
         console.error('Failed to fetch clip URL:', e);
         setClipError('Failed to load video clip');
@@ -518,7 +528,7 @@ export default function ReviewQueue() {
                       <video
                         ref={videoRef}
                         key={`${selectedEvent.id}-${selectedEvent.timestampSeconds}`}
-                        src={`${clipUrl}#t=${clipSeekTo},${clipSeekTo + 8}`}
+                        src={`${clipUrl}#t=${clipSeekTo},${clipEndTime}`}
                         className="w-full h-full rounded-lg"
                         controls
                         autoPlay
@@ -528,9 +538,8 @@ export default function ReviewQueue() {
                         }}
                         onTimeUpdate={(e) => {
                           const video = e.currentTarget;
-                          const endTime = clipSeekTo + 8;
                           // Loop back to start when reaching end of clip
-                          if (video.currentTime >= endTime) {
+                          if (video.currentTime >= clipEndTime) {
                             video.currentTime = clipSeekTo;
                           }
                         }}

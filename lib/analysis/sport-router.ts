@@ -378,6 +378,14 @@ Track EVERY significant basketball event in this game with confidence scores.
 - **50-69**: Uncertain
 - **Below 50**: Don't include
 
+### CLIP BOUNDARIES (Important for review!)
+
+For each event, also provide:
+- **clipStartSeconds**: When the action BEGINS (e.g., player catches ball before shot)
+- **clipEndSeconds**: When the action ENDS (e.g., ball goes through hoop or misses)
+
+This helps human reviewers see exactly what you saw.
+
 Return JSON:
 {
   "events": [
@@ -387,6 +395,8 @@ Return JSON:
       "jersey": 23,
       "timestamp": "3:45",
       "timestampSeconds": 225,
+      "clipStartSeconds": 222,
+      "clipEndSeconds": 227,
       "confidence": 95,
       "description": "Made 3-pointer from top of key",
       "points": 3

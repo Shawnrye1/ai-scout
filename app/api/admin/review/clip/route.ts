@@ -108,15 +108,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No video available' }, { status: 404 });
     }
 
-    // Return a redirect to the video with the timestamp as a query param
-    // The client will handle seeking to the timestamp
-    const startTime = Math.max(0, timestampSeconds - 3);
-    const redirectUrl = `${videoUrl}#t=${startTime}`;
+    // Get clip boundaries from query params (if provided by Gemini)
+    const clipStart = request.nextUrl.searchParams.get('clipStart');
+    const clipEnd = request.nextUrl.searchParams.get('clipEnd');
 
-    // Return JSON with the video URL and seek time - let client handle playback
+    // Use Gemini-provided boundaries, or default to 8-second window
+    const startTime = clipStart ? parseFloat(clipStart) : Math.max(0, timestampSeconds - 3);
+    const endTime = clipEnd ? parseFloat(clipEnd) : timestampSeconds + 5;
+
+    // Return JSON with the video URL and clip boundaries
     return NextResponse.json({
       videoUrl,
       seekTo: startTime,
+      endTime: endTime,
       timestamp: timestampSeconds,
     });
   } catch (error) {
