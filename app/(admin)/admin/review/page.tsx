@@ -136,9 +136,10 @@ export default function ReviewQueue() {
           throw new Error('Failed to load video');
         }
         const data = await response.json();
+        console.log('Clip info loaded:', data);
         setClipUrl(data.videoUrl);
         setClipSeekTo(data.seekTo || 0);
-        setClipEndTime(data.endTime || data.seekTo + 8);
+        setClipEndTime(data.endTime || (data.seekTo || 0) + 8);
       } catch (e) {
         console.error('Failed to fetch clip URL:', e);
         setClipError('Failed to load video clip');
@@ -529,7 +530,7 @@ export default function ReviewQueue() {
                       <AlertTriangle className="w-12 h-12 mb-2" />
                       <span>{clipError}</span>
                     </div>
-                  ) : clipUrl ? (
+                  ) : clipUrl && clipEndTime > 0 ? (
                     <>
                       <video
                         ref={videoRef}
