@@ -30,11 +30,11 @@ const activityIcons: Record<string, any> = {
 };
 
 const activityColors: Record<string, string> = {
-  game_uploaded: 'bg-blue-100 text-blue-600',
-  game_processed: 'bg-green-100 text-green-600',
-  correction_made: 'bg-purple-100 text-purple-600',
-  flagged: 'bg-orange-100 text-orange-600',
-  model_trained: 'bg-pink-100 text-pink-600',
+  game_uploaded: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+  game_processed: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+  correction_made: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+  flagged: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+  model_trained: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
 };
 
 export default function ActivityLogPage() {
@@ -94,8 +94,8 @@ export default function ActivityLogPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activity Log</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Track all system activities and user actions
         </p>
       </div>
@@ -108,7 +108,7 @@ export default function ActivityLogPage() {
           className={`px-3 py-1.5 text-sm rounded-lg ${
             filter === 'all'
               ? 'bg-[#0f2d52] text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
           All
@@ -118,7 +118,7 @@ export default function ActivityLogPage() {
           className={`px-3 py-1.5 text-sm rounded-lg ${
             filter === 'game_processed'
               ? 'bg-green-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
           Processing
@@ -128,7 +128,7 @@ export default function ActivityLogPage() {
           className={`px-3 py-1.5 text-sm rounded-lg ${
             filter === 'correction_made'
               ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
           Corrections
@@ -138,7 +138,7 @@ export default function ActivityLogPage() {
           className={`px-3 py-1.5 text-sm rounded-lg ${
             filter === 'flagged'
               ? 'bg-orange-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
         >
           Flagged
@@ -146,37 +146,37 @@ export default function ActivityLogPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading activity...</div>
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading activity...</div>
       ) : filteredActivities.length === 0 ? (
-        <div className="bg-gray-50 rounded-xl p-12 text-center">
-          <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No activity recorded yet</p>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-12 text-center">
+          <Activity className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400">No activity recorded yet</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="divide-y divide-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {filteredActivities.map((activity) => {
               const Icon = activityIcons[activity.type] || Activity;
-              const colorClass = activityColors[activity.type] || 'bg-gray-100 text-gray-600';
+              const colorClass = activityColors[activity.type] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
 
               return (
                 <div
                   key={activity.id}
-                  className="flex items-start gap-4 p-4 hover:bg-gray-50"
+                  className="flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <div className={`p-2 rounded-lg ${colorClass}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900 dark:text-white">
                       {activity.description}
                     </div>
                     {activity.details && (
-                      <div className="text-sm text-gray-600 mt-0.5">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                         {activity.details}
                       </div>
                     )}
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {new Date(activity.timestamp).toLocaleString()}
