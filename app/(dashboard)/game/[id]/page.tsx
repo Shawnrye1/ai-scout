@@ -1542,8 +1542,8 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* Player Box Score Table - Uses database players with metrics */}
       {game.detectedTeams && game.detectedTeams.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-500" />
             Player Box Scores
           </h3>
@@ -1564,13 +1564,13 @@ function GeminiInsights({ game }: { game: any }) {
                     className="w-4 h-4 rounded-full border"
                     style={{ backgroundColor: teamColor }}
                   />
-                  <h4 className="font-medium text-gray-700">{teamName}</h4>
+                  <h4 className="font-medium text-gray-700 dark:text-gray-200">{teamName}</h4>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 text-gray-500">
+                      <tr className="border-b border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
                         <th className="text-left py-2 px-2 font-medium">#</th>
                         <th className="text-left py-2 px-2 font-medium">POS</th>
                         <th className="text-center py-2 px-2 font-medium">PTS</th>
@@ -1597,22 +1597,22 @@ function GeminiInsights({ game }: { game: any }) {
                           const fta = bs.freeThrowsAttempted;
 
                           return (
-                            <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-900 dark:text-gray-100">
                               <td className="py-2 px-2 font-semibold">{player.jerseyNumber || '-'}</td>
-                              <td className="py-2 px-2 text-gray-500">{player.positionGuess || '-'}</td>
+                              <td className="py-2 px-2 text-gray-500 dark:text-gray-400">{player.positionGuess || '-'}</td>
                               <td className="py-2 px-2 text-center font-bold">{bs.points ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.rebounds ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.assists ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.steals ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.blocks ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.turnovers ?? '-'}</td>
-                              <td className="py-2 px-2 text-center text-gray-600">
+                              <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                                 {fgm != null && fga != null ? `${fgm}-${fga}` : '-'}
                               </td>
-                              <td className="py-2 px-2 text-center text-gray-600">
+                              <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                                 {tpm != null && tpa != null ? `${tpm}-${tpa}` : '-'}
                               </td>
-                              <td className="py-2 px-2 text-center text-gray-600">
+                              <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                                 {ftm != null && fta != null ? `${ftm}-${fta}` : '-'}
                               </td>
                             </tr>
@@ -1639,7 +1639,7 @@ function GeminiInsights({ game }: { game: any }) {
                           };
                         }, {});
                         return (
-                          <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
+                          <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-900 dark:text-white">
                             <td className="py-2 px-2" colSpan={2}>TOTAL</td>
                             <td className="py-2 px-2 text-center font-bold">{totals.points}</td>
                             <td className="py-2 px-2 text-center">{totals.rebounds}</td>
@@ -1647,13 +1647,13 @@ function GeminiInsights({ game }: { game: any }) {
                             <td className="py-2 px-2 text-center">{totals.steals}</td>
                             <td className="py-2 px-2 text-center">{totals.blocks}</td>
                             <td className="py-2 px-2 text-center">{totals.turnovers}</td>
-                            <td className="py-2 px-2 text-center text-gray-600">
+                            <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                               {totals.fgm}-{totals.fga}
                             </td>
-                            <td className="py-2 px-2 text-center text-gray-600">
+                            <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                               {totals.tpm}-{totals.tpa}
                             </td>
-                            <td className="py-2 px-2 text-center text-gray-600">
+                            <td className="py-2 px-2 text-center text-gray-600 dark:text-gray-300">
                               {totals.ftm}-{totals.fta}
                             </td>
                           </tr>
@@ -1908,14 +1908,14 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 mb-6 border-b border-gray-200 overflow-x-auto pb-px -mb-px scrollbar-hide">
+            <div className="flex items-center gap-1 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-px -mb-px scrollbar-hide">
               {isAnalysisComplete(game) && (
                 <button
                   onClick={() => setActiveTab('insights')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'insights'
-                      ? 'border-[#0f2d52] text-[#0f2d52]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-[#0f2d52] text-[#0f2d52] dark:border-blue-400 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -1928,8 +1928,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 onClick={() => setActiveTab('players')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'players'
-                    ? 'border-[#0f2d52] text-[#0f2d52]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-[#0f2d52] text-[#0f2d52] dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -1941,8 +1941,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 onClick={() => setActiveTab('teams')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'teams'
-                    ? 'border-[#0f2d52] text-[#0f2d52]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-[#0f2d52] text-[#0f2d52] dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -1955,8 +1955,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   onClick={() => setActiveTab('plays')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'plays'
-                      ? 'border-[#0f2d52] text-[#0f2d52]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-[#0f2d52] text-[#0f2d52] dark:border-blue-400 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -1970,8 +1970,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                   onClick={() => setActiveTab('video')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'video'
-                      ? 'border-[#0f2d52] text-[#0f2d52]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'border-[#0f2d52] text-[#0f2d52] dark:border-blue-400 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
                 >
                   <span className="flex items-center gap-2">
