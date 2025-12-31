@@ -1,19 +1,97 @@
 # AI Scout - Claude Code Context
 
-## UI Rules
+## UI Rules (CRITICAL - READ CAREFULLY)
+
+### Core Principles
+
 - Do NOT modify styles, layouts, or visual components unless explicitly asked
 - Preserve existing CSS/styling when editing files
 - Ask before changing any component in /app/ or /components/
 - Only update DATA (database, API responses), not presentation
+- When in doubt, ASK before making any visual change
+
+### Protected Files (DO NOT MODIFY without explicit permission)
+
+These files contain finalized UI that should not be changed:
+
+- `/app/(dashboard)/home/page.tsx` - Main dashboard
+- `/app/(dashboard)/games/page.tsx` - Games list
+- `/app/(dashboard)/game/[id]/page.tsx` - Game detail page (dark mode complete)
+- `/app/(dashboard)/players/page.tsx` - Players page
+- `/app/globals.css` - Color tokens and CSS variables
+- `/components/ui/*` - Shadcn/ui components (Button, Card, etc.)
+
+### Color Tokens (DO NOT CHANGE)
+
+The following CSS variables are finalized in `/app/globals.css`:
+
+```css
+/* Light Mode */
+--background: hsl(0 0% 100%) --foreground: hsl(240 10% 3.9%)
+  --primary: hsl(240 5.9% 10%) --secondary: hsl(240 4.8% 95.9%)
+  --muted: hsl(240 4.8% 95.9%) --destructive: hsl(0 84.2% 60.2%) /* Dark Mode */
+  --background: hsl(240 10% 3.9%) --foreground: hsl(0 0% 98%)
+  --primary: hsl(0 0% 98%) --secondary: hsl(240 3.7% 15.9%);
+```
+
+### Dark Mode Pattern (MUST FOLLOW)
+
+All UI elements MUST include dark mode variants:
+
+```tsx
+// CORRECT - includes dark mode
+<div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+<div className="border-gray-200 dark:border-gray-700">
+
+// WRONG - missing dark mode
+<div className="bg-white text-gray-900">
+```
+
+### Tailwind Gray Scale (USE CONSISTENTLY)
+
+- Backgrounds: `bg-gray-50/100` (light) → `dark:bg-gray-800/900` (dark)
+- Text: `text-gray-900` (primary) → `dark:text-white`
+- Text: `text-gray-600` (secondary) → `dark:text-gray-400`
+- Borders: `border-gray-200` → `dark:border-gray-700`
+
+### Component Variants (DO NOT MODIFY)
+
+Button variants from `/components/ui/button.tsx`:
+
+- `default`: Primary action (bg-primary)
+- `destructive`: Delete/danger (bg-destructive)
+- `outline`: Secondary action (border + bg-background)
+- `secondary`: Alternative (bg-secondary)
+- `ghost`: Subtle (hover:bg-accent)
+- `link`: Text link (underline on hover)
+
+### Before Making UI Changes Checklist
+
+1. [ ] Did the user explicitly request this visual change?
+2. [ ] Is the file in the protected list above?
+3. [ ] Will this change affect dark mode? If so, add dark: variants
+4. [ ] Does the change follow the established Tailwind patterns?
+5. [ ] Have I read the current file before editing?
+
+### What IS Allowed Without Asking
+
+- Adding new API routes that don't affect UI
+- Database schema changes
+- Backend logic changes
+- Bug fixes that don't change appearance
+- Adding new pages (but ask about styling)
 
 ## What This Is
+
 AI-powered sports scouting platform. Coaches upload game film, system automatically analyzes and generates scouting reports for every player.
 
 ## Owner
+
 - GitHub: Shawnrye1
 - Target market: High school coaches, college scouts, parents
 
 ## Tech Stack
+
 - Next.js 14 (App Router) + TypeScript
 - Tailwind CSS
 - Drizzle ORM + Neon PostgreSQL (with pgvector)
@@ -24,6 +102,7 @@ AI-powered sports scouting platform. Coaches upload game film, system automatica
 - Anthropic Claude (report generation)
 
 ## Core User Flow
+
 ```
 Coach uploads game film (or pastes Hudl/YouTube URL)
     ↓
@@ -45,6 +124,7 @@ Coach views results in dashboard
 ## User Roles & Permissions
 
 ### Role Hierarchy
+
 1. **admin** (100) - Full access, platform management
 2. **coach** (80) - Team management, billing, all game features
 3. **assistant_coach** (60) - Read reports, flag plays, limited team management
@@ -52,9 +132,11 @@ Coach views results in dashboard
 5. **member** (20) - Basic access
 
 ### Admin Emails (Auto-assigned admin role)
+
 - shawnrearl@icloud.com
 
 ### Key Permissions
+
 - `games:create` - admin, coach
 - `games:read` - admin, coach, assistant_coach, player
 - `reports:read_all` - admin, coach, assistant_coach
@@ -65,6 +147,7 @@ Coach views results in dashboard
 ## Database Schema Overview
 
 ### Core Tables
+
 - `users` - User accounts with role field
 - `teams` - Organizations/coaching staffs
 - `team_members` - User-team relationships
@@ -77,6 +160,7 @@ Coach views results in dashboard
 - `key_moments` - Highlighted plays per player
 
 ### Key Relationships
+
 - Game has many DetectedTeams
 - DetectedTeam has many DetectedPlayers
 - Game has many DetectedPlays
@@ -86,26 +170,31 @@ Coach views results in dashboard
 ## API Routes
 
 ### Games
+
 - `POST /api/games` - Create game (supports videoUrl + videoSource for Hudl/YouTube)
 - `GET /api/games` - List user's games
 - `GET /api/games/[id]` - Get game with analysis
 - `POST /api/games/[id]/process` - Trigger ML processing
 
 ### Upload
+
 - `POST /api/upload/presigned` - Get R2 presigned URL
 - `POST /api/upload/complete` - Mark upload done (file or URL), start processing
 
 ### Billing (NEW)
+
 - `GET /api/billing/subscription` - Get current subscription
 - `GET /api/billing/invoices` - Get invoice history
 - `POST /api/billing/checkout` - Create Stripe checkout session
 - `POST /api/billing/portal` - Create Stripe billing portal session
 
 ### Admin Billing
+
 - `GET /api/admin/billing/metrics` - Revenue metrics (MRR, ARR, etc.)
 - `GET /api/admin/billing/subscriptions` - All team subscriptions
 
 ### Webhooks
+
 - `POST /api/webhooks/modal` - Receive processing updates from Modal
 - `POST /api/webhooks/stripe` - Stripe webhook events
 
@@ -114,6 +203,7 @@ Coach views results in dashboard
 **Note:** This project uses Gemini 3 Pro exclusively for video analysis. No custom ML models are trained - all detection, tracking, and analysis is done via Gemini's multi-agent prompt system with self-learning capabilities.
 
 ### Why Gemini-Only?
+
 - Gemini outperformed custom ML pipeline (YOLOv8 + tracking) in testing
 - No training infrastructure needed
 - Faster iteration through prompt refinement
@@ -142,6 +232,7 @@ System gets smarter with every game
 ```
 
 ### How to Improve Accuracy
+
 1. **Provide Box Scores** - Official stats auto-validate matching events
 2. **Review Events** - Verify/reject detections in `/admin/review`
 3. **Check Patterns** - View accuracy by event type in `/admin/performance`
@@ -152,6 +243,7 @@ See "Gemini Video Analysis" section below for full architecture details.
 ## Frontend Routes
 
 ### Dashboard (Protected)
+
 - `/home` - Home dashboard
 - `/games` - All uploaded games
 - `/games/new` - Upload new game (file or Hudl/YouTube URL)
@@ -165,6 +257,7 @@ See "Gemini Video Analysis" section below for full architecture details.
   - `/dashboard/security` - Password & security
 
 ### Admin (Admin role only)
+
 - `/admin` - Admin overview (Gemini accuracy metrics)
 - `/admin/review` - Review AI detections (verify/reject events)
 - `/admin/performance` - AI accuracy tracking by event type
@@ -176,6 +269,7 @@ See "Gemini Video Analysis" section below for full architecture details.
 - `/admin/settings` - Platform settings
 
 ### Public
+
 - `/` - Landing page
 - `/pricing` - Pricing plans
 - `/sign-in`, `/sign-up` - Auth
@@ -223,25 +317,30 @@ GEMINI_API_KEY=your-gemini-api-key
 ## Video Upload Methods
 
 ### Direct File Upload
+
 1. User selects video file (MP4, MOV, AVI, WebM up to 5GB)
 2. Frontend gets presigned URL from `/api/upload/presigned`
 3. Direct upload to Cloudflare R2
 4. Mark complete via `/api/upload/complete`
 
 ### URL Import (Hudl, YouTube, Vimeo)
+
 1. User pastes video URL
 2. System detects source (hudl, youtube, vimeo, direct)
 3. Game created with `videoUrl` and `videoSource` fields
 4. Processing triggered with URL directly
 
 ### Supported Sources
+
 - **Hudl** - `hudl.com` links
 - **YouTube** - `youtube.com`, `youtu.be` links
 - **Vimeo** - `vimeo.com` links
 - **Direct** - `.mp4`, `.mov`, `.avi`, `.webm` links
 
 ## Processing Status
+
 Games have status enum:
+
 - `uploading` - Video being uploaded
 - `queued` - Waiting for ML processing
 - `detecting` - Sport/player detection
@@ -251,7 +350,9 @@ Games have status enum:
 - `failed` - Error occurred
 
 ## Scouting Report Format
+
 Reports should sound like a real scout:
+
 - Overall grade (0-100)
 - Summary paragraph (2-3 sentences)
 - Key tendencies (bullet points with stats)
@@ -262,6 +363,7 @@ Reports should sound like a real scout:
 ## Sport-Specific Analysis
 
 **Football:**
+
 - QB: Pre-snap reads, progressions, pocket presence, accuracy by route
 - WR/TE: Route running, separation, hands, YAC
 - RB: Vision, burst, pass protection
@@ -269,6 +371,7 @@ Reports should sound like a real scout:
 - Defense: Coverage, tackling, pursuit angles
 
 **Basketball:**
+
 - Shot selection and efficiency by zone
 - Ball handling under pressure
 - Court vision and passing
@@ -295,12 +398,15 @@ curl -X POST http://localhost:3000/api/games/{gameId}/analyze-gemini
 ```
 
 ## Development Checklist
+
 Before testing video uploads:
+
 1. ✅ Dev server running (`npm run dev`)
 2. ✅ GEMINI_API_KEY set in `.env`
 3. ✅ Cloudflare R2 credentials configured
 
 ## Pricing Tiers
+
 - **Starter**: $49/mo - 10 games/month
 - **Pro**: $149/mo - 50 games/month, priority processing
 - **Team**: $299/mo - Unlimited games, API access
@@ -308,9 +414,11 @@ Before testing video uploads:
 ## Gemini Video Analysis
 
 ### Overview
+
 Gemini 3 Pro is used for end-to-end video understanding - player identification, play detection, stat tracking, and scouting reports. Uses a **multi-agent architecture** with specialized prompts for different aspects of analysis.
 
 ### API Endpoint
+
 `POST /api/games/[id]/analyze-gemini` - Triggers full multi-agent analysis
 
 ### Multi-Agent Two-Pass Architecture
@@ -319,6 +427,7 @@ Each analysis run uses a two-phase multi-agent pipeline:
 
 **Phase 1 (25-50%): Parallel Specialist Agents**
 All 6 agents run simultaneously on the uploaded video:
+
 1. **OFFENSIVE SCOUT** - Tracks offensive systems, tendencies, key players
 2. **DEFENSIVE SCOUT** - Tracks defensive schemes, coverages, weaknesses
 3. **JERSEY SCAN** - Identifies all players by jersey number and team color
@@ -331,16 +440,19 @@ Pause between phases to avoid Gemini API rate limits.
 
 **Phase 2 (55-75%): Player Deep Dive**
 Uses jersey scan results to run detailed analysis:
+
 - **HOME PLAYERS** - Individual scouting reports for home team
 - **AWAY PLAYERS** - Individual scouting reports for away team
 
 **Event Processing & Auto-Review (75-85%)**
+
 - Parse box score (if provided) for validation
 - Compare detected stats vs official box score
 - Auto-approve events that match
 - Flag discrepancies for human review
 
 **Combining & Finalizing (85-100%)**
+
 - Merge all agent outputs into unified game analysis
 - Build human review queue from low-confidence events
 - Store to database with detected teams, players, and reports
@@ -348,6 +460,7 @@ Uses jersey scan results to run detailed analysis:
 ### Running Multiple Analysis Passes
 
 For best results, trigger analysis **twice**. Each pass may detect different players:
+
 - First pass: Initial detection (e.g., 6 home + 6 away = 12 players)
 - Second pass: Catches missed players (e.g., 6 home + 7 away = 13 players)
 
@@ -356,6 +469,7 @@ Gemini's video processing can miss players on a single pass due to occlusion, fa
 ### Video Timestamps
 
 **IMPORTANT**: All timestamps use **video elapsed time** (MM:SS from video start), NOT game clock time.
+
 - Key moments: `"videoTimestamp": "18:45"` = 18 minutes 45 seconds into the video
 - Scoring runs: `"videoTimestamp": "12:30"` = video position to seek to
 - This allows direct video seeking when clicking on moments/runs in the UI
@@ -363,6 +477,7 @@ Gemini's video processing can miss players on a single pass due to occlusion, fa
 ### Key Features
 
 **Video Chunking (for long games):**
+
 - Videos > 45 minutes are split into 15-minute chunks
 - Chunks uploaded to Gemini in parallel
 - Results aggregated with timestamp adjustment
@@ -370,10 +485,18 @@ Gemini's video processing can miss players on a single pass due to occlusion, fa
 
 **Shot Log Pattern (for accurate stats):**
 The prompt uses a `shotLog` array to force Gemini to track every shot attempt:
+
 ```json
 {
   "shotLog": [
-    { "time": "1:23", "seconds": 83, "type": "3pt", "result": "made", "shotType": "jumper", "description": "Corner 3" }
+    {
+      "time": "1:23",
+      "seconds": 83,
+      "type": "3pt",
+      "result": "made",
+      "shotType": "jumper",
+      "description": "Corner 3"
+    }
   ],
   "boxScore": {
     "points": 3,
@@ -386,11 +509,13 @@ The prompt uses a `shotLog` array to force Gemini to track every shot attempt:
 ```
 
 **Validation Rules:**
+
 - `points = (FGM - 3PM) * 2 + 3PM * 3 + FTM`
 - `fieldGoalsMade = count of "made" entries where type is "2pt" or "3pt"`
 - If points > 0 but FGM = 0, the prompt instructs Gemini to check the shotLog
 
 ### Files
+
 - `/lib/analysis/multi-agent-gemini.ts` - Multi-agent prompts and orchestration
 - `/app/api/games/[id]/analyze-gemini/route.ts` - Main analysis endpoint
 - `/scripts/reanalyze-game.ts` - CLI script to re-run analysis on a game
@@ -399,11 +524,13 @@ The prompt uses a `shotLog` array to force Gemini to track every shot attempt:
 ### Model Configuration
 
 **IMPORTANT**: Always use Gemini 3 Pro for video analysis:
+
 - Model: `gemini-3-pro-preview`
 - Do NOT use older models (gemini-2.0-flash, gemini-2.5-pro, gemini-exp-1206)
 - The model is configured in `/lib/analysis/multi-agent-gemini.ts`
 
 ### Usage
+
 ```bash
 # Trigger via API
 curl -X POST http://localhost:3000/api/games/{gameId}/analyze-gemini
@@ -416,6 +543,7 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 ```
 
 ### Known Considerations
+
 - Gemini processes video at ~1fps, fast movements may be missed
 - For highest accuracy on stats, the shotLog pattern is critical
 - Google's own Basketball Coach demo uses MediaPipe + Gemini (hybrid approach)
@@ -423,6 +551,7 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 - Rate limits require 60s cooldown between phases (~5-6 min total analysis time)
 
 ## Recent Updates
+
 1. ✅ User role system (admin, coach, assistant_coach, player)
 2. ✅ Hudl/YouTube URL upload support
 3. ✅ Billing pages for coach and admin dashboards
@@ -450,7 +579,9 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 ## Self-Learning Database Tables
 
 ### verified_examples
+
 Stores human-verified events for few-shot learning:
+
 - `eventType` - scoring, rebound, assist, steal, block, turnover
 - `team` - home or away
 - `jerseyNumber` - Player number
@@ -459,14 +590,18 @@ Stores human-verified events for few-shot learning:
 - `quality` - standard or exemplary (prioritized in prompts)
 
 ### prompt_versions
+
 Tracks prompt changes with accuracy metrics:
+
 - `agentType` - Which agent (offensive, defensive, etc.)
 - `version` - Semantic version (v1.0.0)
 - `promptHash` - SHA256 hash for deduplication
 - `accuracyRate` - Calculated from verified/rejected ratio
 
 ### prompt_suggestions
+
 Auto-generated improvement suggestions:
+
 - `suggestionType` - raise_threshold, clarify_definition, add_constraint
 - `priority` - critical, high, medium, low
 - `basedOnRejections` - Number of rejections that triggered this
