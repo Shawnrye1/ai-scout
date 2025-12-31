@@ -163,7 +163,7 @@ function PlayerDetailModal({ player, teamName, isOpen, onClose }: { player: any;
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className={`sticky top-0 z-10 p-6 border-b ${player.team?.toLowerCase() === 'home' ? 'bg-blue-600' : 'bg-orange-500'}`}>
           <button
@@ -193,80 +193,80 @@ function PlayerDetailModal({ player, teamName, isOpen, onClose }: { player: any;
         <div className="p-6 space-y-6">
           {/* Overall Assessment */}
           {player.overallAssessment && (
-            <div className="bg-gray-50 rounded-xl p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Overall Assessment</h3>
-              <p className="text-gray-700">{player.overallAssessment}</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Overall Assessment</h3>
+              <p className="text-gray-700 dark:text-gray-300">{player.overallAssessment}</p>
             </div>
           )}
 
           {/* Physical Profile */}
           {player.physicalProfile && (
-            <div className="bg-purple-50 rounded-xl p-4">
-              <h3 className="font-semibold text-purple-900 mb-2">Physical Profile</h3>
-              <p className="text-purple-800">{player.physicalProfile}</p>
+            <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4">
+              <h3 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">Physical Profile</h3>
+              <p className="text-purple-800 dark:text-purple-400">{player.physicalProfile}</p>
             </div>
           )}
 
           {/* Key Ratings */}
           <div className="grid grid-cols-3 gap-3">
             {player.basketballIQ && (
-              <div className="bg-indigo-50 rounded-xl p-4 text-center">
-                <div className="text-lg font-bold text-indigo-900 capitalize">{player.basketballIQ}</div>
-                <div className="text-xs text-indigo-600">Basketball IQ</div>
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-indigo-900 dark:text-indigo-300 capitalize">{player.basketballIQ}</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400">Basketball IQ</div>
               </div>
             )}
             {player.defensiveRating && (
-              <div className="bg-red-50 rounded-xl p-4 text-center">
-                <div className="text-lg font-bold text-red-900 capitalize">{player.defensiveRating}</div>
-                <div className="text-xs text-red-600">Defense</div>
+              <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-red-900 dark:text-red-300 capitalize">{player.defensiveRating}</div>
+                <div className="text-xs text-red-600 dark:text-red-400">Defense</div>
               </div>
             )}
             {player.motor && (
-              <div className="bg-green-50 rounded-xl p-4 text-center">
-                <div className="text-lg font-bold text-green-900 capitalize">{player.motor}</div>
-                <div className="text-xs text-green-600">Motor/Effort</div>
+              <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-4 text-center">
+                <div className="text-lg font-bold text-green-900 dark:text-green-300 capitalize">{player.motor}</div>
+                <div className="text-xs text-green-600 dark:text-green-400">Motor/Effort</div>
               </div>
             )}
           </div>
 
           {/* Offensive Skills */}
-          <div className="bg-blue-50 rounded-xl p-4">
-            <h3 className="font-semibold text-blue-900 mb-3">Offensive Game</h3>
+          <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-3">Offensive Game</h3>
             <div className="space-y-3">
               {player.preferredHand && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">Preferred Hand</span>
-                  <span className="font-medium text-blue-900 capitalize">{player.preferredHand}</span>
+                  <span className="text-blue-700 dark:text-blue-400">Preferred Hand</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-200 capitalize">{player.preferredHand}</span>
                 </div>
               )}
 
               {/* Shooting Ability */}
               {player.shootingAbility && (
                 <div className="space-y-2">
-                  <div className="text-sm text-blue-700 font-medium">Shooting</div>
+                  <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">Shooting</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {player.shootingAbility.range && (
-                      <div className="bg-blue-100 rounded-lg p-2">
-                        <div className="text-blue-600">Range</div>
-                        <div className="font-medium text-blue-900">{player.shootingAbility.range}</div>
+                      <div className="bg-blue-100 dark:bg-blue-800/50 rounded-lg p-2">
+                        <div className="text-blue-600 dark:text-blue-400">Range</div>
+                        <div className="font-medium text-blue-900 dark:text-blue-200">{player.shootingAbility.range}</div>
                       </div>
                     )}
                     {player.shootingAbility.form && (
-                      <div className="bg-blue-100 rounded-lg p-2">
-                        <div className="text-blue-600">Form</div>
-                        <div className="font-medium text-blue-900">{player.shootingAbility.form}</div>
+                      <div className="bg-blue-100 dark:bg-blue-800/50 rounded-lg p-2">
+                        <div className="text-blue-600 dark:text-blue-400">Form</div>
+                        <div className="font-medium text-blue-900 dark:text-blue-200">{player.shootingAbility.form}</div>
                       </div>
                     )}
                     {player.shootingAbility.offDribble && (
-                      <div className="bg-blue-100 rounded-lg p-2">
-                        <div className="text-blue-600">Off Dribble</div>
-                        <div className="font-medium text-blue-900">{player.shootingAbility.offDribble}</div>
+                      <div className="bg-blue-100 dark:bg-blue-800/50 rounded-lg p-2">
+                        <div className="text-blue-600 dark:text-blue-400">Off Dribble</div>
+                        <div className="font-medium text-blue-900 dark:text-blue-200">{player.shootingAbility.offDribble}</div>
                       </div>
                     )}
                     {player.shootingAbility.catchAndShoot && (
-                      <div className="bg-blue-100 rounded-lg p-2">
-                        <div className="text-blue-600">Catch & Shoot</div>
-                        <div className="font-medium text-blue-900">{player.shootingAbility.catchAndShoot}</div>
+                      <div className="bg-blue-100 dark:bg-blue-800/50 rounded-lg p-2">
+                        <div className="text-blue-600 dark:text-blue-400">Catch & Shoot</div>
+                        <div className="font-medium text-blue-900 dark:text-blue-200">{player.shootingAbility.catchAndShoot}</div>
                       </div>
                     )}
                   </div>
@@ -276,10 +276,10 @@ function PlayerDetailModal({ player, teamName, isOpen, onClose }: { player: any;
               {/* Primary Moves */}
               {player.primaryMoves && player.primaryMoves.length > 0 && (
                 <div>
-                  <div className="text-sm text-blue-700 font-medium mb-2">Primary Moves</div>
+                  <div className="text-sm text-blue-700 dark:text-blue-400 font-medium mb-2">Primary Moves</div>
                   <div className="flex flex-wrap gap-2">
                     {player.primaryMoves.map((move: string, i: number) => (
-                      <span key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">{move}</span>
+                      <span key={i} className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">{move}</span>
                     ))}
                   </div>
                 </div>
@@ -289,31 +289,31 @@ function PlayerDetailModal({ player, teamName, isOpen, onClose }: { player: any;
 
           {/* Scouting Advice - How to Guard */}
           {player.howToGuard && (
-            <div className="bg-red-100 rounded-xl p-4">
-              <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+            <div className="bg-red-100 dark:bg-red-900/30 rounded-xl p-4">
+              <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">
                 <Target className="w-4 h-4" />
                 How to Guard This Player
               </h4>
-              <p className="text-red-900">{player.howToGuard}</p>
+              <p className="text-red-900 dark:text-red-400">{player.howToGuard}</p>
             </div>
           )}
 
           {/* Scouting Advice - How to Attack */}
           {player.howToAttack && (
-            <div className="bg-green-100 rounded-xl p-4">
-              <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+            <div className="bg-green-100 dark:bg-green-900/30 rounded-xl p-4">
+              <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 How to Attack This Player
               </h4>
-              <p className="text-green-900">{player.howToAttack}</p>
+              <p className="text-green-900 dark:text-green-400">{player.howToAttack}</p>
             </div>
           )}
 
           {/* Legacy fields for backwards compatibility */}
           {player.offensiveTendencies?.keyTendency && (
-            <div className="bg-yellow-100 rounded-xl p-4">
-              <h4 className="font-semibold text-yellow-800 mb-2">Key Tendency</h4>
-              <p className="text-yellow-900">{player.offensiveTendencies.keyTendency}</p>
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded-xl p-4">
+              <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Key Tendency</h4>
+              <p className="text-yellow-900 dark:text-yellow-400">{player.offensiveTendencies.keyTendency}</p>
             </div>
           )}
         </div>
@@ -366,7 +366,7 @@ function PlayerCard({ player, gameId, onFlag, onMomentClick, geminiPlayerData }:
 
   return (
     <Link href={`/game/${gameId}/player/${player.id}`}>
-      <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer relative group">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer relative group">
         {/* Flag Button */}
         <button
           onClick={handleFlag}
@@ -394,7 +394,7 @@ function PlayerCard({ player, gameId, onFlag, onMomentClick, geminiPlayerData }:
               </div>
             )}
             <div>
-              <h4 className="font-semibold text-gray-900">{player.displayName || `#${player.jerseyNumber}`}</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white">{player.displayName || `#${player.jerseyNumber}`}</h4>
               {player.positionGuess && (
                 <p className="text-sm text-gray-500">{player.positionGuess}</p>
               )}
@@ -412,32 +412,32 @@ function PlayerCard({ player, gameId, onFlag, onMomentClick, geminiPlayerData }:
 
         {/* Box Score Stats */}
         {hasStats && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div className="grid grid-cols-5 gap-2 text-center">
               <div>
-                <div className="text-lg font-bold text-gray-900">{boxScore.points ?? '-'}</div>
-                <div className="text-xs text-gray-500">PTS</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{boxScore.points ?? '-'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">PTS</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900">{boxScore.totalRebounds ?? boxScore.rebounds ?? '-'}</div>
-                <div className="text-xs text-gray-500">REB</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{boxScore.totalRebounds ?? boxScore.rebounds ?? '-'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">REB</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900">{boxScore.assists ?? '-'}</div>
-                <div className="text-xs text-gray-500">AST</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{boxScore.assists ?? '-'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">AST</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900">{boxScore.steals ?? '-'}</div>
-                <div className="text-xs text-gray-500">STL</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{boxScore.steals ?? '-'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">STL</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900">{boxScore.blocks ?? '-'}</div>
-                <div className="text-xs text-gray-500">BLK</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{boxScore.blocks ?? '-'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">BLK</div>
               </div>
             </div>
             {/* Shooting Splits */}
             {(boxScore.fieldGoalsMade != null || boxScore.threePointersMade != null) && (
-              <div className="mt-2 flex justify-center gap-4 text-xs text-gray-500">
+              <div className="mt-2 flex justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                 {boxScore.fieldGoalsMade != null && boxScore.fieldGoalsAttempted != null && (
                   <span>FG: {boxScore.fieldGoalsMade}/{boxScore.fieldGoalsAttempted}</span>
                 )}
@@ -453,7 +453,7 @@ function PlayerCard({ player, gameId, onFlag, onMomentClick, geminiPlayerData }:
         )}
 
         {analysis?.summary && (
-          <p className="mt-3 text-sm text-gray-600 line-clamp-2">{analysis.summary}</p>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{analysis.summary}</p>
         )}
 
         {/* Key Moments */}
@@ -501,16 +501,16 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
   const tendencies = analysis?.tendencies || {};
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center gap-3 mb-6">
         {team.primaryJerseyColor && (
           <div
-            className="w-8 h-8 rounded-full border-2 border-gray-200"
+            className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600"
             style={{ backgroundColor: team.primaryJerseyColor }}
           />
         )}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {team.teamName || team.teamLabel || 'Team'}
           </h3>
           {team.isUserTeam && (
@@ -522,11 +522,11 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
       {/* Tendencies Report */}
       {analysis?.tendenciesReport && (
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Tendencies Analysis
           </h4>
-          <p className="text-gray-600 bg-gray-50 rounded-lg p-4">
+          <p className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             {analysis.tendenciesReport}
           </p>
         </div>
@@ -535,7 +535,7 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
       {/* Formation Breakdown */}
       {Object.keys(formationBreakdown).length > 0 && (
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <Target className="w-4 h-4" />
             Formation Usage
           </h4>
@@ -545,14 +545,14 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
               .slice(0, 5)
               .map(([formation, percentage]) => (
                 <div key={formation} className="flex items-center gap-3">
-                  <div className="w-24 text-sm text-gray-600 truncate">{formation}</div>
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-24 text-sm text-gray-600 dark:text-gray-400 truncate">{formation}</div>
+                  <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#0f2d52] rounded-full"
+                      className="h-full bg-[#0f2d52] dark:bg-blue-500 rounded-full"
                       style={{ width: `${percentage as number}%` }}
                     />
                   </div>
-                  <div className="w-12 text-sm text-gray-500 text-right">{percentage as number}%</div>
+                  <div className="w-12 text-sm text-gray-500 dark:text-gray-400 text-right">{percentage as number}%</div>
                 </div>
               ))}
           </div>
@@ -562,7 +562,7 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
       {/* Play Type Breakdown */}
       {Object.keys(playTypeBreakdown).length > 0 && (
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Play Type Distribution
           </h4>
@@ -570,9 +570,9 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
             {Object.entries(playTypeBreakdown)
               .sort(([, a], [, b]) => (b as number) - (a as number))
               .map(([playType, count]) => (
-                <div key={playType} className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-gray-900">{count as number}</div>
-                  <div className="text-sm text-gray-500 capitalize">{playType.replace(/_/g, ' ')}</div>
+                <div key={playType} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{count as number}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{playType.replace(/_/g, ' ')}</div>
                 </div>
               ))}
           </div>
@@ -582,12 +582,12 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
       {/* Key Tendencies */}
       {Object.keys(tendencies).length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Key Tendencies</h4>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Key Tendencies</h4>
           <ul className="space-y-2">
             {Object.entries(tendencies).slice(0, 5).map(([key, value]) => (
               <li key={key} className="flex items-start gap-2 text-sm">
-                <span className="text-[#0f2d52] mt-0.5">•</span>
-                <span className="text-gray-600">
+                <span className="text-[#0f2d52] dark:text-blue-400 mt-0.5">•</span>
+                <span className="text-gray-600 dark:text-gray-400">
                   <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {String(value)}
                 </span>
               </li>
@@ -598,16 +598,16 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
 
       {/* Offensive/Defensive Metrics */}
       {(analysis?.offensiveMetrics || analysis?.defensiveMetrics) && (
-        <div className="mt-6 pt-6 border-t border-gray-100">
+        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
           <div className="grid grid-cols-2 gap-4">
             {analysis?.offensiveMetrics && (
               <div>
-                <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">Offense</h5>
+                <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Offense</h5>
                 <div className="space-y-1">
                   {Object.entries(analysis.offensiveMetrics).slice(0, 3).map(([key, value]) => (
                     <div key={key} className="flex justify-between text-sm">
-                      <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="font-medium text-gray-900">{String(value)}</span>
+                      <span className="text-gray-600 dark:text-gray-400 capitalize">{key.replace(/_/g, ' ')}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{String(value)}</span>
                     </div>
                   ))}
                 </div>
@@ -615,12 +615,12 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
             )}
             {analysis?.defensiveMetrics && (
               <div>
-                <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">Defense</h5>
+                <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Defense</h5>
                 <div className="space-y-1">
                   {Object.entries(analysis.defensiveMetrics).slice(0, 3).map(([key, value]) => (
                     <div key={key} className="flex justify-between text-sm">
-                      <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="font-medium text-gray-900">{String(value)}</span>
+                      <span className="text-gray-600 dark:text-gray-400 capitalize">{key.replace(/_/g, ' ')}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{String(value)}</span>
                     </div>
                   ))}
                 </div>
@@ -632,8 +632,8 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
 
       {/* No analysis state */}
       {!analysis && (
-        <div className="text-center py-8 text-gray-500">
-          <BarChart3 className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <BarChart3 className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
           <p>Team analysis not yet available</p>
         </div>
       )}
@@ -644,7 +644,7 @@ function TeamReportCard({ team, sport }: { team: any; sport: string }) {
 function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamName?: string; onClick?: () => void }) {
   return (
     <div
-      className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-gray-300 transition-all cursor-pointer"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer"
       onClick={onClick}
     >
       {/* Header */}
@@ -657,13 +657,13 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
           </div>
           <div>
             {/* Player Name - from box score or jersey number */}
-            <div className="font-bold text-gray-900">
+            <div className="font-bold text-gray-900 dark:text-white">
               {player.name || player.playerName || `#${player.jerseyNumber}`}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">{player.estimatedPosition || player.position || 'Player'}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{player.estimatedPosition || player.position || 'Player'}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                player.team?.toLowerCase() === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                player.team?.toLowerCase() === 'home' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
               }`}>
                 {teamName || (player.team?.toLowerCase() === 'home' ? 'Home' : 'Away')}
               </span>
@@ -674,7 +674,7 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
       </div>
 
       {/* Overall Assessment */}
-      <p className="text-sm text-gray-700 mb-4 bg-gray-50 rounded-lg p-3">
+      <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
         {player.overallAssessment}
       </p>
 
@@ -682,24 +682,24 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Offensive Tendencies */}
         <div>
-          <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Offense</h5>
+          <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Offense</h5>
           <div className="space-y-1 text-xs">
             {(player.offensiveTendencies?.preferredHand || player.preferredHand) && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Hand</span>
-                <span className="font-medium text-gray-700 capitalize">{player.offensiveTendencies?.preferredHand || player.preferredHand}</span>
+                <span className="text-gray-500 dark:text-gray-400">Hand</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200 capitalize">{player.offensiveTendencies?.preferredHand || player.preferredHand}</span>
               </div>
             )}
             {player.offensiveTendencies?.shootingRange && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Range</span>
-                <span className="font-medium text-gray-700">{player.offensiveTendencies.shootingRange}</span>
+                <span className="text-gray-500 dark:text-gray-400">Range</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{player.offensiveTendencies.shootingRange}</span>
               </div>
             )}
             {player.offensiveTendencies?.ballHandling && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Handles</span>
-                <span className="font-medium text-gray-700">{player.offensiveTendencies.ballHandling}</span>
+                <span className="text-gray-500 dark:text-gray-400">Handles</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{player.offensiveTendencies.ballHandling}</span>
               </div>
             )}
           </div>
@@ -708,7 +708,7 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
               <span className="text-xs text-gray-400">Moves:</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(player.offensiveTendencies?.primaryMoves || player.primaryMoves || []).slice(0, 3).map((move: string, i: number) => (
-                  <span key={i} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{move}</span>
+                  <span key={i} className="text-xs bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">{move}</span>
                 ))}
               </div>
             </div>
@@ -717,24 +717,24 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
 
         {/* Defensive Tendencies */}
         <div>
-          <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Defense</h5>
+          <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Defense</h5>
           <div className="space-y-1 text-xs">
             {(player.defensiveTendencies?.onBallDefense || player.defensiveRating) && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Rating</span>
-                <span className="font-medium text-gray-700">{player.defensiveTendencies?.onBallDefense || player.defensiveRating}</span>
+                <span className="text-gray-500 dark:text-gray-400">Rating</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{player.defensiveTendencies?.onBallDefense || player.defensiveRating}</span>
               </div>
             )}
             {player.defensiveTendencies?.helpDefense && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Help</span>
-                <span className="font-medium text-gray-700">{player.defensiveTendencies.helpDefense}</span>
+                <span className="text-gray-500 dark:text-gray-400">Help</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{player.defensiveTendencies.helpDefense}</span>
               </div>
             )}
             {player.defensiveTendencies?.effort && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Motor</span>
-                <span className="font-medium text-gray-700">{player.defensiveTendencies.effort}</span>
+                <span className="text-gray-500 dark:text-gray-400">Motor</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{player.defensiveTendencies.effort}</span>
               </div>
             )}
           </div>
@@ -743,24 +743,24 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
 
       {/* Athletic Profile */}
       {player.athleticProfile && (
-        <div className="mb-4 pb-4 border-t border-gray-100 pt-3">
-          <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Athletic Profile</h5>
+        <div className="mb-4 pb-4 border-t border-gray-100 dark:border-gray-700 pt-3">
+          <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Athletic Profile</h5>
           <div className="flex gap-4 text-xs">
             {player.athleticProfile.speed && (
               <div className="text-center">
-                <div className="font-medium text-gray-700">{player.athleticProfile.speed}</div>
+                <div className="font-medium text-gray-700 dark:text-gray-200">{player.athleticProfile.speed}</div>
                 <div className="text-gray-400">Speed</div>
               </div>
             )}
             {player.athleticProfile.strength && (
               <div className="text-center">
-                <div className="font-medium text-gray-700">{player.athleticProfile.strength}</div>
+                <div className="font-medium text-gray-700 dark:text-gray-200">{player.athleticProfile.strength}</div>
                 <div className="text-gray-400">Strength</div>
               </div>
             )}
             {player.athleticProfile.explosiveness && (
               <div className="text-center">
-                <div className="font-medium text-gray-700">{player.athleticProfile.explosiveness}</div>
+                <div className="font-medium text-gray-700 dark:text-gray-200">{player.athleticProfile.explosiveness}</div>
                 <div className="text-gray-400">Explosiveness</div>
               </div>
             )}
@@ -770,17 +770,17 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
 
       {/* Scouting Advice - handles both nested and flat formats */}
       {(player.scoutingAdvice || player.howToGuard || player.howToAttack) && (
-        <div className="space-y-2 border-t border-gray-100 pt-3">
+        <div className="space-y-2 border-t border-gray-100 dark:border-gray-700 pt-3">
           {(player.scoutingAdvice?.howToGuard || player.howToGuard) && (
-            <div className="bg-red-50 rounded-lg p-3">
-              <div className="text-xs font-semibold text-red-700 mb-1">How to Guard</div>
-              <p className="text-xs text-red-800">{player.scoutingAdvice?.howToGuard || player.howToGuard}</p>
+            <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3">
+              <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">How to Guard</div>
+              <p className="text-xs text-red-800 dark:text-red-300">{player.scoutingAdvice?.howToGuard || player.howToGuard}</p>
             </div>
           )}
           {(player.scoutingAdvice?.howToAttack || player.howToAttack) && (
-            <div className="bg-green-50 rounded-lg p-3">
-              <div className="text-xs font-semibold text-green-700 mb-1">How to Attack</div>
-              <p className="text-xs text-green-800">{player.scoutingAdvice?.howToAttack || player.howToAttack}</p>
+            <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3">
+              <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">How to Attack</div>
+              <p className="text-xs text-green-800 dark:text-green-300">{player.scoutingAdvice?.howToAttack || player.howToAttack}</p>
             </div>
           )}
         </div>
@@ -788,9 +788,9 @@ function ScoutingPlayerCard({ player, teamName, onClick }: { player: any; teamNa
 
       {/* Key Tendency Highlight */}
       {player.offensiveTendencies?.keyTendency && (
-        <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-          <div className="text-xs font-semibold text-yellow-700 mb-1">Key Tendency</div>
-          <p className="text-xs text-yellow-800">{player.offensiveTendencies.keyTendency}</p>
+        <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-100 dark:border-yellow-800">
+          <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Key Tendency</div>
+          <p className="text-xs text-yellow-800 dark:text-yellow-300">{player.offensiveTendencies.keyTendency}</p>
         </div>
       )}
     </div>
@@ -828,37 +828,37 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
   const iconText = teamLabel === 'home' ? 'text-blue-600' : 'text-orange-600';
 
   return (
-    <div className={`bg-white rounded-xl border-2 p-6 ${borderClass}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border-2 p-6 ${borderClass}`}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconBg}`}>
           <Users className={`w-6 h-6 ${iconText}`} />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-gray-900">{teamName || (teamLabel === 'home' ? 'Home Team' : 'Away Team')}</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{teamName || (teamLabel === 'home' ? 'Home Team' : 'Away Team')}</h3>
           {team.jerseyColor && (
-            <div className="text-sm text-gray-500">Jersey: {team.jerseyColor}</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Jersey: {team.jerseyColor}</div>
           )}
         </div>
       </div>
 
       {/* Systems Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className={`p-4 rounded-lg ${bgClass}`}>
-          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Offense</div>
-          <div className="font-bold text-gray-900 text-sm">{team.offensiveSystem || 'Not analyzed'}</div>
+        <div className={`p-4 rounded-lg ${bgClass} dark:bg-gray-700`}>
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Offense</div>
+          <div className="font-bold text-gray-900 dark:text-white text-sm">{team.offensiveSystem || 'Not analyzed'}</div>
           {team.transitionStyle && (
-            <div className="text-xs text-gray-600 mt-1">Transition: {team.transitionStyle}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Transition: {team.transitionStyle}</div>
           )}
           {team.spacing?.formation && (
-            <div className="text-xs text-gray-600 mt-1">Spacing: {team.spacing.formation}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Spacing: {team.spacing.formation}</div>
           )}
         </div>
-        <div className={`p-4 rounded-lg ${bgClass}`}>
-          <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Defense</div>
-          <div className="font-bold text-gray-900 text-sm">{team.defensiveSystem || 'Not analyzed'}</div>
+        <div className={`p-4 rounded-lg ${bgClass} dark:bg-gray-700`}>
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Defense</div>
+          <div className="font-bold text-gray-900 dark:text-white text-sm">{team.defensiveSystem || 'Not analyzed'}</div>
           {team.pnrCoverage && (
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               PnR: {typeof team.pnrCoverage === 'string' ? team.pnrCoverage : team.pnrCoverage.primary || 'N/A'}
             </div>
           )}
@@ -868,29 +868,29 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
       {/* Key Players */}
       {(team.keyOffensivePlayers?.length > 0 || team.keyDefenders?.length > 0) && (
         <div className="mb-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
             Key Players
           </h4>
           <div className="grid grid-cols-2 gap-3">
             {team.keyOffensivePlayers?.slice(0, 3).map((p: any, i: number) => (
-              <div key={`off-${i}`} className="bg-green-50 rounded-lg p-3 border border-green-100">
+              <div key={`off-${i}`} className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 border border-green-100 dark:border-green-800">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold text-green-700">#{p.jersey || '?'}</span>
-                  <span className="text-xs px-1.5 py-0.5 bg-green-200 text-green-800 rounded">Offense</span>
+                  <span className="text-xs font-bold text-green-700 dark:text-green-400">#{p.jersey || '?'}</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded">Offense</span>
                 </div>
-                <div className="text-xs text-gray-700">{p.role || p.tendency}</div>
-                {p.threat && <div className="text-xs text-green-600 mt-1">Threat: {p.threat}</div>}
+                <div className="text-xs text-gray-700 dark:text-gray-300">{p.role || p.tendency}</div>
+                {p.threat && <div className="text-xs text-green-600 dark:text-green-400 mt-1">Threat: {p.threat}</div>}
               </div>
             ))}
             {team.keyDefenders?.slice(0, 3).map((p: any, i: number) => (
-              <div key={`def-${i}`} className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+              <div key={`def-${i}`} className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold text-blue-700">#{p.jersey || '?'}</span>
-                  <span className="text-xs px-1.5 py-0.5 bg-blue-200 text-blue-800 rounded">Defense</span>
+                  <span className="text-xs font-bold text-blue-700 dark:text-blue-400">#{p.jersey || '?'}</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded">Defense</span>
                 </div>
-                <div className="text-xs text-gray-700">{p.role || p.strength}</div>
-                {p.assignment && <div className="text-xs text-blue-600 mt-1">Guards: {p.assignment}</div>}
+                <div className="text-xs text-gray-700 dark:text-gray-300">{p.role || p.strength}</div>
+                {p.assignment && <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Guards: {p.assignment}</div>}
               </div>
             ))}
           </div>
@@ -900,13 +900,13 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
       {/* Offensive Tendencies */}
       {team.offensiveTendencies?.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-green-500" />
             Offensive Tendencies
           </h4>
           <ul className="space-y-2">
             {team.offensiveTendencies.slice(0, 5).map((t: any, i: number) => (
-              <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+              <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
                 <span>{renderTendency(t)}</span>
               </li>
@@ -918,13 +918,13 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
       {/* Defensive Tendencies */}
       {team.defensiveTendencies?.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
             <Shield className="w-4 h-4 text-blue-500" />
             Defensive Tendencies
           </h4>
           <ul className="space-y-2">
             {team.defensiveTendencies.slice(0, 5).map((t: any, i: number) => (
-              <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+              <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
                 <span>{renderTendency(t)}</span>
               </li>
@@ -935,14 +935,14 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
 
       {/* Weaknesses - Offensive */}
       {(team.offensiveWeaknesses?.length > 0 || team.weaknesses?.length > 0) && (
-        <div className="bg-red-50 rounded-lg p-4 border border-red-100 mb-4">
-          <h4 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
+        <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-4 border border-red-100 dark:border-red-800 mb-4">
+          <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             Offensive Weaknesses to Exploit
           </h4>
           <ul className="space-y-2">
             {(team.offensiveWeaknesses || team.weaknesses || []).slice(0, 4).map((w: any, i: number) => (
-              <li key={i} className="text-sm text-red-800 flex items-start gap-2">
+              <li key={i} className="text-sm text-red-800 dark:text-red-300 flex items-start gap-2">
                 <span className="text-red-500 mt-1">•</span>
                 <span>{renderTendency(w)}</span>
               </li>
@@ -953,14 +953,14 @@ function TeamScoutingCard({ team, teamLabel, teamName }: { team: any; teamLabel:
 
       {/* Defensive Weaknesses */}
       {team.defensiveWeaknesses?.length > 0 && (
-        <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-          <h4 className="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-2">
+        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-4 border border-amber-100 dark:border-amber-800">
+          <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4" />
             Defensive Weaknesses to Attack
           </h4>
           <ul className="space-y-2">
             {team.defensiveWeaknesses.slice(0, 4).map((w: any, i: number) => (
-              <li key={i} className="text-sm text-amber-800 flex items-start gap-2">
+              <li key={i} className="text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
                 <span className="text-amber-500 mt-1">•</span>
                 <span>{renderTendency(w)}</span>
               </li>
@@ -1010,22 +1010,22 @@ function GeminiInsights({ game }: { game: any }) {
     <div className="space-y-6">
       {/* AI Summary - Combined overview stats, teams, and game narrative */}
       {coachingInsights?.gameNarrative && (
-        <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-600" />
             AI Summary
           </h3>
 
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-100 dark:border-gray-600">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {game.geminiAnalysis?.playerScouting?.players?.length || allPlayers.length}
               </div>
-              <div className="text-xs text-gray-500">Players Scouted</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Players Scouted</div>
             </div>
-            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-100 dark:border-gray-600">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {(() => {
                   const boxScore = game.boxScore as string || '';
                   const totalsMatches = [...boxScore.matchAll(/TOTALS(\d{1,2})-(\d{2})/g)].slice(0, 2);
@@ -1036,20 +1036,20 @@ function GeminiInsights({ game }: { game: any }) {
                   return totalFGA || game.detectedPlays?.length || '-';
                 })()}
               </div>
-              <div className="text-xs text-gray-500">Total Shots</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Total Shots</div>
             </div>
-            <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-100 dark:border-gray-600">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {coachingInsights?.keyMoments?.length || 0}
               </div>
-              <div className="text-xs text-gray-500">Key Moments</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Key Moments</div>
             </div>
             {game.videoDurationSeconds && (
-              <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-                <div className="text-2xl font-bold text-gray-900">
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-100 dark:border-gray-600">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {Math.floor(game.videoDurationSeconds / 60)}:{(game.videoDurationSeconds % 60).toString().padStart(2, '0')}
                 </div>
-                <div className="text-xs text-gray-500">Duration</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Duration</div>
               </div>
             )}
           </div>
@@ -1058,33 +1058,33 @@ function GeminiInsights({ game }: { game: any }) {
           <div className="flex flex-wrap gap-3 mb-4">
             {game.geminiAnalysis?.teamScouting ? (
               <>
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-lg px-4 py-2 border border-gray-100 dark:border-gray-600">
                   <div className="w-4 h-4 rounded-full bg-blue-600" />
-                  <span className="font-medium text-gray-900">{game.geminiAnalysis.homeTeamName || 'Home'}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{game.geminiAnalysis.homeTeamName || 'Home'}</span>
                   <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'home').length || 0} players
                   </span>
                 </div>
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-lg px-4 py-2 border border-gray-100 dark:border-gray-600">
                   <div className="w-4 h-4 rounded-full bg-orange-500" />
-                  <span className="font-medium text-gray-900">{game.geminiAnalysis.awayTeamName || 'Away'}</span>
-                  <span className="text-sm text-gray-500">
+                  <span className="font-medium text-gray-900 dark:text-white">{game.geminiAnalysis.awayTeamName || 'Away'}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {game.geminiAnalysis.playerScouting?.players?.filter((p: any) => p.team?.toLowerCase() === 'away').length || 0} players
                   </span>
                 </div>
               </>
             ) : (
               game.detectedTeams?.map((team: any) => (
-                <div key={team.id} className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-gray-100">
+                <div key={team.id} className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-lg px-4 py-2 border border-gray-100 dark:border-gray-600">
                   {team.primaryJerseyColor && (
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: team.primaryJerseyColor }} />
                   )}
-                  <span className="font-medium text-gray-900">{team.teamName || team.teamLabel || 'Team'}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{team.teamName || team.teamLabel || 'Team'}</span>
                   {team.isUserTeam && (
                     <span className="text-xs bg-[#0f2d52] text-white px-2 py-0.5 rounded-full">Your Team</span>
                   )}
-                  <span className="text-sm text-gray-500">{team.players?.length || 0} players</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{team.players?.length || 0} players</span>
                 </div>
               ))
             )}
@@ -1092,19 +1092,19 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Accurate Final Score from Box Score */}
           {boxScoreData.homeTeam && boxScoreData.awayTeam && (
-            <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 text-center">Final Score</p>
+            <div className="mb-4 p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 text-center">Final Score</p>
 
               {/* Scoreboard Table */}
               <table className="w-full text-center">
                 <thead>
-                  <tr className="text-xs text-gray-500 uppercase">
+                  <tr className="text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <th className="text-left py-1 px-2">Team</th>
                     <th className="py-1 px-2 w-12">Q1</th>
                     <th className="py-1 px-2 w-12">Q2</th>
                     <th className="py-1 px-2 w-12">Q3</th>
                     <th className="py-1 px-2 w-12">Q4</th>
-                    <th className="py-1 px-3 w-16 bg-gray-100 rounded">Final</th>
+                    <th className="py-1 px-3 w-16 bg-gray-100 dark:bg-gray-600 rounded">Final</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -1113,15 +1113,15 @@ function GeminiInsights({ game }: { game: any }) {
                     return (
                       <tr key={i} className={isWinner ? 'font-bold' : ''}>
                         <td className="text-left py-2 px-2">
-                          <span className={isWinner ? 'text-green-700' : 'text-gray-700'}>
+                          <span className={isWinner ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}>
                             {isWinner && '🏆 '}{qs.team}
                           </span>
                         </td>
-                        <td className="py-2 px-2 text-gray-600">{qs.q1}</td>
-                        <td className="py-2 px-2 text-gray-600">{qs.q2}</td>
-                        <td className="py-2 px-2 text-gray-600">{qs.q3}</td>
-                        <td className="py-2 px-2 text-gray-600">{qs.q4}</td>
-                        <td className={`py-2 px-3 bg-gray-100 rounded text-lg ${isWinner ? 'text-green-700' : 'text-gray-700'}`}>
+                        <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{qs.q1}</td>
+                        <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{qs.q2}</td>
+                        <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{qs.q3}</td>
+                        <td className="py-2 px-2 text-gray-600 dark:text-gray-400">{qs.q4}</td>
+                        <td className={`py-2 px-3 bg-gray-100 dark:bg-gray-600 rounded text-lg ${isWinner ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
                           {qs.final}
                         </td>
                       </tr>
@@ -1132,15 +1132,15 @@ function GeminiInsights({ game }: { game: any }) {
             </div>
           )}
 
-          <p className="text-gray-700 text-lg leading-relaxed">{coachingInsights.gameNarrative}</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">{coachingInsights.gameNarrative}</p>
 
           {/* Deciding Factors */}
           {coachingInsights.decidingFactors?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <h4 className="text-sm font-semibold text-gray-600 mb-2">Deciding Factors</h4>
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Deciding Factors</h4>
               <ul className="space-y-1">
                 {coachingInsights.decidingFactors.map((factor: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <ChevronRight className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
                     {factor}
                   </li>
@@ -1151,17 +1151,17 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Key Moments */}
           {coachingInsights.keyMoments?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <h4 className="text-sm font-semibold text-gray-600 mb-2">Key Moments</h4>
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Key Moments</h4>
               <div className="space-y-2">
                 {coachingInsights.keyMoments.map((moment: any, i: number) => {
                   const seconds = parseTimestamp(moment.timestamp);
                   return (
                     <div key={i} className="flex items-start gap-3 text-sm">
-                      <span className="font-mono text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">
+                      <span className="font-mono text-xs bg-slate-200 dark:bg-gray-600 text-slate-700 dark:text-gray-300 px-2 py-1 rounded">
                         {formatTime(seconds)}
                       </span>
-                      <span className="text-gray-600">{moment.description}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{moment.description}</span>
                     </div>
                   );
                 })}
@@ -1173,8 +1173,8 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* NEW: Game Prep Section */}
       {coachingInsights?.forNextGame && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-600" />
             Next Game Preparation
           </h3>
@@ -1232,18 +1232,18 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Players to Watch - with threat/counter details */}
           {coachingInsights.forNextGame.playersToWatch?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Players to Watch</h4>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Players to Watch</h4>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {coachingInsights.forNextGame.playersToWatch.map((p: any, i: number) => (
-                  <div key={i} className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                  <div key={i} className="p-3 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-100 dark:border-yellow-800">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg font-bold text-yellow-800">#{p.jersey}</span>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{p.team}</span>
+                      <span className="text-lg font-bold text-yellow-800 dark:text-yellow-400">#{p.jersey}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{p.team}</span>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-red-700"><span className="font-semibold">Threat:</span> {p.threat}</p>
-                      <p className="text-xs text-green-700"><span className="font-semibold">Counter:</span> {p.counter}</p>
+                      <p className="text-xs text-red-700 dark:text-red-400"><span className="font-semibold">Threat:</span> {p.threat}</p>
+                      <p className="text-xs text-green-700 dark:text-green-400"><span className="font-semibold">Counter:</span> {p.counter}</p>
                     </div>
                   </div>
                 ))}
@@ -1255,17 +1255,17 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* NEW: Practice Priorities */}
       {coachingInsights?.practicePriorities?.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-indigo-600" />
             Practice Priorities
           </h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {coachingInsights.practicePriorities.map((priority: any, i: number) => (
-              <div key={i} className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
-                <h4 className="font-semibold text-indigo-800 mb-2">{priority.focus}</h4>
+              <div key={i} className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
+                <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">{priority.focus}</h4>
                 {priority.drillSuggestion && (
-                  <p className="text-sm text-indigo-700">{priority.drillSuggestion}</p>
+                  <p className="text-sm text-indigo-700 dark:text-indigo-400">{priority.drillSuggestion}</p>
                 )}
               </div>
             ))}
@@ -1275,22 +1275,22 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* NEW: Exploitable Tendencies */}
       {coachingInsights?.exploitableTendencies?.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-orange-500" />
             Exploitable Tendencies
           </h3>
           <div className="space-y-4">
             {coachingInsights.exploitableTendencies.map((tendency: any, i: number) => (
-              <div key={i} className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+              <div key={i} className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
                 <div className="flex items-start gap-3">
-                  <div className="bg-orange-200 text-orange-800 font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
+                  <div className="bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
                     {i + 1}
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500 mb-1">When: <span className="font-medium text-gray-700">{tendency.situation}</span></div>
-                    <div className="text-sm text-gray-500 mb-1">They: <span className="font-medium text-gray-700">{tendency.tendency}</span></div>
-                    <div className="text-sm font-semibold text-orange-800">Counter: {tendency.counter}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">When: <span className="font-medium text-gray-700 dark:text-gray-300">{tendency.situation}</span></div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">They: <span className="font-medium text-gray-700 dark:text-gray-300">{tendency.tendency}</span></div>
+                    <div className="text-sm font-semibold text-orange-800 dark:text-orange-400">Counter: {tendency.counter}</div>
                   </div>
                 </div>
               </div>
@@ -1301,27 +1301,27 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* Legacy Coach Report (if present) */}
       {coachReport && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Coach's Scouting Report
           </h3>
-          <div className="prose prose-sm max-w-none text-gray-700">
+          <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
             {coachReport.split('\n').map((line: string, i: number) => {
               if (line.startsWith('# ')) {
-                return <h1 key={i} className="text-2xl font-bold text-gray-900 mt-4 mb-2">{line.replace('# ', '')}</h1>;
+                return <h1 key={i} className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">{line.replace('# ', '')}</h1>;
               } else if (line.startsWith('## ')) {
-                return <h2 key={i} className="text-xl font-semibold text-gray-800 mt-6 mb-2">{line.replace('## ', '')}</h2>;
+                return <h2 key={i} className="text-xl font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-2">{line.replace('## ', '')}</h2>;
               } else if (line.startsWith('### ')) {
-                return <h3 key={i} className="text-lg font-medium text-gray-700 mt-4 mb-1">{line.replace('### ', '')}</h3>;
+                return <h3 key={i} className="text-lg font-medium text-gray-700 dark:text-gray-300 mt-4 mb-1">{line.replace('### ', '')}</h3>;
               } else if (line.startsWith('- ')) {
                 return <li key={i} className="ml-4">{line.replace('- ', '')}</li>;
               } else if (line.startsWith('**') && line.endsWith('**')) {
                 return <p key={i} className="font-semibold">{line.replace(/\*\*/g, '')}</p>;
               } else if (line.trim() === '---') {
-                return <hr key={i} className="my-4 border-gray-200" />;
+                return <hr key={i} className="my-4 border-gray-200 dark:border-gray-700" />;
               } else if (line.trim()) {
                 return <p key={i} className="mb-2">{line}</p>;
               }
@@ -1333,55 +1333,55 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* Game Info Summary */}
       {gameInfo && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 p-6">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-xl border border-blue-100 dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-600" />
-            <h3 className="font-semibold text-gray-900">AI Analysis Summary</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">AI Analysis Summary</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {gameInfo.teams?.home?.name && (
               <div>
-                <p className="text-xs text-gray-500 uppercase">Home</p>
-                <p className="font-semibold text-gray-900">{gameInfo.teams.home.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Home</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{gameInfo.teams.home.name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div
                     className="w-4 h-4 rounded-full border"
                     style={{ backgroundColor: gameInfo.teams.home.jerseyColor }}
                   />
-                  <span className="text-xs text-gray-500">{gameInfo.teams.home.jerseyColor}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{gameInfo.teams.home.jerseyColor}</span>
                 </div>
               </div>
             )}
             {gameInfo.teams?.away?.name && (
               <div>
-                <p className="text-xs text-gray-500 uppercase">Away</p>
-                <p className="font-semibold text-gray-900">{gameInfo.teams.away.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Away</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{gameInfo.teams.away.name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div
                     className="w-4 h-4 rounded-full border"
                     style={{ backgroundColor: gameInfo.teams.away.jerseyColor }}
                   />
-                  <span className="text-xs text-gray-500">{gameInfo.teams.away.jerseyColor}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{gameInfo.teams.away.jerseyColor}</span>
                 </div>
               </div>
             )}
             {gameInfo.venue && (
               <div>
-                <p className="text-xs text-gray-500 uppercase">Venue</p>
-                <p className="font-semibold text-gray-900">{gameInfo.venue}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Venue</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{gameInfo.venue}</p>
               </div>
             )}
             {gameInfo.duration && (
               <div>
-                <p className="text-xs text-gray-500 uppercase">Duration</p>
-                <p className="font-semibold text-gray-900">{gameInfo.duration}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Duration</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{gameInfo.duration}</p>
               </div>
             )}
           </div>
           {gameInfo.finalScore && gameInfo.finalScore.home != null && gameInfo.finalScore.away != null && (
-            <div className="mt-4 pt-4 border-t border-blue-100">
-              <p className="text-sm text-gray-500">Final Score</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="mt-4 pt-4 border-t border-blue-100 dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Final Score</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {gameInfo.teams?.home?.name || 'Home'} {gameInfo.finalScore.home} - {gameInfo.finalScore.away} {gameInfo.teams?.away?.name || 'Away'}
               </p>
             </div>
@@ -1392,8 +1392,8 @@ function GeminiInsights({ game }: { game: any }) {
 
       {/* Game Flow */}
       {gameFlow && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-blue-500" />
             Game Flow
           </h3>
@@ -1401,15 +1401,15 @@ function GeminiInsights({ game }: { game: any }) {
           {/* Momentum Swings */}
           {gameFlow.momentumSwings?.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Momentum Shifts</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Momentum Shifts</p>
               <div className="space-y-2">
                 {gameFlow.momentumSwings.map((swing: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <span className="text-xs text-gray-400 font-mono mt-0.5">{swing.timestamp}</span>
                     <div>
-                      <p className="text-sm text-gray-700">{swing.description}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{swing.description}</p>
                       {swing.runScore && (
-                        <span className="text-xs text-blue-600 font-semibold">{swing.runScore}</span>
+                        <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{swing.runScore}</span>
                       )}
                     </div>
                   </div>
@@ -1421,13 +1421,13 @@ function GeminiInsights({ game }: { game: any }) {
           {/* Runs */}
           {gameFlow.runs?.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Scoring Runs</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Scoring Runs</p>
               <div className="flex flex-wrap gap-2">
                 {gameFlow.runs.map((run: any, i: number) => (
                   <div
                     key={i}
                     className={`px-3 py-2 rounded-lg text-sm ${
-                      run.team === 'home' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                      run.team === 'home' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300'
                     }`}
                   >
                     <span className="font-semibold">{run.points}-0 run</span>
@@ -1440,25 +1440,25 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Clutch Performance */}
           {gameFlow.clutchPerformance && (
-            <div className="pt-4 border-t border-gray-100">
-              <p className="text-sm font-medium text-gray-700 mb-2">Clutch Performance (Final 2 mins)</p>
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Clutch Performance (Final 2 mins)</p>
               <div className="grid grid-cols-2 gap-4">
                 {gameFlow.clutchPerformance.finalTwoMinutes?.home && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Home</p>
-                    <p className="text-lg font-bold text-gray-900">{gameFlow.clutchPerformance.finalTwoMinutes.home.points} pts</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Home</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{gameFlow.clutchPerformance.finalTwoMinutes.home.points} pts</p>
                   </div>
                 )}
                 {gameFlow.clutchPerformance.finalTwoMinutes?.away && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase">Away</p>
-                    <p className="text-lg font-bold text-gray-900">{gameFlow.clutchPerformance.finalTwoMinutes.away.points} pts</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Away</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{gameFlow.clutchPerformance.finalTwoMinutes.away.points} pts</p>
                   </div>
                 )}
               </div>
               {gameFlow.clutchPerformance.clutchPlayers?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs text-green-600">Clutch Players: {gameFlow.clutchPerformance.clutchPlayers.join(', ')}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400">Clutch Players: {gameFlow.clutchPerformance.clutchPlayers.join(', ')}</p>
                 </div>
               )}
             </div>
@@ -1466,13 +1466,13 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Turning Points */}
           {gameFlow.turningPoints?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-sm font-medium text-gray-700 mb-2">Key Turning Points</p>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Key Turning Points</p>
               <ul className="space-y-2">
                 {gameFlow.turningPoints.map((tp: any, i: number) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <span className="text-gray-400 font-mono text-xs mt-0.5">{tp.timestamp}</span>
-                    <span className="text-gray-600">{tp.description}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{tp.description}</span>
                   </li>
                 ))}
               </ul>
@@ -1485,16 +1485,16 @@ function GeminiInsights({ game }: { game: any }) {
       {teamAnalysisData && (
         <div className="grid md:grid-cols-2 gap-4">
           {Object.entries(teamAnalysisData).map(([teamKey, teamData]: [string, any]) => (
-            <div key={teamKey} className="bg-white rounded-xl border border-gray-200 p-6">
-              <h4 className="font-semibold text-gray-900 mb-4 capitalize">{teamKey} Team Analysis</h4>
+            <div key={teamKey} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 capitalize">{teamKey} Team Analysis</h4>
 
               {/* Strengths */}
               {teamData.strengths?.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-green-700 mb-2">Strengths</p>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">Strengths</p>
                   <ul className="space-y-1">
                     {teamData.strengths.map((s: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                      <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                         {s}
                       </li>
@@ -1506,10 +1506,10 @@ function GeminiInsights({ game }: { game: any }) {
               {/* Weaknesses */}
               {teamData.weaknesses?.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-red-700 mb-2">Weaknesses</p>
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">Weaknesses</p>
                   <ul className="space-y-1">
                     {teamData.weaknesses.map((w: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                      <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                         {w}
                       </li>
@@ -1521,8 +1521,8 @@ function GeminiInsights({ game }: { game: any }) {
               {/* Offensive Tendencies */}
               {teamData.offensiveTendencies && (
                 <div className="text-sm">
-                  <p className="font-medium text-gray-700 mb-1">Offensive Tendencies</p>
-                  <div className="space-y-1 text-gray-600">
+                  <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">Offensive Tendencies</p>
+                  <div className="space-y-1 text-gray-600 dark:text-gray-400">
                     {teamData.offensiveTendencies.transitionFrequency && (
                       <p>Transition: {teamData.offensiveTendencies.transitionFrequency}</p>
                     )}
@@ -1835,7 +1835,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Back link */}
-      <Link href="/games" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6">
+      <Link href="/games" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6">
         <ArrowLeft className="w-4 h-4 mr-1" />
         Back to Games
       </Link>
@@ -1843,8 +1843,8 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{game.title}</h1>
-          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{game.title}</h1>
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
             {game.opponent && <span>vs {game.opponent}</span>}
             {game.sport && <span className="capitalize">{game.sport}</span>}
             {game.gameDate && <span>{new Date(game.gameDate).toLocaleDateString()}</span>}
@@ -2023,18 +2023,18 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 {scoutedPlayers.length > 0 && (
                   <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <Target className="w-5 h-5 text-purple-600" />
                         Individual Player Scouting
                       </h3>
                       {/* Team Filter Tabs */}
-                      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                      <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                         <button
                           onClick={() => setPlayerTeamFilter('all')}
                           className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                             playerTeamFilter === 'all'
-                              ? 'bg-white text-gray-900 shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900'
+                              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           All
@@ -2044,7 +2044,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                           className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                             playerTeamFilter === 'home'
                               ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900'
+                              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           {game.geminiAnalysis?.homeTeamName || 'Home'}
@@ -2054,7 +2054,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                           className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                             playerTeamFilter === 'away'
                               ? 'bg-orange-500 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900'
+                              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           {game.geminiAnalysis?.awayTeamName || 'Away'}
@@ -2080,13 +2080,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 {scoutedPlayers.length === 0 && (
                   <>
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-500">{allPlayers.length} players detected</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{allPlayers.length} players detected</span>
                     </div>
 
                     {allPlayers.length === 0 ? (
-                      <div className="bg-gray-50 rounded-xl p-8 text-center">
-                        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500">No players detected yet</p>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-8 text-center">
+                        <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                        <p className="text-gray-500 dark:text-gray-400">No players detected yet</p>
                       </div>
                     ) : (
                       <div className="grid gap-4 sm:grid-cols-2">
@@ -2113,7 +2113,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 {/* Key Moments from AI Scouting */}
                 {game.geminiAnalysis?.coachingInsights?.keyMoments?.length > 0 && (
                   <div className="mb-8">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-yellow-500" />
                       Key Moments
                     </h3>
@@ -2124,18 +2124,18 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                         return (
                           <div
                             key={idx}
-                            className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                            className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg border border-yellow-200 dark:border-yellow-800 p-4 hover:shadow-md transition-shadow cursor-pointer"
                             onClick={() => seconds !== null && openVideoAt(seconds)}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex items-start gap-3">
-                                <div className="bg-yellow-400 text-yellow-900 font-bold rounded-lg px-3 py-1.5 text-sm font-mono">
+                                <div className="bg-yellow-400 dark:bg-yellow-600 text-yellow-900 dark:text-yellow-100 font-bold rounded-lg px-3 py-1.5 text-sm font-mono">
                                   {moment.timestamp}
                                 </div>
                                 <div>
-                                  <p className="text-gray-800 font-medium">{moment.description}</p>
+                                  <p className="text-gray-800 dark:text-gray-200 font-medium">{moment.description}</p>
                                   {moment.impact && (
-                                    <p className="text-sm text-gray-500 mt-1">{moment.impact}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{moment.impact}</p>
                                   )}
                                 </div>
                               </div>
@@ -2155,7 +2155,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
 
                 {/* Detected Plays */}
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-gray-500">{game.detectedPlays?.length || 0} plays detected</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{game.detectedPlays?.length || 0} plays detected</span>
                   {game.videoUrl && (
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => openVideoAt(0)}>
                       <Play className="w-4 h-4" />
@@ -2174,7 +2174,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                     return (
                       <div
                         key={play.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer"
                         onClick={() => startTime !== null && openVideoAt(startTime)}
                       >
                         <div className="flex items-center justify-between">
@@ -2184,20 +2184,20 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
                                   {play.formation ? `${play.formation}` : `Play ${play.playNumber || index + 1}`}
                                 </h4>
                                 {play.playType && play.playType !== 'unknown' && (
                                   <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                    play.playType === 'pass' ? 'bg-blue-100 text-blue-700' :
-                                    play.playType === 'run' ? 'bg-green-100 text-green-700' :
-                                    'bg-gray-100 text-gray-700'
+                                    play.playType === 'pass' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
+                                    play.playType === 'run' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                                   }`}>
                                     {play.playType}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                              <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 {startTime !== null && (
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
@@ -2238,7 +2238,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 {/* AI Team Scouting Reports */}
                 {game.geminiAnalysis?.teamScouting && (
                   <div className="mb-8">
-                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                       <Users className="w-5 h-5 text-indigo-600" />
                       Team Systems & Tendencies
                     </h3>
@@ -2265,13 +2265,13 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                 {!game.geminiAnalysis?.teamScouting && (
                   <>
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-500">{game.detectedTeams?.length || 0} teams detected</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{game.detectedTeams?.length || 0} teams detected</span>
                     </div>
 
                     {!game.detectedTeams || game.detectedTeams.length === 0 ? (
-                      <div className="bg-gray-50 rounded-xl p-8 text-center">
-                        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500">No team data available yet</p>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-8 text-center">
+                        <BarChart3 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                        <p className="text-gray-500 dark:text-gray-400">No team data available yet</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
