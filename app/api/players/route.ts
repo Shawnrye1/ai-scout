@@ -4,8 +4,10 @@ import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments } fro
 import { desc, eq, and, inArray } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
-function normalizeDevArea(area: string): string {
+function normalizeDevArea(area: string): string | null {
   const lower = area.toLowerCase();
+  // Skip generic hand development suggestions - not useful for elite players
+  if (lower.includes('left hand') || lower.includes('right hand')) return null;
   if (lower.includes('shooting') || lower.includes('shot')) return 'Shooting';
   if (lower.includes('defense') || lower.includes('defensive')) return 'Defense';
   if (lower.includes('ball handling') || lower.includes('dribbl')) return 'Ball Handling';
@@ -18,6 +20,7 @@ function normalizeDevArea(area: string): string {
   if (lower.includes('screen') || lower.includes('pick')) return 'Screening';
   if (lower.includes('communication')) return 'Communication';
   if (lower.includes('conditioning') || lower.includes('endurance')) return 'Conditioning';
+  if (lower.includes('ball security') || lower.includes('turnover')) return 'Ball Security';
   return area.charAt(0).toUpperCase() + area.slice(1).toLowerCase();
 }
 
@@ -185,26 +188,20 @@ export async function GET() {
           const areaText = typeof area === 'string' ? area : area?.area || area?.description;
           if (areaText) {
             const normalized = normalizeDevArea(areaText);
-            if (!entry.allDevAreas.includes(normalized)) {
+            if (normalized && !entry.allDevAreas.includes(normalized)) {
               entry.allDevAreas.push(normalized);
             }
           }
         }
       }
 
-      // Extract from tendencies if no devAreas
+      // Extract from tendencies if no devAreas (only add Defense, skip hand suggestions)
       const tendencies = player.tendencies as any;
       if (tendencies && entry.allDevAreas.length === 0) {
         // Use defensiveRating to infer focus areas
         if (tendencies.defensiveRating === 'average' || tendencies.defensiveRating === 'below average') {
           if (!entry.allDevAreas.includes('Defense')) {
             entry.allDevAreas.push('Defense');
-          }
-        }
-        if (tendencies.preferredHand) {
-          const weakHand = tendencies.preferredHand === 'right' ? 'Left Hand' : 'Right Hand';
-          if (!entry.allDevAreas.includes(weakHand)) {
-            entry.allDevAreas.push(`Develop ${weakHand}`);
           }
         }
       }
