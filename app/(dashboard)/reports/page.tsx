@@ -653,7 +653,7 @@ export default function ReportsPage() {
     (p: PlayerOption) => p.gamesPlayed > 0 && p.avgGrade !== null && p.avgGrade > 0
   );
   const games: GameOption[] = (gamesData?.games || []).filter(
-    (g: any) => g.status === 'ready' && g.playerCount > 0
+    (g: any) => g.status === 'ready' && (g.playerCount > 0 || g.detectedPlayers?.length > 0)
   );
 
   const handleSelectPlayer = (id: string) => {
