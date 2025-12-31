@@ -100,7 +100,16 @@ export async function GET(
       }
 
       if (inst.strengths && !latestStrengths) {
-        latestStrengths = inst.strengths;
+        // Convert object format to array if needed
+        const s = inst.strengths as any;
+        if (Array.isArray(s)) {
+          latestStrengths = s;
+        } else if (typeof s === 'object') {
+          // New format: { howToGuard, howToAttack }
+          latestStrengths = [];
+          if (s.howToGuard) latestStrengths.push(`How to Guard: ${s.howToGuard}`);
+          if (s.howToAttack) latestStrengths.push(`How to Attack: ${s.howToAttack}`);
+        }
       }
 
       const devAreas = inst.developmentAreas as any;
@@ -110,6 +119,18 @@ export async function GET(
           if (areaText && !allDevAreas.includes(areaText)) {
             allDevAreas.push(areaText);
           }
+        }
+      }
+
+      // Extract development areas from tendencies if none exist
+      const tendencies = inst.tendencies as any;
+      if (tendencies && allDevAreas.length === 0) {
+        if (tendencies.defensiveRating === 'average' || tendencies.defensiveRating === 'below average') {
+          if (!allDevAreas.includes('Defense')) allDevAreas.push('Defense');
+        }
+        if (tendencies.preferredHand) {
+          const weakHand = tendencies.preferredHand === 'right' ? 'Left Hand' : 'Right Hand';
+          if (!allDevAreas.includes(`Develop ${weakHand}`)) allDevAreas.push(`Develop ${weakHand}`);
         }
       }
     }

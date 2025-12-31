@@ -154,7 +154,68 @@ export async function POST(
   }
 }
 
+// Parse box score to extract player stats
+function parseBoxScore(boxScore: string | null): Map<string, { points: number; rebounds: number; assists: number; steals: number; blocks: number; turnovers: number; fgm: number; fga: number; threePm: number; threePa: number }> {
+  const playerStats = new Map();
+  if (!boxScore) return playerStats;
+
+  // Parse player lines: #JerseyName*FG-FGA3PM-3PAFTM-FTAREB...
+  // Example: 01Robert Wright*5-121-43-4731412003214
+  const playerRegex = /(\d{1,2})([A-Za-z\s\-']+)\*?(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})(\d)(\d{1,2})(\d{1,2})(\d)(\d)(\d)(\d)/g;
+
+  let match;
+  while ((match = playerRegex.exec(boxScore)) !== null) {
+    const jersey = match[1];
+    const fgm = parseInt(match[3]) || 0;
+    const fga = parseInt(match[4]) || 0;
+    const threePm = parseInt(match[5]) || 0;
+    const threePa = parseInt(match[6]) || 0;
+    const ftm = parseInt(match[7]) || 0;
+    const fta = parseInt(match[8]) || 0;
+    const reb = parseInt(match[9]) || 0;
+    const pf = parseInt(match[10]) || 0;
+    const pts = parseInt(match[11]) || 0;
+    const ast = parseInt(match[12]) || 0;
+    const to = parseInt(match[13]) || 0;
+    const blk = parseInt(match[14]) || 0;
+    const stl = parseInt(match[15]) || 0;
+
+    playerStats.set(jersey, {
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: to,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+    });
+  }
+
+  return playerStats;
+}
+
+// Calculate overall grade based on stats
+function calculateOverallGrade(stats: { points: number; rebounds: number; assists: number; steals: number; blocks: number } | null): number {
+  if (!stats) return 70; // Default grade
+
+  // Simple grading: base 60 + weighted stats contribution
+  let grade = 60;
+  grade += Math.min(stats.points * 1.5, 20); // Up to 20 points from scoring
+  grade += Math.min(stats.rebounds * 2, 10); // Up to 10 from rebounds
+  grade += Math.min(stats.assists * 2.5, 10); // Up to 10 from assists
+  grade += Math.min((stats.steals + stats.blocks) * 3, 10); // Up to 10 from defensive plays
+
+  return Math.min(Math.round(grade), 99);
+}
+
 async function storeAnalysisResults(gameId: string, analysis: any) {
+  // Get box score from game record
+  const [gameRecord] = await db.select({ boxScore: games.boxScore }).from(games).where(eq(games.id, gameId));
+  const boxScoreStats = parseBoxScore(gameRecord?.boxScore || null);
+
   // Store full analysis JSON on game record
   await db
     .update(games)
@@ -220,9 +281,40 @@ async function storeAnalysisResults(gameId: string, analysis: any) {
     }
 
     if (playerId) {
+      // Get stats from box score
+      const stats = boxScoreStats.get(String(jerseyNumber)) || boxScoreStats.get(jerseyNumber?.toString().padStart(2, '0')) || null;
+      const overallGrade = calculateOverallGrade(stats);
+
+      // Generate development areas based on tendencies
+      const developmentAreas: string[] = [];
+      if (player.defensiveRating === 'average' || player.defensiveRating === 'below average') {
+        developmentAreas.push('Defense');
+      }
+      if (player.preferredHand) {
+        const weakHand = player.preferredHand === 'right' ? 'Left Hand' : 'Right Hand';
+        developmentAreas.push(`Develop ${weakHand}`);
+      }
+      if (stats && stats.turnovers > 3) {
+        developmentAreas.push('Ball Security');
+      }
+
       await db.insert(playerAnalysis).values({
         detectedPlayerId: playerId,
+        overallGrade: overallGrade.toString(),
         summary: player.overallAssessment,
+        metrics: stats ? {
+          points: stats.points,
+          rebounds: stats.rebounds,
+          assists: stats.assists,
+          steals: stats.steals,
+          blocks: stats.blocks,
+          turnovers: stats.turnovers,
+          fgm: stats.fgm,
+          fga: stats.fga,
+          threePm: stats.threePm,
+          threePa: stats.threePa,
+          gamesPlayed: 1,
+        } : null,
         tendencies: {
           preferredHand: player.preferredHand,
           primaryMoves: player.primaryMoves,
@@ -232,7 +324,46 @@ async function storeAnalysisResults(gameId: string, analysis: any) {
           howToGuard: player.howToGuard,
           howToAttack: player.howToAttack,
         },
+        developmentAreas: developmentAreas.length > 0 ? developmentAreas : null,
       }).onConflictDoNothing();
+
+      // Create teaching moments for Film Session based on player weaknesses
+      const teachingMoments: { type: string; description: string }[] = [];
+
+      // Defensive rating issues
+      if (player.defensiveRating === 'below average' || player.defensiveRating === 'average') {
+        teachingMoments.push({
+          type: 'defensive_breakdown',
+          description: `#${jerseyNumber} - Defensive positioning and awareness needs attention. Work on help defense rotations and staying in front of the ball.`,
+        });
+      }
+
+      // Turnovers (from box score stats)
+      if (stats && stats.turnovers >= 3) {
+        teachingMoments.push({
+          type: 'turnover',
+          description: `#${jerseyNumber} - Ball security issue with ${stats.turnovers} turnovers. Focus on protecting the ball in traffic and making stronger passes.`,
+        });
+      }
+
+      // Poor assist-to-turnover ratio
+      if (stats && stats.assists < stats.turnovers) {
+        teachingMoments.push({
+          type: 'decision_making',
+          description: `#${jerseyNumber} - Decision-making could improve (${stats.assists} assists vs ${stats.turnovers} turnovers). Work on reading the defense before committing.`,
+        });
+      }
+
+      // Insert teaching moments
+      for (const moment of teachingMoments) {
+        await db.insert(keyMoments).values({
+          detectedPlayerId: playerId,
+          momentType: moment.type,
+          sentiment: 'negative',
+          description: moment.description,
+          timestampSeconds: null,
+        }).onConflictDoNothing();
+      }
     }
   }
 

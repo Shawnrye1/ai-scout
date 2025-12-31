@@ -111,6 +111,7 @@ export async function GET() {
         overallGrade: playerAnalysis.overallGrade,
         metrics: playerAnalysis.metrics,
         developmentAreas: playerAnalysis.developmentAreas,
+        tendencies: playerAnalysis.tendencies,
       })
       .from(detectedPlayers)
       .innerJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
@@ -131,14 +132,20 @@ export async function GET() {
       assists: number;
       games: number;
       devAreas: string[];
+      displayName: string | null;
     }>();
 
     for (const ps of playerStats) {
       const key = ps.jerseyNumber || 'unknown';
       if (!playerMap.has(key)) {
-        playerMap.set(key, { grades: [], points: 0, rebounds: 0, assists: 0, games: 0, devAreas: [] });
+        playerMap.set(key, { grades: [], points: 0, rebounds: 0, assists: 0, games: 0, devAreas: [], displayName: null });
       }
       const entry = playerMap.get(key)!;
+
+      // Store display name if available
+      if (ps.displayName && !entry.displayName) {
+        entry.displayName = ps.displayName;
+      }
 
       if (ps.overallGrade) {
         entry.grades.push(parseFloat(ps.overallGrade.toString()));
@@ -162,13 +169,25 @@ export async function GET() {
           }
         }
       }
+
+      // Extract from tendencies if no devAreas
+      const tendencies = ps.tendencies as any;
+      if (tendencies && entry.devAreas.length === 0) {
+        if (tendencies.defensiveRating === 'average' || tendencies.defensiveRating === 'below average') {
+          entry.devAreas.push('Defense');
+        }
+        if (tendencies.preferredHand) {
+          const weakHand = tendencies.preferredHand === 'right' ? 'Left Hand' : 'Right Hand';
+          entry.devAreas.push(`Develop ${weakHand}`);
+        }
+      }
     }
 
     // Calculate top players
     const topPlayers = Array.from(playerMap.entries())
       .map(([jersey, data]) => ({
         jerseyNumber: jersey,
-        name: `#${jersey}`,
+        name: data.displayName || `#${jersey}`,
         avgGrade: data.grades.length > 0
           ? data.grades.reduce((a, b) => a + b, 0) / data.grades.length
           : 0,
@@ -189,7 +208,7 @@ export async function GET() {
           : recentAvg;
         return {
           jerseyNumber: jersey,
-          name: `#${jersey}`,
+          name: data.displayName || `#${jersey}`,
           trend: recentAvg - olderAvg,
         };
       })
@@ -212,14 +231,15 @@ export async function GET() {
     // Calculate stat leaders
     const statLeadersData = Array.from(playerMap.entries()).map(([jersey, data]) => ({
       jerseyNumber: jersey,
+      name: data.displayName || `#${jersey}`,
       ppg: data.games > 0 ? data.points / data.games : 0,
       rpg: data.games > 0 ? data.rebounds / data.games : 0,
       apg: data.games > 0 ? data.assists / data.games : 0,
     }));
 
-    const pointsLeader = statLeadersData.sort((a, b) => b.ppg - a.ppg)[0];
-    const reboundsLeader = statLeadersData.sort((a, b) => b.rpg - a.rpg)[0];
-    const assistsLeader = statLeadersData.sort((a, b) => b.apg - a.apg)[0];
+    const pointsLeader = [...statLeadersData].sort((a, b) => b.ppg - a.ppg)[0];
+    const reboundsLeader = [...statLeadersData].sort((a, b) => b.rpg - a.rpg)[0];
+    const assistsLeader = [...statLeadersData].sort((a, b) => b.apg - a.apg)[0];
 
     const report = {
       teamName,
@@ -232,14 +252,17 @@ export async function GET() {
       statLeaders: {
         points: {
           jerseyNumber: pointsLeader?.jerseyNumber || '-',
+          name: pointsLeader?.name || '-',
           value: pointsLeader?.ppg || 0,
         },
         rebounds: {
           jerseyNumber: reboundsLeader?.jerseyNumber || '-',
+          name: reboundsLeader?.name || '-',
           value: reboundsLeader?.rpg || 0,
         },
         assists: {
           jerseyNumber: assistsLeader?.jerseyNumber || '-',
+          name: assistsLeader?.name || '-',
           value: assistsLeader?.apg || 0,
         },
       },

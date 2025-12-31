@@ -159,7 +159,7 @@ export async function GET() {
         stats: gameStats,
       });
 
-      // Aggregate strengths
+      // Aggregate strengths - handle both array and object formats
       const strengths = player.strengths as any;
       if (Array.isArray(strengths)) {
         for (const s of strengths) {
@@ -167,6 +167,14 @@ export async function GET() {
           if (text && !entry.allStrengths.includes(text)) {
             entry.allStrengths.push(text);
           }
+        }
+      } else if (strengths && typeof strengths === 'object') {
+        // New format: { howToGuard, howToAttack, primaryMoves, etc. }
+        if (strengths.howToGuard && !entry.allStrengths.includes(strengths.howToGuard)) {
+          entry.allStrengths.push(`How to Guard: ${strengths.howToGuard}`);
+        }
+        if (strengths.howToAttack && !entry.allStrengths.includes(strengths.howToAttack)) {
+          entry.allStrengths.push(`How to Attack: ${strengths.howToAttack}`);
         }
       }
 
@@ -180,6 +188,23 @@ export async function GET() {
             if (!entry.allDevAreas.includes(normalized)) {
               entry.allDevAreas.push(normalized);
             }
+          }
+        }
+      }
+
+      // Extract from tendencies if no devAreas
+      const tendencies = player.tendencies as any;
+      if (tendencies && entry.allDevAreas.length === 0) {
+        // Use defensiveRating to infer focus areas
+        if (tendencies.defensiveRating === 'average' || tendencies.defensiveRating === 'below average') {
+          if (!entry.allDevAreas.includes('Defense')) {
+            entry.allDevAreas.push('Defense');
+          }
+        }
+        if (tendencies.preferredHand) {
+          const weakHand = tendencies.preferredHand === 'right' ? 'Left Hand' : 'Right Hand';
+          if (!entry.allDevAreas.includes(weakHand)) {
+            entry.allDevAreas.push(`Develop ${weakHand}`);
           }
         }
       }

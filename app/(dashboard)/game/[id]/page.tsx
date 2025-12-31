@@ -993,6 +993,19 @@ function GeminiInsights({ game }: { game: any }) {
   const homeTeamName = analysis.homeTeamName;
   const awayTeamName = analysis.awayTeamName;
 
+  // Create a map of player metrics from database by "team:jersey" key
+  // This handles cases where both teams have the same jersey number (e.g., two #3 players)
+  const playerMetricsMap = new Map<string, any>();
+  for (const team of game?.detectedTeams || []) {
+    const teamLabel = team.teamLabel; // 'home' or 'away'
+    for (const player of team.players || []) {
+      if (player.jerseyNumber && player.analysis?.metrics) {
+        // Key includes team to differentiate same jersey numbers on different teams
+        playerMetricsMap.set(`${teamLabel}:${player.jerseyNumber}`, player.analysis.metrics);
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* AI Summary - Combined overview stats, teams, and game narrative */}
@@ -1527,95 +1540,8 @@ function GeminiInsights({ game }: { game: any }) {
         </div>
       )}
 
-      {/* Player Skills & Scouting Summaries */}
-      {analysis.playerScouting && analysis.playerScouting.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-purple-500" />
-            Player Scouting Reports
-          </h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            {analysis.playerScouting
-              .filter((p: any) => p.scoutingSummary || p.offensiveSkills || p.defensiveSkills)
-              .slice(0, 10)
-              .map((player: any, idx: number) => (
-                <div key={idx} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-bold text-lg text-gray-900">#{player.jersey}</span>
-                    {player.estimatedPosition && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                        {player.estimatedPosition}
-                      </span>
-                    )}
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      player.team?.toLowerCase() === 'home' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {player.team?.toLowerCase() === 'home' ? (gameInfo?.teams?.home?.name || 'Home') : (gameInfo?.teams?.away?.name || 'Away')}
-                    </span>
-                  </div>
-
-                  {player.scoutingSummary && (
-                    <p className="text-sm text-gray-600 mb-3">{player.scoutingSummary}</p>
-                  )}
-
-                  {/* Skill Ratings */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {player.offensiveSkills?.scoring?.overall && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Scoring</span>
-                        <span className={`font-medium ${getGradeColor(player.offensiveSkills.scoring.overall)}`}>
-                          {player.offensiveSkills.scoring.overall}
-                        </span>
-                      </div>
-                    )}
-                    {player.offensiveSkills?.passing?.overall && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Passing</span>
-                        <span className={`font-medium ${getGradeColor(player.offensiveSkills.passing.overall)}`}>
-                          {player.offensiveSkills.passing.overall}
-                        </span>
-                      </div>
-                    )}
-                    {player.defensiveSkills?.onBall && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">On-Ball D</span>
-                        <span className={`font-medium ${getGradeColor(player.defensiveSkills.onBall)}`}>
-                          {player.defensiveSkills.onBall}
-                        </span>
-                      </div>
-                    )}
-                    {player.physicalProfile?.athleticism && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Athleticism</span>
-                        <span className={`font-medium ${getGradeColor(player.physicalProfile.athleticism)}`}>
-                          {player.physicalProfile.athleticism}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Highlights */}
-                  {player.highlights && player.highlights.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500 mb-1">Key Moments</p>
-                      <ul className="text-xs text-gray-600 space-y-1">
-                        {player.highlights.slice(0, 2).map((h: any, hIdx: number) => (
-                          <li key={hIdx} className="flex items-start gap-1">
-                            <span className="text-green-500">•</span>
-                            <span>{h.description || h}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Player Box Score Table */}
-      {analysis.playerScouting && analysis.playerScouting.length > 0 && (
+      {/* Player Box Score Table - Uses database players with metrics */}
+      {game.detectedTeams && game.detectedTeams.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-500" />
@@ -1624,17 +1550,12 @@ function GeminiInsights({ game }: { game: any }) {
 
           {/* Group by team */}
           {['home', 'away'].map((teamLabel) => {
-            const teamPlayers = analysis.playerScouting.filter(
-              (p: any) => p.team?.toLowerCase() === teamLabel
-            );
+            const team = game.detectedTeams?.find((t: any) => t.teamLabel === teamLabel);
+            const teamPlayers = team?.players || [];
             if (teamPlayers.length === 0) return null;
 
-            const teamName = teamLabel === 'home'
-              ? (gameInfo?.teams?.home?.name || 'Home')
-              : (gameInfo?.teams?.away?.name || 'Away');
-            const teamColor = teamLabel === 'home'
-              ? (gameInfo?.teams?.home?.jerseyColor || '#0f2d52')
-              : (gameInfo?.teams?.away?.jerseyColor || '#dc2626');
+            const teamName = team?.teamName || (teamLabel === 'home' ? 'Home' : 'Away');
+            const teamColor = team?.primaryJerseyColor || (teamLabel === 'home' ? '#0f2d52' : '#dc2626');
 
             return (
               <div key={teamLabel} className="mb-6 last:mb-0">
@@ -1665,46 +1586,34 @@ function GeminiInsights({ game }: { game: any }) {
                     </thead>
                     <tbody>
                       {teamPlayers
-                        .sort((a: any, b: any) => (b.boxScore?.points || 0) - (a.boxScore?.points || 0))
+                        .sort((a: any, b: any) => (b.analysis?.metrics?.points || 0) - (a.analysis?.metrics?.points || 0))
                         .map((player: any, idx: number) => {
-                          const bs = player.boxScore || {};
-                          const fgPct = bs.fieldGoalsAttempted > 0
-                            ? Math.round((bs.fieldGoalsMade / bs.fieldGoalsAttempted) * 100)
-                            : null;
-                          const threePct = bs.threePointersAttempted > 0
-                            ? Math.round((bs.threePointersMade / bs.threePointersAttempted) * 100)
-                            : null;
-                          const ftPct = bs.freeThrowsAttempted > 0
-                            ? Math.round((bs.freeThrowsMade / bs.freeThrowsAttempted) * 100)
-                            : null;
+                          const bs = player.analysis?.metrics || {};
+                          const fgm = bs.fieldGoalsMade;
+                          const fga = bs.fieldGoalsAttempted;
+                          const tpm = bs.threePointersMade;
+                          const tpa = bs.threePointersAttempted;
+                          const ftm = bs.freeThrowsMade;
+                          const fta = bs.freeThrowsAttempted;
 
                           return (
                             <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-2 px-2 font-semibold">{player.jersey}</td>
-                              <td className="py-2 px-2 text-gray-500">{player.estimatedPosition || '-'}</td>
+                              <td className="py-2 px-2 font-semibold">{player.jerseyNumber || '-'}</td>
+                              <td className="py-2 px-2 text-gray-500">{player.positionGuess || '-'}</td>
                               <td className="py-2 px-2 text-center font-bold">{bs.points ?? '-'}</td>
-                              <td className="py-2 px-2 text-center">{bs.totalRebounds ?? bs.rebounds ?? '-'}</td>
+                              <td className="py-2 px-2 text-center">{bs.rebounds ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.assists ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.steals ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.blocks ?? '-'}</td>
                               <td className="py-2 px-2 text-center">{bs.turnovers ?? '-'}</td>
                               <td className="py-2 px-2 text-center text-gray-600">
-                                {bs.fieldGoalsMade != null && bs.fieldGoalsAttempted != null
-                                  ? `${bs.fieldGoalsMade}/${bs.fieldGoalsAttempted}`
-                                  : '-'}
-                                {fgPct != null && <span className="text-xs text-gray-400 ml-1">({fgPct}%)</span>}
+                                {fgm != null && fga != null ? `${fgm}-${fga}` : '-'}
                               </td>
                               <td className="py-2 px-2 text-center text-gray-600">
-                                {bs.threePointersMade != null && bs.threePointersAttempted != null
-                                  ? `${bs.threePointersMade}/${bs.threePointersAttempted}`
-                                  : '-'}
-                                {threePct != null && <span className="text-xs text-gray-400 ml-1">({threePct}%)</span>}
+                                {tpm != null && tpa != null ? `${tpm}-${tpa}` : '-'}
                               </td>
                               <td className="py-2 px-2 text-center text-gray-600">
-                                {bs.freeThrowsMade != null && bs.freeThrowsAttempted != null
-                                  ? `${bs.freeThrowsMade}/${bs.freeThrowsAttempted}`
-                                  : '-'}
-                                {ftPct != null && <span className="text-xs text-gray-400 ml-1">({ftPct}%)</span>}
+                                {ftm != null && fta != null ? `${ftm}-${fta}` : '-'}
                               </td>
                             </tr>
                           );
@@ -1713,10 +1622,10 @@ function GeminiInsights({ game }: { game: any }) {
                     <tfoot>
                       {(() => {
                         const totals = teamPlayers.reduce((acc: any, player: any) => {
-                          const bs = player.boxScore || {};
+                          const bs = player.analysis?.metrics || {};
                           return {
                             points: (acc.points || 0) + (bs.points || 0),
-                            rebounds: (acc.rebounds || 0) + (bs.totalRebounds || bs.rebounds || 0),
+                            rebounds: (acc.rebounds || 0) + (bs.rebounds || 0),
                             assists: (acc.assists || 0) + (bs.assists || 0),
                             steals: (acc.steals || 0) + (bs.steals || 0),
                             blocks: (acc.blocks || 0) + (bs.blocks || 0),
@@ -1729,9 +1638,6 @@ function GeminiInsights({ game }: { game: any }) {
                             fta: (acc.fta || 0) + (bs.freeThrowsAttempted || 0),
                           };
                         }, {});
-                        const fgPct = totals.fga > 0 ? Math.round((totals.fgm / totals.fga) * 100) : null;
-                        const tpPct = totals.tpa > 0 ? Math.round((totals.tpm / totals.tpa) * 100) : null;
-                        const ftPct = totals.fta > 0 ? Math.round((totals.ftm / totals.fta) * 100) : null;
                         return (
                           <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
                             <td className="py-2 px-2" colSpan={2}>TOTAL</td>
@@ -1742,16 +1648,13 @@ function GeminiInsights({ game }: { game: any }) {
                             <td className="py-2 px-2 text-center">{totals.blocks}</td>
                             <td className="py-2 px-2 text-center">{totals.turnovers}</td>
                             <td className="py-2 px-2 text-center text-gray-600">
-                              {totals.fgm}/{totals.fga}
-                              {fgPct != null && <span className="text-xs text-gray-400 ml-1">({fgPct}%)</span>}
+                              {totals.fgm}-{totals.fga}
                             </td>
                             <td className="py-2 px-2 text-center text-gray-600">
-                              {totals.tpm}/{totals.tpa}
-                              {tpPct != null && <span className="text-xs text-gray-400 ml-1">({tpPct}%)</span>}
+                              {totals.tpm}-{totals.tpa}
                             </td>
                             <td className="py-2 px-2 text-center text-gray-600">
-                              {totals.ftm}/{totals.fta}
-                              {ftPct != null && <span className="text-xs text-gray-400 ml-1">({ftPct}%)</span>}
+                              {totals.ftm}-{totals.fta}
                             </td>
                           </tr>
                         );
@@ -2088,9 +1991,31 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             {activeTab === 'players' && (() => {
               // Handle both array and object formats for playerScouting
               const playerScouting = game.geminiAnalysis?.playerScouting;
-              const scoutedPlayers = Array.isArray(playerScouting)
+              const rawScoutedPlayers = Array.isArray(playerScouting)
                 ? playerScouting
                 : (playerScouting?.players || []);
+
+              // Create a lookup for player names from detected players in database
+              const playerNameLookup: Record<string, string> = {};
+              game.detectedTeams?.forEach((team: any) => {
+                const teamLabel = team.teamLabel?.toLowerCase();
+                team.players?.forEach((p: any) => {
+                  const key = `${teamLabel}:${p.jerseyNumber}`;
+                  if (p.displayName && !p.displayName.startsWith('#')) {
+                    playerNameLookup[key] = p.displayName;
+                  }
+                });
+              });
+
+              // Merge player names into scouted players
+              const scoutedPlayers = rawScoutedPlayers.map((player: any) => {
+                const teamLabel = player.team?.toLowerCase();
+                const key = `${teamLabel}:${player.jerseyNumber}`;
+                return {
+                  ...player,
+                  name: player.name || playerNameLookup[key] || null,
+                };
+              });
 
               return (
               <>

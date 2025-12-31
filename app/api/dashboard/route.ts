@@ -147,7 +147,7 @@ export async function GET() {
           sport: games.sport,
           status: games.status,
           createdAt: games.createdAt,
-          playerCount: sql<number>`(SELECT COUNT(*)::int FROM ${detectedPlayers} WHERE ${detectedPlayers.gameId} = ${games.id})`,
+          playerCount: sql<number>`(SELECT COUNT(*)::int FROM detected_players WHERE detected_players.game_id = games.id)`,
         })
           .from(games)
           .where(eq(games.userId, user.id))

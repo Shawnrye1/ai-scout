@@ -439,28 +439,43 @@ function SeasonReportPreview({ report }: { report: SeasonReport }) {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">PPG Leader</div>
-          <div className="text-xl font-bold text-gray-900 dark:text-white">
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             #{report.statLeaders.points.jerseyNumber}
           </div>
-          <div className="text-sm text-[#0f2d52] dark:text-blue-400">
+          <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+            {(report.statLeaders.points as any).name && (report.statLeaders.points as any).name !== `#${report.statLeaders.points.jerseyNumber}`
+              ? (report.statLeaders.points as any).name
+              : ''}
+          </div>
+          <div className="text-sm text-[#0f2d52] dark:text-blue-400 font-semibold">
             {report.statLeaders.points.value.toFixed(1)}
           </div>
         </div>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">RPG Leader</div>
-          <div className="text-xl font-bold text-gray-900 dark:text-white">
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             #{report.statLeaders.rebounds.jerseyNumber}
           </div>
-          <div className="text-sm text-[#0f2d52] dark:text-blue-400">
+          <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+            {(report.statLeaders.rebounds as any).name && (report.statLeaders.rebounds as any).name !== `#${report.statLeaders.rebounds.jerseyNumber}`
+              ? (report.statLeaders.rebounds as any).name
+              : ''}
+          </div>
+          <div className="text-sm text-[#0f2d52] dark:text-blue-400 font-semibold">
             {report.statLeaders.rebounds.value.toFixed(1)}
           </div>
         </div>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">APG Leader</div>
-          <div className="text-xl font-bold text-gray-900 dark:text-white">
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             #{report.statLeaders.assists.jerseyNumber}
           </div>
-          <div className="text-sm text-[#0f2d52] dark:text-blue-400">
+          <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+            {(report.statLeaders.assists as any).name && (report.statLeaders.assists as any).name !== `#${report.statLeaders.assists.jerseyNumber}`
+              ? (report.statLeaders.assists as any).name
+              : ''}
+          </div>
+          <div className="text-sm text-[#0f2d52] dark:text-blue-400 font-semibold">
             {report.statLeaders.assists.value.toFixed(1)}
           </div>
         </div>
@@ -479,7 +494,9 @@ function SeasonReportPreview({ report }: { report: SeasonReport }) {
                 <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold">
                   {i + 1}
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">#{player.jerseyNumber}</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  #{player.jerseyNumber} {player.name && player.name !== `#${player.jerseyNumber}` ? player.name : ''}
+                </span>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">

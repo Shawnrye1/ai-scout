@@ -83,12 +83,20 @@ export async function GET(
     let coachingInsights: string[] = [];
     if (game.geminiAnalysis) {
       const analysis = game.geminiAnalysis as any;
-      if (analysis.coachingInsights?.insights) {
+      if (analysis.coachingInsights?.insights && Array.isArray(analysis.coachingInsights.insights)) {
         coachingInsights = analysis.coachingInsights.insights;
-      } else if (analysis.gameFlow?.keyInsights) {
-        coachingInsights = analysis.gameFlow.keyInsights;
-      } else if (analysis.teamScouting?.homeTeam?.tendencies) {
-        coachingInsights = analysis.teamScouting.homeTeam.tendencies;
+      } else if (analysis.coachingInsights?.gameNarrative) {
+        // Use the game narrative as coaching insight
+        coachingInsights.push(analysis.coachingInsights.gameNarrative);
+      }
+      if (analysis.coachingInsights?.keyTakeaways && Array.isArray(analysis.coachingInsights.keyTakeaways)) {
+        coachingInsights.push(...analysis.coachingInsights.keyTakeaways);
+      }
+      if (analysis.gameFlow?.keyInsights && Array.isArray(analysis.gameFlow.keyInsights)) {
+        coachingInsights.push(...analysis.gameFlow.keyInsights);
+      }
+      if (analysis.teamScouting?.homeTeam?.tendencies && Array.isArray(analysis.teamScouting.homeTeam.tendencies)) {
+        coachingInsights.push(...analysis.teamScouting.homeTeam.tendencies);
       }
     }
 
