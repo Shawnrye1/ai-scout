@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   Check,
   X,
@@ -13,7 +13,7 @@ import {
   Edit3,
   MessageSquare,
   Plus,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface ReviewEvent {
   id: string;
@@ -22,7 +22,7 @@ interface ReviewEvent {
   timestamp: string;
   timestampSeconds: number;
   type: string;
-  team: 'home' | 'away';
+  team: "home" | "away";
   jersey: number | null;
   confidence: number;
   reason: string;
@@ -33,19 +33,47 @@ interface ReviewEvent {
 }
 
 const REJECTION_REASONS = [
-  { value: 'not_real', label: 'Not a real event', description: 'Nothing actually happened here' },
-  { value: 'wrong_type', label: 'Wrong stat type', description: 'This is a different type of event' },
-  { value: 'wrong_team', label: 'Wrong team', description: 'Event happened but for the other team' },
-  { value: 'wrong_player', label: 'Wrong player', description: 'Event happened but different player' },
-  { value: 'unclear', label: 'Too unclear to tell', description: 'Video quality or angle makes it impossible to verify' },
-  { value: 'other', label: 'Other', description: 'Explain in notes' },
+  {
+    value: "not_real",
+    label: "Not a real event",
+    description: "Nothing actually happened here",
+  },
+  {
+    value: "wrong_type",
+    label: "Wrong stat type",
+    description: "This is a different type of event",
+  },
+  {
+    value: "wrong_team",
+    label: "Wrong team",
+    description: "Event happened but for the other team",
+  },
+  {
+    value: "wrong_player",
+    label: "Wrong player",
+    description: "Event happened but different player",
+  },
+  {
+    value: "unclear",
+    label: "Too unclear to tell",
+    description: "Video quality or angle makes it impossible to verify",
+  },
+  { value: "other", label: "Other", description: "Explain in notes" },
 ];
 
-const STAT_TYPES = ['rebound', 'steal', 'block', 'turnover', 'assist', 'scoring'];
+const STAT_TYPES = [
+  "rebound",
+  "steal",
+  "block",
+  "turnover",
+  "assist",
+  "scoring",
+];
 
 interface GameWithReview {
   id: string;
   name: string;
+  date?: string;
   videoUrl: string;
   homeScore: number;
   awayScore: number;
@@ -60,7 +88,10 @@ interface TrainingMetrics {
   verified: number;
   rejected: number;
   verificationRate: number;
-  byStatType: Record<string, { verified: number; rejected: number; rate: number }>;
+  byStatType: Record<
+    string,
+    { verified: number; rejected: number; rate: number }
+  >;
   improvements: string[];
 }
 
@@ -74,24 +105,25 @@ export default function ReviewQueue() {
 
   // Rejection context state
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [correctType, setCorrectType] = useState('');
-  const [correctTeam, setCorrectTeam] = useState<'home' | 'away' | ''>('');
-  const [correctJersey, setCorrectJersey] = useState('');
-  const [notes, setNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [correctType, setCorrectType] = useState("");
+  const [correctTeam, setCorrectTeam] = useState<"home" | "away" | "">("");
+  const [correctJersey, setCorrectJersey] = useState("");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Training metrics state
-  const [trainingMetrics, setTrainingMetrics] = useState<TrainingMetrics | null>(null);
+  const [trainingMetrics, setTrainingMetrics] =
+    useState<TrainingMetrics | null>(null);
 
   // Add missed event state
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [addEventTeam, setAddEventTeam] = useState<'home' | 'away'>('home');
+  const [addEventTeam, setAddEventTeam] = useState<"home" | "away">("home");
   const [addEventPoints, setAddEventPoints] = useState<number>(2);
-  const [addEventShotType, setAddEventShotType] = useState('layup');
-  const [addEventTimestamp, setAddEventTimestamp] = useState('');
-  const [addEventJersey, setAddEventJersey] = useState('');
-  const [addEventNotes, setAddEventNotes] = useState('');
+  const [addEventShotType, setAddEventShotType] = useState("layup");
+  const [addEventTimestamp, setAddEventTimestamp] = useState("");
+  const [addEventJersey, setAddEventJersey] = useState("");
+  const [addEventNotes, setAddEventNotes] = useState("");
 
   // Clip URL state
   const [clipUrl, setClipUrl] = useState<string | null>(null);
@@ -139,16 +171,16 @@ export default function ReviewQueue() {
 
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error('Failed to load video');
+          throw new Error("Failed to load video");
         }
         const data = await response.json();
-        console.log('Clip info loaded:', data);
+        console.log("Clip info loaded:", data);
         setClipUrl(data.videoUrl);
         setClipSeekTo(data.seekTo || 0);
         setClipEndTime(data.endTime || (data.seekTo || 0) + 8);
       } catch (e) {
-        console.error('Failed to fetch clip URL:', e);
-        setClipError('Failed to load video clip');
+        console.error("Failed to fetch clip URL:", e);
+        setClipError("Failed to load video clip");
         setClipUrl(null);
       } finally {
         setVideoLoading(false);
@@ -160,26 +192,26 @@ export default function ReviewQueue() {
 
   async function fetchTrainingMetrics() {
     try {
-      const res = await fetch('/api/admin/training/metrics');
+      const res = await fetch("/api/admin/training/metrics");
       if (res.ok) {
         const data = await res.json();
         setTrainingMetrics(data);
       }
     } catch (error) {
-      console.error('Failed to fetch training metrics:', error);
+      console.error("Failed to fetch training metrics:", error);
     }
   }
 
   async function fetchGamesWithReview() {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/review');
+      const res = await fetch("/api/admin/review");
       if (res.ok) {
         const data = await res.json();
         setGames(data.games || []);
       }
     } catch (error) {
-      console.error('Failed to fetch review queue:', error);
+      console.error("Failed to fetch review queue:", error);
     } finally {
       setLoading(false);
     }
@@ -188,15 +220,15 @@ export default function ReviewQueue() {
   async function verifyEvent(eventId: string) {
     setSubmitting(true);
     try {
-      await fetch('/api/admin/review/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, action: 'verify' }),
+      await fetch("/api/admin/review/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, action: "verify" }),
       });
 
       removeEventFromList(eventId);
     } catch (error) {
-      console.error('Failed to verify:', error);
+      console.error("Failed to verify:", error);
     } finally {
       setSubmitting(false);
     }
@@ -204,18 +236,18 @@ export default function ReviewQueue() {
 
   async function submitRejection(eventId: string) {
     if (!rejectionReason) {
-      alert('Please select a reason for rejection');
+      alert("Please select a reason for rejection");
       return;
     }
 
     setSubmitting(true);
     try {
-      await fetch('/api/admin/review/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/admin/review/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
-          action: 'reject',
+          action: "reject",
           context: {
             reason: rejectionReason,
             correctType: correctType || null,
@@ -229,7 +261,7 @@ export default function ReviewQueue() {
       removeEventFromList(eventId);
       resetRejectionForm();
     } catch (error) {
-      console.error('Failed to reject:', error);
+      console.error("Failed to reject:", error);
     } finally {
       setSubmitting(false);
     }
@@ -237,14 +269,20 @@ export default function ReviewQueue() {
 
   function removeEventFromList(eventId: string) {
     if (selectedGame) {
-      const updatedEvents = selectedGame.events.filter(e => e.id !== eventId);
+      const updatedEvents = selectedGame.events.filter((e) => e.id !== eventId);
       if (updatedEvents.length === 0) {
-        setGames(games.filter(g => g.id !== selectedGame.id));
+        setGames(games.filter((g) => g.id !== selectedGame.id));
         setSelectedGame(null);
         setSelectedEvent(null);
       } else {
-        const updatedGame = { ...selectedGame, events: updatedEvents, reviewCount: updatedEvents.length };
-        setGames(games.map(g => g.id === selectedGame.id ? updatedGame : g));
+        const updatedGame = {
+          ...selectedGame,
+          events: updatedEvents,
+          reviewCount: updatedEvents.length,
+        };
+        setGames(
+          games.map((g) => (g.id === selectedGame.id ? updatedGame : g)),
+        );
         setSelectedGame(updatedGame);
         setSelectedEvent(updatedEvents[0]);
       }
@@ -255,44 +293,44 @@ export default function ReviewQueue() {
 
   function resetRejectionForm() {
     setShowRejectDialog(false);
-    setRejectionReason('');
-    setCorrectType('');
-    setCorrectTeam('');
-    setCorrectJersey('');
-    setNotes('');
+    setRejectionReason("");
+    setCorrectType("");
+    setCorrectTeam("");
+    setCorrectJersey("");
+    setNotes("");
   }
 
   function resetAddEventForm() {
     setShowAddEvent(false);
-    setAddEventTeam('home');
+    setAddEventTeam("home");
     setAddEventPoints(2);
-    setAddEventShotType('layup');
-    setAddEventTimestamp('');
-    setAddEventJersey('');
-    setAddEventNotes('');
+    setAddEventShotType("layup");
+    setAddEventTimestamp("");
+    setAddEventJersey("");
+    setAddEventNotes("");
   }
 
   async function submitMissedEvent() {
     if (!selectedGame || !addEventTimestamp) {
-      alert('Please enter a timestamp');
+      alert("Please enter a timestamp");
       return;
     }
 
     // Parse timestamp (format: "MM:SS" or "M:SS")
-    const parts = addEventTimestamp.split(':');
+    const parts = addEventTimestamp.split(":");
     const minutes = parseInt(parts[0]) || 0;
     const seconds = parseInt(parts[1]) || 0;
     const timestampSeconds = minutes * 60 + seconds;
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/admin/review/add-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/admin/review/add-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameId: selectedGame.id,
           event: {
-            type: 'scoring',
+            type: "scoring",
             team: addEventTeam,
             points: addEventPoints,
             shotType: addEventShotType,
@@ -307,18 +345,28 @@ export default function ReviewQueue() {
       if (res.ok) {
         const data = await res.json();
         // Update the game's score in the local state
-        setGames(games.map(g => {
-          if (g.id === selectedGame.id) {
-            return { ...g, homeScore: data.newScore.home, awayScore: data.newScore.away };
-          }
-          return g;
-        }));
-        setSelectedGame({ ...selectedGame, homeScore: data.newScore.home, awayScore: data.newScore.away });
+        setGames(
+          games.map((g) => {
+            if (g.id === selectedGame.id) {
+              return {
+                ...g,
+                homeScore: data.newScore.home,
+                awayScore: data.newScore.away,
+              };
+            }
+            return g;
+          }),
+        );
+        setSelectedGame({
+          ...selectedGame,
+          homeScore: data.newScore.home,
+          awayScore: data.newScore.away,
+        });
         resetAddEventForm();
         fetchTrainingMetrics();
       }
     } catch (error) {
-      console.error('Failed to add event:', error);
+      console.error("Failed to add event:", error);
     } finally {
       setSubmitting(false);
     }
@@ -334,7 +382,9 @@ export default function ReviewQueue() {
       <div className="w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Review Queue</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              Review Queue
+            </h1>
             <button
               onClick={fetchGamesWithReview}
               className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -369,10 +419,10 @@ export default function ReviewQueue() {
                 <div
                   className={`h-full rounded-full transition-all ${
                     trainingMetrics.verificationRate >= 80
-                      ? 'bg-green-500'
+                      ? "bg-green-500"
                       : trainingMetrics.verificationRate >= 60
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                   }`}
                   style={{ width: `${trainingMetrics.verificationRate}%` }}
                 />
@@ -414,15 +464,22 @@ export default function ReviewQueue() {
                   setSelectedEvent(game.events[0]);
                 }}
                 className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                  selectedGame?.id === game.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                  selectedGame?.id === game.id
+                    ? "bg-blue-50 dark:bg-blue-900/30"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="font-medium text-gray-900 dark:text-white truncate">
+                  <div className="font-medium text-gray-900 dark:text-white truncate flex-1 mr-2">
                     {game.name}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 </div>
+                {game.date && (
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {game.date}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     HOME {game.homeScore} - {game.awayScore} AWAY
@@ -431,15 +488,27 @@ export default function ReviewQueue() {
                     {game.reviewCount} to review
                   </span>
                 </div>
-                {game.scoreDiscrepancy && (game.scoreDiscrepancy.home !== 0 || game.scoreDiscrepancy.away !== 0) && (
-                  <div className="mt-2 text-xs p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                    <span className="font-medium text-red-700 dark:text-red-400">Score mismatch:</span>
-                    <div className="text-red-600 dark:text-red-300">
-                      {game.scoreDiscrepancy.home > 0 && <div>HOME: +{game.scoreDiscrepancy.home} pts needed</div>}
-                      {game.scoreDiscrepancy.away > 0 && <div>AWAY: +{game.scoreDiscrepancy.away} pts needed</div>}
+                {game.scoreDiscrepancy &&
+                  (game.scoreDiscrepancy.home !== 0 ||
+                    game.scoreDiscrepancy.away !== 0) && (
+                    <div className="mt-2 text-xs p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                      <span className="font-medium text-red-700 dark:text-red-400">
+                        Score mismatch:
+                      </span>
+                      <div className="text-red-600 dark:text-red-300">
+                        {game.scoreDiscrepancy.home > 0 && (
+                          <div>
+                            HOME: +{game.scoreDiscrepancy.home} pts needed
+                          </div>
+                        )}
+                        {game.scoreDiscrepancy.away > 0 && (
+                          <div>
+                            AWAY: +{game.scoreDiscrepancy.away} pts needed
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </button>
             ))
           )}
@@ -465,17 +534,25 @@ export default function ReviewQueue() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {selectedGame.reviewCount} events to review
             </p>
-            {selectedGame.scoreDiscrepancy && (selectedGame.scoreDiscrepancy.home > 0 || selectedGame.scoreDiscrepancy.away > 0) && (
-              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs">
-                <div className="font-medium text-red-700 dark:text-red-400 mb-1">Missing points:</div>
-                {selectedGame.scoreDiscrepancy.home > 0 && (
-                  <div className="text-red-600 dark:text-red-300">HOME: +{selectedGame.scoreDiscrepancy.home} pts</div>
-                )}
-                {selectedGame.scoreDiscrepancy.away > 0 && (
-                  <div className="text-red-600 dark:text-red-300">AWAY: +{selectedGame.scoreDiscrepancy.away} pts</div>
-                )}
-              </div>
-            )}
+            {selectedGame.scoreDiscrepancy &&
+              (selectedGame.scoreDiscrepancy.home > 0 ||
+                selectedGame.scoreDiscrepancy.away > 0) && (
+                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs">
+                  <div className="font-medium text-red-700 dark:text-red-400 mb-1">
+                    Missing points:
+                  </div>
+                  {selectedGame.scoreDiscrepancy.home > 0 && (
+                    <div className="text-red-600 dark:text-red-300">
+                      HOME: +{selectedGame.scoreDiscrepancy.home} pts
+                    </div>
+                  )}
+                  {selectedGame.scoreDiscrepancy.away > 0 && (
+                    <div className="text-red-600 dark:text-red-300">
+                      AWAY: +{selectedGame.scoreDiscrepancy.away} pts
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -484,25 +561,31 @@ export default function ReviewQueue() {
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
                 className={`w-full text-left p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                  selectedEvent?.id === event.id ? 'bg-blue-100 dark:bg-blue-900/30' : ''
+                  selectedEvent?.id === event.id
+                    ? "bg-blue-100 dark:bg-blue-900/30"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-900 dark:text-white capitalize">
-                    {event.type === 'scoring' ? (
+                    {event.type === "scoring" ? (
                       <span className="flex items-center gap-1">
                         <span className="text-lg">{event.points}pt</span>
-                        <span className="text-xs text-gray-500">{event.shotType}</span>
+                        <span className="text-xs text-gray-500">
+                          {event.shotType}
+                        </span>
                       </span>
                     ) : (
                       event.type
                     )}
                   </span>
-                  <span className={`px-1.5 py-0.5 text-xs rounded ${
-                    event.confidence >= 6
-                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.5 text-xs rounded ${
+                      event.confidence >= 6
+                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
                     {event.confidence}/10
                   </span>
                 </div>
@@ -551,13 +634,15 @@ export default function ReviewQueue() {
                           if (endTime > 0 && video.currentTime >= endTime) {
                             video.pause();
                             // Increment loopCount to force React to remount with fresh seek
-                            setLoopCount(prev => prev + 1);
+                            setLoopCount((prev) => prev + 1);
                           }
                         }}
                       />
                       {/* Clip info overlay */}
                       <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm">
-                        <span className="font-medium capitalize">{selectedEvent.type}</span>
+                        <span className="font-medium capitalize">
+                          {selectedEvent.type}
+                        </span>
                         <span className="mx-2 text-gray-400">•</span>
                         <span>{selectedEvent.timestamp}</span>
                       </div>
@@ -577,29 +662,38 @@ export default function ReviewQueue() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-                    {selectedEvent.type === 'scoring' ? (
+                    {selectedEvent.type === "scoring" ? (
                       <span className="flex items-center gap-2">
-                        <span className="text-3xl">{selectedEvent.points}pt</span>
-                        <span className="text-lg text-gray-500 font-normal">{selectedEvent.shotType}</span>
+                        <span className="text-3xl">
+                          {selectedEvent.points}pt
+                        </span>
+                        <span className="text-lg text-gray-500 font-normal">
+                          {selectedEvent.shotType}
+                        </span>
                       </span>
                     ) : (
                       selectedEvent.type
                     )}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 mt-1">
-                    {selectedEvent.timestamp} • {selectedEvent.team.toUpperCase()}
+                    {selectedEvent.timestamp} •{" "}
+                    {selectedEvent.team.toUpperCase()}
                     {selectedEvent.jersey && ` #${selectedEvent.jersey}`}
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className={`text-3xl font-bold ${
-                    selectedEvent.confidence >= 6
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-red-600 dark:text-red-400'
-                  }`}>
+                  <div
+                    className={`text-3xl font-bold ${
+                      selectedEvent.confidence >= 6
+                        ? "text-yellow-600 dark:text-yellow-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
                     {selectedEvent.confidence}/10
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">confidence</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    confidence
+                  </div>
                 </div>
               </div>
 
@@ -614,7 +708,8 @@ export default function ReviewQueue() {
                 </p>
                 {selectedEvent.specialistConfidence && (
                   <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                    Specialist confidence: {selectedEvent.specialistConfidence}/10
+                    Specialist confidence: {selectedEvent.specialistConfidence}
+                    /10
                   </p>
                 )}
               </div>
@@ -627,11 +722,14 @@ export default function ReviewQueue() {
                     disabled={submitting}
                     className="flex-1 py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                    {selectedEvent.type === 'scoring'
+                    {submitting ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Check className="w-5 h-5" />
+                    )}
+                    {selectedEvent.type === "scoring"
                       ? `Yes, ${selectedEvent.team} scored ${selectedEvent.points}pts`
-                      : `Yes, this is a ${selectedEvent.type}`
-                    }
+                      : `Yes, this is a ${selectedEvent.type}`}
                   </button>
                   <button
                     onClick={() => setShowRejectDialog(true)}
@@ -662,8 +760,8 @@ export default function ReviewQueue() {
                         key={reason.value}
                         className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
                           rejectionReason === reason.value
-                            ? 'bg-red-100 dark:bg-red-900/40 border-2 border-red-400'
-                            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? "bg-red-100 dark:bg-red-900/40 border-2 border-red-400"
+                            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                         }`}
                       >
                         <input
@@ -675,15 +773,19 @@ export default function ReviewQueue() {
                           className="mt-1"
                         />
                         <div>
-                          <div className="font-medium text-gray-900 dark:text-white">{reason.label}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{reason.description}</div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {reason.label}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {reason.description}
+                          </div>
                         </div>
                       </label>
                     ))}
                   </div>
 
                   {/* Correction fields - show based on reason */}
-                  {rejectionReason === 'wrong_type' && (
+                  {rejectionReason === "wrong_type" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         What type of event is this actually?
@@ -694,35 +796,43 @@ export default function ReviewQueue() {
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
                       >
                         <option value="">Select correct type...</option>
-                        {STAT_TYPES.filter(t => t !== selectedEvent.type).map((type) => (
-                          <option key={type} value={type} className="capitalize">{type}</option>
-                        ))}
+                        {STAT_TYPES.filter((t) => t !== selectedEvent.type).map(
+                          (type) => (
+                            <option
+                              key={type}
+                              value={type}
+                              className="capitalize"
+                            >
+                              {type}
+                            </option>
+                          ),
+                        )}
                       </select>
                     </div>
                   )}
 
-                  {rejectionReason === 'wrong_team' && (
+                  {rejectionReason === "wrong_team" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Which team actually made the {selectedEvent.type}?
                       </label>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setCorrectTeam('home')}
+                          onClick={() => setCorrectTeam("home")}
                           className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                            correctTeam === 'home'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            correctTeam === "home"
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                           }`}
                         >
                           HOME (White)
                         </button>
                         <button
-                          onClick={() => setCorrectTeam('away')}
+                          onClick={() => setCorrectTeam("away")}
                           className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                            correctTeam === 'away'
-                              ? 'bg-green-600 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            correctTeam === "away"
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                           }`}
                         >
                           AWAY (Green)
@@ -731,7 +841,7 @@ export default function ReviewQueue() {
                     </div>
                   )}
 
-                  {rejectionReason === 'wrong_player' && (
+                  {rejectionReason === "wrong_player" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         What's the correct jersey number?
@@ -766,7 +876,11 @@ export default function ReviewQueue() {
                     disabled={!rejectionReason || submitting}
                     className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                    {submitting ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <X className="w-5 h-5" />
+                    )}
                     Submit Rejection
                   </button>
                 </div>
@@ -775,54 +889,57 @@ export default function ReviewQueue() {
               {/* Quick Stats Reference */}
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  {selectedEvent.type === 'scoring'
+                  {selectedEvent.type === "scoring"
                     ? `What to verify for a ${selectedEvent.points}pt basket`
-                    : `What counts as a ${selectedEvent.type}?`
-                  }
+                    : `What counts as a ${selectedEvent.type}?`}
                 </h3>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedEvent.type === 'rebound' && (
+                  {selectedEvent.type === "rebound" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Shot must be attempted and MISSED</li>
                       <li>Player must gain clear POSSESSION of the ball</li>
                       <li>Not a rebound if ball goes out of bounds</li>
                     </ul>
                   )}
-                  {selectedEvent.type === 'steal' && (
+                  {selectedEvent.type === "steal" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Defender must ACTIVELY take the ball</li>
                       <li>Defender's team must gain possession</li>
                       <li>Not a steal if ball just goes loose</li>
                     </ul>
                   )}
-                  {selectedEvent.type === 'block' && (
+                  {selectedEvent.type === "block" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Must be during a shot attempt</li>
                       <li>Defender must contact the ball</li>
                       <li>Ball must be going UP (not goaltending)</li>
                     </ul>
                   )}
-                  {selectedEvent.type === 'turnover' && (
+                  {selectedEvent.type === "turnover" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Offense loses possession without a shot</li>
                       <li>Could be: bad pass, violation, offensive foul</li>
                       <li>Not a turnover if a shot was attempted</li>
                     </ul>
                   )}
-                  {selectedEvent.type === 'assist' && (
+                  {selectedEvent.type === "assist" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Pass leads directly to a made basket</li>
                       <li>Scorer must not dribble extensively</li>
                       <li>Clear passing connection to score</li>
                     </ul>
                   )}
-                  {selectedEvent.type === 'scoring' && (
+                  {selectedEvent.type === "scoring" && (
                     <ul className="list-disc list-inside space-y-1">
                       <li>Ball must GO THROUGH the hoop</li>
-                      <li>Verify point value: 2pt (inside arc) or 3pt (beyond arc)</li>
+                      <li>
+                        Verify point value: 2pt (inside arc) or 3pt (beyond arc)
+                      </li>
                       <li>Verify correct team scored (jersey color)</li>
                       <li>Watch for goaltending or basket interference</li>
-                      {selectedEvent.points === 1 && <li>Free throw: must be during dead ball</li>}
+                      {selectedEvent.points === 1 && (
+                        <li>Free throw: must be during dead ball</li>
+                      )}
                     </ul>
                   )}
                 </div>
@@ -870,29 +987,33 @@ export default function ReviewQueue() {
                 </label>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setAddEventTeam('home')}
+                    onClick={() => setAddEventTeam("home")}
                     className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                      addEventTeam === 'home'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      addEventTeam === "home"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     HOME
                     {selectedGame.scoreDiscrepancy?.home ? (
-                      <span className="text-xs ml-1">(+{selectedGame.scoreDiscrepancy.home})</span>
+                      <span className="text-xs ml-1">
+                        (+{selectedGame.scoreDiscrepancy.home})
+                      </span>
                     ) : null}
                   </button>
                   <button
-                    onClick={() => setAddEventTeam('away')}
+                    onClick={() => setAddEventTeam("away")}
                     className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                      addEventTeam === 'away'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      addEventTeam === "away"
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     AWAY
                     {selectedGame.scoreDiscrepancy?.away ? (
-                      <span className="text-xs ml-1">(+{selectedGame.scoreDiscrepancy.away})</span>
+                      <span className="text-xs ml-1">
+                        (+{selectedGame.scoreDiscrepancy.away})
+                      </span>
                     ) : null}
                   </button>
                 </div>
@@ -910,8 +1031,8 @@ export default function ReviewQueue() {
                       onClick={() => setAddEventPoints(pts)}
                       className={`flex-1 py-3 rounded-lg font-bold text-lg transition-colors ${
                         addEventPoints === pts
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          ? "bg-purple-600 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                       }`}
                     >
                       {pts}pt
@@ -973,7 +1094,11 @@ export default function ReviewQueue() {
                 disabled={!addEventTimestamp || submitting}
                 className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Plus className="w-5 h-5" />
+                )}
                 Add {addEventPoints}pt {addEventTeam.toUpperCase()} Basket
               </button>
             </div>

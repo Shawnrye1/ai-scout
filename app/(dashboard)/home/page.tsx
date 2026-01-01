@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import useSWR from 'swr';
+import Link from "next/link";
+import useSWR from "swr";
 import {
   Video,
   Users,
@@ -21,8 +21,8 @@ import {
   Award,
   BarChart3,
   Minus,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -57,7 +57,7 @@ interface PlayerDevelopment {
   position: string;
   currentGrade: number;
   gamesPlayed: number;
-  trend: 'up' | 'down' | 'stable';
+  trend: "up" | "down" | "stable";
   gradeHistory: { grade: number; date: string }[];
   avgGrade: number;
 }
@@ -83,9 +83,10 @@ interface SeasonGame {
   avgGrade: number;
 }
 
-function TrendIcon({ trend }: { trend: 'up' | 'down' | 'stable' }) {
-  if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-500" />;
-  if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-500" />;
+function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
+  if (trend === "up") return <TrendingUp className="w-4 h-4 text-green-500" />;
+  if (trend === "down")
+    return <TrendingDown className="w-4 h-4 text-red-500" />;
   return <Minus className="w-4 h-4 text-gray-400" />;
 }
 
@@ -102,7 +103,7 @@ function MiniSparkline({ data }: { data: { grade: number }[] }) {
       const y = 20 - ((d.grade - min) / range) * 16;
       return `${x},${y}`;
     })
-    .join(' ');
+    .join(" ");
 
   return (
     <svg width="60" height="24" className="flex-shrink-0">
@@ -120,17 +121,17 @@ function MiniSparkline({ data }: { data: { grade: number }[] }) {
 }
 
 function getGradeColor(grade: number): string {
-  if (grade >= 85) return 'bg-green-500 dark:bg-green-600';
-  if (grade >= 75) return 'bg-blue-500 dark:bg-blue-600';
-  if (grade >= 65) return 'bg-yellow-500 dark:bg-yellow-600';
-  return 'bg-red-500 dark:bg-red-600';
+  if (grade >= 85) return "bg-green-500 dark:bg-green-600";
+  if (grade >= 75) return "bg-blue-500 dark:bg-blue-600";
+  if (grade >= 65) return "bg-yellow-500 dark:bg-yellow-600";
+  return "bg-red-500 dark:bg-red-600";
 }
 
 function getGradeTextColor(grade: number): string {
-  if (grade >= 85) return 'text-green-600 dark:text-green-400';
-  if (grade >= 75) return 'text-blue-600 dark:text-blue-400';
-  if (grade >= 65) return 'text-yellow-600 dark:text-yellow-400';
-  return 'text-red-600 dark:text-red-400';
+  if (grade >= 85) return "text-green-600 dark:text-green-400";
+  if (grade >= 75) return "text-blue-600 dark:text-blue-400";
+  if (grade >= 65) return "text-yellow-600 dark:text-yellow-400";
+  return "text-red-600 dark:text-red-400";
 }
 
 function SeasonChart({ data }: { data: SeasonGame[] }) {
@@ -141,7 +142,10 @@ function SeasonChart({ data }: { data: SeasonGame[] }) {
       {data.map((game, i) => {
         const grade = Math.round(game.avgGrade);
         const date = new Date(game.date);
-        const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const monthDay = date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
 
         return (
           <Link
@@ -159,7 +163,7 @@ function SeasonChart({ data }: { data: SeasonGame[] }) {
               </div>
               {/* Game Name */}
               <div className="text-[10px] text-gray-600 dark:text-gray-400 text-center truncate w-full leading-tight">
-                {game.name?.replace('vs ', '') || 'Game'}
+                {game.name?.replace("vs ", "") || "Game"}
               </div>
               {/* Date */}
               <div className="text-[9px] text-gray-400 dark:text-gray-500">
@@ -174,7 +178,7 @@ function SeasonChart({ data }: { data: SeasonGame[] }) {
 }
 
 export default function CoachDashboard() {
-  const { data, isLoading } = useSWR('/api/dashboard', fetcher);
+  const { data, isLoading } = useSWR("/api/dashboard", fetcher);
 
   const stats: DashboardStats = data?.stats || {
     totalGames: 0,
@@ -188,7 +192,11 @@ export default function CoachDashboard() {
   const sportsTeam: SportsTeam | null = data?.sportsTeam || null;
   const playerDevelopment: PlayerDevelopment[] = data?.playerDevelopment || [];
   const positionBreakdown: PositionBreakdown[] = data?.positionBreakdown || [];
-  const statLeaders = data?.statLeaders || { points: [], rebounds: [], assists: [] };
+  const statLeaders = data?.statLeaders || {
+    points: [],
+    rebounds: [],
+    assists: [],
+  };
   const practiceFocusAreas = data?.practiceFocusAreas || [];
   const teachingMoments = data?.teachingMoments || [];
   const seasonProgression: SeasonGame[] = data?.seasonProgression || [];
@@ -196,8 +204,12 @@ export default function CoachDashboard() {
   const recentGames = data?.recentGames || [];
 
   // Derived data
-  const improvingPlayers = playerDevelopment.filter((p) => p.trend === 'up').slice(0, 3);
-  const decliningPlayers = playerDevelopment.filter((p) => p.trend === 'down').slice(0, 3);
+  const improvingPlayers = playerDevelopment
+    .filter((p) => p.trend === "up")
+    .slice(0, 3);
+  const decliningPlayers = playerDevelopment
+    .filter((p) => p.trend === "down")
+    .slice(0, 3);
 
   return (
     <div className="max-w-7xl mx-auto overflow-x-hidden">
@@ -205,12 +217,12 @@ export default function CoachDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            {sportsTeam ? sportsTeam.name : 'Coach Dashboard'}
+            {sportsTeam ? sportsTeam.name : "Coach Dashboard"}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             {sportsTeam
               ? `${sportsTeam.city}, ${sportsTeam.state}`
-              : 'Track your team\'s performance'}
+              : "Track your team's performance"}
           </p>
         </div>
         <Link href="/games/new">
@@ -223,48 +235,65 @@ export default function CoachDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <Link
+          href="/games"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all cursor-pointer"
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Games</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                Games
+              </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {isLoading ? '...' : stats.totalGames}
+                {isLoading ? "..." : stats.totalGames}
               </p>
             </div>
             <Video className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50" />
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <Link
+          href="/roster"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 hover:border-green-300 dark:hover:border-green-600 hover:shadow-md transition-all cursor-pointer"
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Roster</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                Roster
+              </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {isLoading ? '...' : roster.length || stats.totalPlayers}
+                {isLoading ? "..." : roster.length || stats.totalPlayers}
               </p>
             </div>
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 opacity-50" />
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <Link
+          href="/players"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all cursor-pointer"
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Team Grade</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                Team Grade
+              </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {isLoading ? '...' : stats.avgPlayerGrade.toFixed(0)}
+                {isLoading ? "..." : stats.avgPlayerGrade.toFixed(0)}
               </p>
             </div>
             <Award className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 opacity-50" />
           </div>
-        </div>
+        </Link>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Processing</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                Processing
+              </p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {isLoading ? '...' : stats.processingGames}
+                {isLoading ? "..." : stats.processingGames}
               </p>
             </div>
             <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 opacity-50" />
@@ -282,17 +311,22 @@ export default function CoachDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-blue-500" />
-                  <h2 className="font-semibold text-gray-900 dark:text-white">Season</h2>
+                  <h2 className="font-semibold text-gray-900 dark:text-white">
+                    Season
+                  </h2>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span> 85+
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>{" "}
+                    85+
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span> 75+
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>{" "}
+                    75+
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span> 65+
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>{" "}
+                    65+
                   </span>
                 </div>
               </div>
@@ -306,7 +340,9 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-green-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Improving</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Improving
+                </h2>
               </div>
               {improvingPlayers.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -315,7 +351,10 @@ export default function CoachDashboard() {
               ) : (
                 <div className="space-y-3">
                   {improvingPlayers.map((player) => (
-                    <div key={player.jerseyNumber} className="flex items-center gap-3">
+                    <div
+                      key={player.jerseyNumber}
+                      className="flex items-center gap-3"
+                    >
                       <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center justify-center text-sm font-bold">
                         {player.jerseyNumber}
                       </div>
@@ -338,7 +377,9 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Needs Attention</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Needs Attention
+                </h2>
               </div>
               {decliningPlayers.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -347,7 +388,10 @@ export default function CoachDashboard() {
               ) : (
                 <div className="space-y-3">
                   {decliningPlayers.map((player) => (
-                    <div key={player.jerseyNumber} className="flex items-center gap-3">
+                    <div
+                      key={player.jerseyNumber}
+                      className="flex items-center gap-3"
+                    >
                       <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center text-sm font-bold">
                         {player.jerseyNumber}
                       </div>
@@ -373,29 +417,37 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-purple-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">By Position</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  By Position
+                </h2>
               </div>
               {positionBreakdown.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No position data yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No position data yet
+                </p>
               ) : (
                 <div className="space-y-3">
                   {positionBreakdown.slice(0, 4).map((pos) => (
-                    <div key={pos.position} className="flex items-center justify-between">
+                    <div
+                      key={pos.position}
+                      className="flex items-center justify-between"
+                    >
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {pos.position}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {pos.playerCount} player{pos.playerCount !== 1 ? 's' : ''}
+                          {pos.playerCount} player
+                          {pos.playerCount !== 1 ? "s" : ""}
                         </div>
                       </div>
                       <div
                         className={`text-lg font-bold ${
                           pos.avgGrade >= 80
-                            ? 'text-green-600 dark:text-green-400'
+                            ? "text-green-600 dark:text-green-400"
                             : pos.avgGrade >= 60
-                            ? 'text-yellow-600 dark:text-yellow-400'
-                            : 'text-red-600 dark:text-red-400'
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {pos.avgGrade}
@@ -410,16 +462,22 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Star className="w-5 h-5 text-yellow-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Stat Leaders</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Stat Leaders
+                </h2>
               </div>
               {statLeaders.points.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No stats available yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No stats available yet
+                </p>
               ) : (
                 <div className="space-y-4">
                   {/* Points */}
                   {statLeaders.points[0] && (
                     <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">PPG</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        PPG
+                      </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           #{statLeaders.points[0].jerseyNumber}
@@ -433,7 +491,9 @@ export default function CoachDashboard() {
                   {/* Rebounds */}
                   {statLeaders.rebounds[0] && (
                     <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">RPG</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        RPG
+                      </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           #{statLeaders.rebounds[0].jerseyNumber}
@@ -447,7 +507,9 @@ export default function CoachDashboard() {
                   {/* Assists */}
                   {statLeaders.assists[0] && (
                     <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">APG</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        APG
+                      </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           #{statLeaders.assists[0].jerseyNumber}
@@ -469,7 +531,9 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="w-5 h-5 text-red-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Practice Focus</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Practice Focus
+                </h2>
               </div>
               {practiceFocusAreas.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -477,24 +541,30 @@ export default function CoachDashboard() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {practiceFocusAreas.map((area: { area: string; playerCount: number }, i: number) => (
-                    <div
-                      key={area.area}
-                      className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {area.area}
+                  {practiceFocusAreas.map(
+                    (
+                      area: { area: string; playerCount: number },
+                      i: number,
+                    ) => (
+                      <div
+                        key={area.area}
+                        className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {area.area}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {area.playerCount} player
+                          {area.playerCount !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {area.playerCount} player{area.playerCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -503,7 +573,9 @@ export default function CoachDashboard() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Play className="w-5 h-5 text-orange-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Film Session</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Film Session
+                </h2>
               </div>
               {teachingMoments.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -541,7 +613,9 @@ export default function CoachDashboard() {
           {/* Recent Games */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white">Recent Games</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">
+                Recent Games
+              </h2>
               <Link
                 href="/games"
                 className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline flex items-center gap-1"
@@ -556,9 +630,13 @@ export default function CoachDashboard() {
             ) : recentGames.length === 0 ? (
               <div className="p-8 text-center">
                 <Video className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 mb-4">No games yet</p>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  No games yet
+                </p>
                 <Link href="/games/new">
-                  <Button className="bg-[#0f2d52] hover:bg-[#1a3d62]">Upload Game</Button>
+                  <Button className="bg-[#0f2d52] hover:bg-[#1a3d62]">
+                    Upload Game
+                  </Button>
                 </Link>
               </div>
             ) : (
@@ -574,7 +652,9 @@ export default function CoachDashboard() {
                         <Play className="w-5 h-5 text-[#0f2d52] dark:text-blue-400" />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{game.title}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {game.title}
+                        </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           {game.playerCount} players
                         </div>
@@ -582,12 +662,12 @@ export default function CoachDashboard() {
                     </div>
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        game.status === 'ready'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        game.status === "ready"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                       }`}
                     >
-                      {game.status === 'ready' ? 'Ready' : 'Processing'}
+                      {game.status === "ready" ? "Ready" : "Processing"}
                     </span>
                   </Link>
                 ))}
@@ -603,7 +683,9 @@ export default function CoachDashboard() {
             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">AI Insights</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  AI Insights
+                </h2>
               </div>
               <div className="space-y-3">
                 {coachingInsights.map((insight: string, i: number) => (
@@ -611,7 +693,9 @@ export default function CoachDashboard() {
                     <span className="w-5 h-5 rounded-full bg-yellow-200 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                       {i + 1}
                     </span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{insight}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {insight}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -623,7 +707,9 @@ export default function CoachDashboard() {
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-[#0f2d52] dark:text-blue-400" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Roster</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white">
+                  Roster
+                </h2>
               </div>
               <Link
                 href="/roster"
@@ -635,8 +721,13 @@ export default function CoachDashboard() {
             {roster.length === 0 ? (
               <div className="p-6 text-center">
                 <ClipboardList className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">No roster set up</p>
-                <Link href="/roster" className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No roster set up
+                </p>
+                <Link
+                  href="/roster"
+                  className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline"
+                >
                   Add players
                 </Link>
               </div>
@@ -659,7 +750,10 @@ export default function CoachDashboard() {
                 ))}
                 {roster.length > 6 && (
                   <div className="p-3 text-center">
-                    <Link href="/roster" className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline">
+                    <Link
+                      href="/roster"
+                      className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline"
+                    >
                       +{roster.length - 6} more
                     </Link>
                   </div>
@@ -671,7 +765,9 @@ export default function CoachDashboard() {
           {/* Player Development Full List */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white">All Players</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">
+                All Players
+              </h2>
               <Link
                 href="/players"
                 className="text-sm text-[#0f2d52] dark:text-blue-400 hover:underline"
@@ -689,7 +785,10 @@ export default function CoachDashboard() {
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
                 {playerDevelopment.map((player) => (
-                  <div key={player.jerseyNumber} className="flex items-center gap-3 p-3">
+                  <div
+                    key={player.jerseyNumber}
+                    className="flex items-center gap-3 p-3"
+                  >
                     <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center text-sm font-bold">
                       {player.jerseyNumber}
                     </div>
@@ -698,7 +797,8 @@ export default function CoachDashboard() {
                         {player.name}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {player.gamesPlayed} game{player.gamesPlayed !== 1 ? 's' : ''}
+                        {player.gamesPlayed} game
+                        {player.gamesPlayed !== 1 ? "s" : ""}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -706,10 +806,10 @@ export default function CoachDashboard() {
                       <span
                         className={`text-sm font-bold ${
                           player.currentGrade >= 80
-                            ? 'text-green-600 dark:text-green-400'
+                            ? "text-green-600 dark:text-green-400"
                             : player.currentGrade >= 60
-                            ? 'text-yellow-600 dark:text-yellow-400'
-                            : 'text-red-600 dark:text-red-400'
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {player.currentGrade.toFixed(0)}

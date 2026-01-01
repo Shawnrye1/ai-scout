@@ -1,8 +1,19 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { ArrowRight, Check, Video, Users, Zap, BarChart3, Shield, Clock, Star, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  Video,
+  Users,
+  Zap,
+  BarChart3,
+  Shield,
+  Clock,
+  Star,
+  MessageCircle,
+} from "lucide-react";
+import { useState } from "react";
 
 function Logo({ className }: { className?: string }) {
   return (
@@ -15,8 +26,21 @@ function Logo({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect width="40" height="40" rx="8" fill="#0f2d52" />
-      <circle cx="20" cy="16" r="4" stroke="white" strokeWidth="2" fill="none" />
-      <path d="M12 28L20 20L28 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle
+        cx="20"
+        cy="16"
+        r="4"
+        stroke="white"
+        strokeWidth="2"
+        fill="none"
+      />
+      <path
+        d="M12 28L20 20L28 28"
+        stroke="white"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="12" cy="28" r="2" fill="white" />
       <circle cx="28" cy="28" r="2" fill="white" />
     </svg>
@@ -30,20 +54,34 @@ function Header() {
         <div className="flex items-center justify-between h-16 sm:h-20">
           <Link href="/" className="flex items-center space-x-2">
             <Logo className="h-8 w-8 sm:h-10 sm:w-10" />
-            <span className="text-lg sm:text-xl font-semibold text-gray-900">AI Scout</span>
+            <span className="text-lg sm:text-xl font-semibold text-gray-900">
+              AI Scout
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+            <Link
+              href="/#features"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Features
             </Link>
-            <Link href="/pricing" className="text-sm font-medium text-[#0f2d52] transition-colors">
+            <Link
+              href="/pricing"
+              className="text-sm font-medium text-[#0f2d52] transition-colors"
+            >
               Pricing
             </Link>
-            <Link href="/about" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+            <Link
+              href="/about"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
               About
             </Link>
-            <Link href="/contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+            <Link
+              href="/contact"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Contact
             </Link>
           </nav>
@@ -75,16 +113,38 @@ function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Logo className="h-8 w-8" />
-            <span className="text-lg font-semibold text-gray-900">AI Scout</span>
+            <span className="text-lg font-semibold text-gray-900">
+              AI Scout
+            </span>
           </div>
           <div className="flex items-center space-x-6">
-            <Link href="/about" className="text-sm text-gray-500 hover:text-gray-700">About</Link>
-            <Link href="/contact" className="text-sm text-gray-500 hover:text-gray-700">Contact</Link>
-            <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-700">Privacy</Link>
-            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-700">Terms</Link>
+            <Link
+              href="/about"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Contact
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Terms
+            </Link>
           </div>
           <p className="text-sm text-gray-500">
-            © 2025 AI Scout. All rights reserved.
+            © 2026 AI Scout. All rights reserved.
           </p>
         </div>
       </div>
@@ -94,59 +154,59 @@ function Footer() {
 
 const plans = [
   {
-    name: 'Starter',
-    description: 'Perfect for individual coaches',
+    name: "Starter",
+    description: "Perfect for individual coaches",
     price: 49,
-    interval: 'month',
+    interval: "month",
     gamesPerMonth: 10,
     features: [
-      '10 game films/month',
-      'All player scouting reports',
-      'Team tendency analysis',
-      'Video playback with markers',
-      'Email support',
-      'Football & Basketball',
+      "10 game films/month",
+      "All player scouting reports",
+      "Team tendency analysis",
+      "Video playback with markers",
+      "Email support",
+      "Football & Basketball",
     ],
-    cta: 'Start free trial',
+    cta: "Start free trial",
     highlighted: false,
     priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
   },
   {
-    name: 'Pro',
-    description: 'For serious programs',
+    name: "Pro",
+    description: "For serious programs",
     price: 149,
-    interval: 'month',
+    interval: "month",
     gamesPerMonth: 50,
     features: [
-      '50 game films/month',
-      'Everything in Starter',
-      'Priority processing',
-      'Advanced player metrics',
-      'Cross-game player tracking',
-      'Export reports to PDF',
-      'Priority support',
+      "50 game films/month",
+      "Everything in Starter",
+      "Priority processing",
+      "Advanced player metrics",
+      "Cross-game player tracking",
+      "Export reports to PDF",
+      "Priority support",
     ],
-    cta: 'Start free trial',
+    cta: "Start free trial",
     highlighted: true,
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
   },
   {
-    name: 'Team',
-    description: 'For athletic departments',
+    name: "Team",
+    description: "For athletic departments",
     price: 299,
-    interval: 'month',
+    interval: "month",
     gamesPerMonth: -1, // unlimited
     features: [
-      'Unlimited game films',
-      'Everything in Pro',
-      'Multiple sports/teams',
-      'Up to 10 coach accounts',
-      'API access',
-      'Custom integrations',
-      'Dedicated support',
-      'Training sessions',
+      "Unlimited game films",
+      "Everything in Pro",
+      "Multiple sports/teams",
+      "Up to 10 coach accounts",
+      "API access",
+      "Custom integrations",
+      "Dedicated support",
+      "Training sessions",
     ],
-    cta: 'Contact sales',
+    cta: "Contact sales",
     highlighted: false,
     priceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID,
   },
@@ -154,51 +214,62 @@ const plans = [
 
 const faqs = [
   {
-    question: 'How does AI Scout analyze game film?',
-    answer: 'We use advanced computer vision and AI to automatically detect players, read jersey numbers, track movements, and segment plays. Our system then analyzes each player\'s performance and generates detailed scouting reports.',
+    question: "How does AI Scout analyze game film?",
+    answer:
+      "We use advanced computer vision and AI to automatically detect players, read jersey numbers, track movements, and segment plays. Our system then analyzes each player's performance and generates detailed scouting reports.",
   },
   {
-    question: 'What video formats are supported?',
-    answer: 'We support most common video formats including MP4, MOV, and AVI. Videos can be up to 5GB in size. Higher quality video produces better analysis results.',
+    question: "What video formats are supported?",
+    answer:
+      "We support most common video formats including MP4, MOV, and AVI. Videos can be up to 5GB in size. Higher quality video produces better analysis results.",
   },
   {
-    question: 'How long does analysis take?',
-    answer: 'Most game films are analyzed within 30-60 minutes, depending on length and quality. Pro and Team plans get priority processing for faster results.',
+    question: "How long does analysis take?",
+    answer:
+      "Most game films are analyzed within 30-60 minutes, depending on length and quality. Pro and Team plans get priority processing for faster results.",
   },
   {
-    question: 'Can I analyze both offense and defense?',
-    answer: 'Yes! AI Scout detects and analyzes all players visible on the field, including both teams. You can mark which team is yours to get tailored insights.',
+    question: "Can I analyze both offense and defense?",
+    answer:
+      "Yes! AI Scout detects and analyzes all players visible on the field, including both teams. You can mark which team is yours to get tailored insights.",
   },
   {
-    question: 'Do you support multiple sports?',
-    answer: 'We currently support Football (American) and Basketball. We auto-detect the sport from your video, or you can specify it manually.',
+    question: "Do you support multiple sports?",
+    answer:
+      "We currently support Football (American) and Basketball. We auto-detect the sport from your video, or you can specify it manually.",
   },
   {
-    question: 'Can I cancel anytime?',
-    answer: 'Absolutely. You can cancel your subscription at any time from your dashboard. You\'ll continue to have access until the end of your billing period.',
+    question: "Can I cancel anytime?",
+    answer:
+      "Absolutely. You can cancel your subscription at any time from your dashboard. You'll continue to have access until the end of your billing period.",
   },
 ];
 
 const testimonials = [
   {
-    quote: "AI Scout has transformed how we prepare for games. Getting scouting reports on every player automatically saves us hours of film study.",
+    quote:
+      "AI Scout has transformed how we prepare for games. Getting scouting reports on every player automatically saves us hours of film study.",
     author: "Coach Thompson",
     role: "Head Football Coach, Lincoln High",
   },
   {
-    quote: "The player tracking is incredibly accurate. We can now identify tendencies we never noticed before.",
+    quote:
+      "The player tracking is incredibly accurate. We can now identify tendencies we never noticed before.",
     author: "Sarah Martinez",
     role: "Assistant Basketball Coach, Eastside Academy",
   },
   {
-    quote: "Worth every penny. Our assistant coaches can now focus on coaching instead of spending nights breaking down film.",
+    quote:
+      "Worth every penny. Our assistant coaches can now focus on coaching instead of spending nights breaking down film.",
     author: "Mike Johnson",
     role: "Athletic Director, Westfield High",
   },
 ];
 
 export default function PricingPage() {
-  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">(
+    "month",
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -211,31 +282,34 @@ export default function PricingPage() {
             AI-Powered Scouting for Every Budget
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-            Upload game film, get detailed scouting reports. All plans include a 14-day free trial.
+            Upload game film, get detailed scouting reports. All plans include a
+            14-day free trial.
           </p>
 
           {/* Billing toggle */}
           <div className="inline-flex items-center bg-gray-100 rounded-lg p-1">
             <button
-              onClick={() => setBillingInterval('month')}
+              onClick={() => setBillingInterval("month")}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                billingInterval === 'month'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                billingInterval === "month"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Monthly
             </button>
             <button
-              onClick={() => setBillingInterval('year')}
+              onClick={() => setBillingInterval("year")}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                billingInterval === 'year'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                billingInterval === "year"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Yearly
-              <span className="ml-1.5 text-xs text-green-600 font-semibold">Save 20%</span>
+              <span className="ml-1.5 text-xs text-green-600 font-semibold">
+                Save 20%
+              </span>
             </button>
           </div>
         </div>
@@ -250,8 +324,8 @@ export default function PricingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl bg-white p-8 shadow-sm border-2 ${
                   plan.highlighted
-                    ? 'border-[#0f2d52] ring-1 ring-[#0f2d52]'
-                    : 'border-gray-200'
+                    ? "border-[#0f2d52] ring-1 ring-[#0f2d52]"
+                    : "border-gray-200"
                 }`}
               >
                 {plan.highlighted && (
@@ -263,13 +337,20 @@ export default function PricingPage() {
                 )}
 
                 <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{plan.description}</p>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {plan.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {plan.description}
+                  </p>
                 </div>
 
                 <div className="mb-2">
                   <span className="text-4xl font-bold text-gray-900">
-                    ${billingInterval === 'year' ? Math.floor(plan.price * 0.8) : plan.price}
+                    $
+                    {billingInterval === "year"
+                      ? Math.floor(plan.price * 0.8)
+                      : plan.price}
                   </span>
                   <span className="text-gray-500 ml-1">/{billingInterval}</span>
                 </div>
@@ -289,11 +370,15 @@ export default function PricingPage() {
                 </div>
 
                 <Link
-                  href={plan.name === 'Team' ? '/contact' : `/sign-up?priceId=${plan.priceId}`}
+                  href={
+                    plan.name === "Team"
+                      ? "/contact"
+                      : `/sign-up?priceId=${plan.priceId}`
+                  }
                   className={`block w-full text-center py-3 px-4 rounded-lg font-semibold transition-colors mb-6 ${
                     plan.highlighted
-                      ? 'bg-[#0f2d52] text-white hover:bg-[#1a4a7a]'
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      ? "bg-[#0f2d52] text-white hover:bg-[#1a4a7a]"
+                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                   }`}
                 >
                   {plan.cta}
@@ -325,24 +410,36 @@ export default function PricingPage() {
               <div className="w-12 h-12 bg-[#0f2d52]/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Video className="w-6 h-6 text-[#0f2d52]" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Video Analysis</h3>
-              <p className="text-sm text-gray-600">Upload any game film and get AI-powered analysis</p>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Video Analysis
+              </h3>
+              <p className="text-sm text-gray-600">
+                Upload any game film and get AI-powered analysis
+              </p>
             </div>
 
             <div className="text-center">
               <div className="w-12 h-12 bg-[#0f2d52]/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Users className="w-6 h-6 text-[#0f2d52]" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Player Tracking</h3>
-              <p className="text-sm text-gray-600">Automatic jersey number detection and tracking</p>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Player Tracking
+              </h3>
+              <p className="text-sm text-gray-600">
+                Automatic jersey number detection and tracking
+              </p>
             </div>
 
             <div className="text-center">
               <div className="w-12 h-12 bg-[#0f2d52]/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <BarChart3 className="w-6 h-6 text-[#0f2d52]" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Scouting Reports</h3>
-              <p className="text-sm text-gray-600">Detailed reports with grades and tendencies</p>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Scouting Reports
+              </h3>
+              <p className="text-sm text-gray-600">
+                Detailed reports with grades and tendencies
+              </p>
             </div>
 
             <div className="text-center">
@@ -350,7 +447,9 @@ export default function PricingPage() {
                 <Clock className="w-6 h-6 text-[#0f2d52]" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Play Markers</h3>
-              <p className="text-sm text-gray-600">Jump to any play or key moment instantly</p>
+              <p className="text-sm text-gray-600">
+                Jump to any play or key moment instantly
+              </p>
             </div>
           </div>
         </div>
@@ -365,15 +464,25 @@ export default function PricingPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, i) => (
-              <div key={i} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div
+                key={i}
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+              >
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <Star
+                      key={j}
+                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                    />
                   ))}
                 </div>
-                <p className="text-gray-600 mb-4 italic">"{testimonial.quote}"</p>
+                <p className="text-gray-600 mb-4 italic">
+                  "{testimonial.quote}"
+                </p>
                 <div>
-                  <p className="font-semibold text-gray-900">{testimonial.author}</p>
+                  <p className="font-semibold text-gray-900">
+                    {testimonial.author}
+                  </p>
                   <p className="text-sm text-gray-500">{testimonial.role}</p>
                 </div>
               </div>
