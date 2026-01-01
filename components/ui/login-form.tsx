@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useActionState } from 'react';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
-import { signIn } from '@/app/(login)/actions';
-import { ActionState } from '@/lib/auth/middleware';
+import { useActionState } from "react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { signIn } from "@/app/(login)/actions";
+import { ActionState } from "@/lib/auth/middleware";
 
 export function LoginForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<'form'>) {
+}: React.ComponentPropsWithoutRef<"form">) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     signIn,
-    { error: '' }
+    { error: "" },
   );
 
   return (
     <form
-      className={cn('flex flex-col gap-6', className)}
+      className={cn("flex flex-col gap-6", className)}
       action={formAction}
       {...props}
     >
@@ -72,19 +72,23 @@ export function LoginForm({
           </div>
         )}
 
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button
+          type="submit"
+          className="w-full bg-[#0f2d52] hover:bg-[#0f2d52]/90"
+          disabled={pending}
+        >
           {pending ? (
             <>
               <Loader2 className="animate-spin" />
               Signing in...
             </>
           ) : (
-            'Login'
+            "Login"
           )}
         </Button>
       </div>
       <div className="text-center text-sm">
-        Don&apos;t have an account?{' '}
+        Don&apos;t have an account?{" "}
         <Link href="/sign-up" className="underline underline-offset-4">
           Sign up
         </Link>

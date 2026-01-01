@@ -1,26 +1,7 @@
-import { Suspense } from 'react';
-import { Play } from 'lucide-react';
-import Link from 'next/link';
-import { LoginForm } from '@/components/ui/login-form';
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="24"
-      height="24"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect width="40" height="40" rx="8" fill="#0f2d52" />
-      <circle cx="20" cy="16" r="4" stroke="white" strokeWidth="2" fill="none" />
-      <path d="M12 28L20 20L28 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="28" r="2" fill="white" />
-      <circle cx="28" cy="28" r="2" fill="white" />
-    </svg>
-  );
-}
+import { Suspense } from "react";
+import { Play } from "lucide-react";
+import Link from "next/link";
+import { LoginForm } from "@/components/ui/login-form";
 
 export default function SignInPage() {
   return (
@@ -29,8 +10,10 @@ export default function SignInPage() {
         {/* Left side - Login form */}
         <div className="flex flex-col gap-4 p-6 md:p-10">
           <div className="flex justify-center gap-2 md:justify-start">
-            <Link href="/" className="flex items-center gap-2 font-medium">
-              <Logo className="size-6" />
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-xl font-bold text-[#0f2d52]"
+            >
               AI Scout
             </Link>
           </div>
@@ -65,13 +48,12 @@ export default function SignInPage() {
               {/* Quote */}
               <blockquote className="mb-6">
                 <p className="text-2xl font-medium leading-relaxed">
-                  "The difference between ordinary and extraordinary is that little extra."
+                  "The difference between ordinary and extraordinary is that
+                  little extra."
                 </p>
               </blockquote>
 
-              <p className="text-lg text-white/70">
-                — Jimmy Johnson
-              </p>
+              <p className="text-lg text-white/70">— Jimmy Johnson</p>
 
               {/* Stats */}
               <div className="mt-12 grid grid-cols-3 gap-6 border-t border-white/10 pt-8">

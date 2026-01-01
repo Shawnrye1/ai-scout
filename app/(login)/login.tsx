@@ -1,35 +1,15 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useActionState, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
-import { signIn, signUp } from './actions';
-import { ActionState } from '@/lib/auth/middleware';
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect width="40" height="40" rx="8" fill="#0f2d52" />
-      {/* Football/Play diagram icon */}
-      <circle cx="20" cy="16" r="4" stroke="white" strokeWidth="2" fill="none" />
-      <path d="M12 28L20 20L28 28" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="28" r="2" fill="white" />
-      <circle cx="28" cy="28" r="2" fill="white" />
-    </svg>
-  );
-}
+import Link from "next/link";
+import { useActionState, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
+import { signIn, signUp } from "./actions";
+import { ActionState } from "@/lib/auth/middleware";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -54,25 +34,24 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
+export function Login({ mode = "signin" }: { mode?: "signin" | "signup" }) {
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect');
-  const priceId = searchParams.get('priceId');
-  const inviteId = searchParams.get('inviteId');
+  const redirect = searchParams.get("redirect");
+  const priceId = searchParams.get("priceId");
+  const inviteId = searchParams.get("inviteId");
   const [rememberMe, setRememberMe] = useState(false);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    mode === 'signin' ? signIn : signUp,
-    { error: '' }
+    mode === "signin" ? signIn : signUp,
+    { error: "" },
   );
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
-
       <div className="sm:mx-auto sm:w-full sm:max-w-[440px]">
         {/* Logo - above the card */}
         <div className="flex justify-center mb-8">
-          <Link href="/">
-            <Logo className="h-12 w-12" />
+          <Link href="/" className="text-2xl font-bold text-[#0f2d52]">
+            AI Scout
           </Link>
         </div>
 
@@ -81,21 +60,23 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
           {/* Card header - inside the card */}
           <div className="px-6 pt-8 pb-6 sm:px-8">
             <h1 className="text-center text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
-              {mode === 'signin' ? 'Log in to your account' : 'Create an account'}
+              {mode === "signin"
+                ? "Log in to your account"
+                : "Create an account"}
             </h1>
             <p className="mt-2 text-center text-base text-gray-500">
-              {mode === 'signin'
-                ? 'Welcome back! Please enter your details.'
-                : 'Start analyzing game film with AI.'}
+              {mode === "signin"
+                ? "Welcome back! Please enter your details."
+                : "Start analyzing game film with AI."}
             </p>
           </div>
 
           {/* Form section */}
           <div className="px-6 pb-8 sm:px-8">
             <form className="space-y-5" action={formAction}>
-              <input type="hidden" name="redirect" value={redirect || ''} />
-              <input type="hidden" name="priceId" value={priceId || ''} />
-              <input type="hidden" name="inviteId" value={inviteId || ''} />
+              <input type="hidden" name="redirect" value={redirect || ""} />
+              <input type="hidden" name="priceId" value={priceId || ""} />
+              <input type="hidden" name="inviteId" value={inviteId || ""} />
 
               {/* Email Field */}
               <div>
@@ -134,17 +115,19 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
                     name="password"
                     type="password"
                     autoComplete={
-                      mode === 'signin' ? 'current-password' : 'new-password'
+                      mode === "signin" ? "current-password" : "new-password"
                     }
                     defaultValue={state.password}
                     required
                     minLength={8}
                     maxLength={100}
                     className="block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-[#0f2d52] focus:ring-[#0f2d52] text-base py-2.5 px-3.5"
-                    placeholder={mode === 'signin' ? '••••••••' : 'Create a password'}
+                    placeholder={
+                      mode === "signin" ? "••••••••" : "Create a password"
+                    }
                   />
                 </div>
-                {mode === 'signup' && (
+                {mode === "signup" && (
                   <p className="mt-1.5 text-sm text-gray-500">
                     Must be at least 8 characters.
                   </p>
@@ -152,7 +135,7 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
               </div>
 
               {/* Remember me + Forgot password (sign in only) */}
-              {mode === 'signin' && (
+              {mode === "signin" && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -197,10 +180,10 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
                     Loading...
                   </>
-                ) : mode === 'signin' ? (
-                  'Sign in'
+                ) : mode === "signin" ? (
+                  "Sign in"
                 ) : (
-                  'Get started'
+                  "Get started"
                 )}
               </Button>
 
@@ -211,11 +194,11 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
                 className="w-full rounded-lg border border-gray-300 bg-white py-2.5 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
                 onClick={() => {
                   // TODO: Implement Google OAuth
-                  console.log('Google sign in clicked');
+                  console.log("Google sign in clicked");
                 }}
               >
                 <GoogleIcon className="mr-2 h-5 w-5" />
-                Sign {mode === 'signin' ? 'in' : 'up'} with Google
+                Sign {mode === "signin" ? "in" : "up"} with Google
               </Button>
             </form>
           </div>
@@ -223,12 +206,12 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
 
         {/* Footer link - outside the card */}
         <p className="mt-6 text-center text-sm text-gray-600">
-          {mode === 'signin' ? (
+          {mode === "signin" ? (
             <>
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link
-                href={`/sign-up${redirect ? `?redirect=${redirect}` : ''}${
-                  priceId ? `&priceId=${priceId}` : ''
+                href={`/sign-up${redirect ? `?redirect=${redirect}` : ""}${
+                  priceId ? `&priceId=${priceId}` : ""
                 }`}
                 className="font-semibold text-[#0f2d52] hover:text-[#1a4a7a]"
               >
@@ -237,10 +220,10 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
-                href={`/sign-in${redirect ? `?redirect=${redirect}` : ''}${
-                  priceId ? `&priceId=${priceId}` : ''
+                href={`/sign-in${redirect ? `?redirect=${redirect}` : ""}${
+                  priceId ? `&priceId=${priceId}` : ""
                 }`}
                 className="font-semibold text-[#0f2d52] hover:text-[#1a4a7a]"
               >
