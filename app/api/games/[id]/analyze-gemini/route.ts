@@ -10,6 +10,7 @@ import {
 import { eq } from "drizzle-orm";
 import { getDownloadPresignedUrl } from "@/lib/storage/r2";
 import { runMultiAgentAnalysis } from "@/lib/analysis/multi-agent-gemini";
+import { addToScoutingReviewQueue } from "@/lib/analysis/scouting-few-shot";
 import { type Sport } from "@/lib/analysis/sport-router";
 import * as fs from "fs";
 import * as path from "path";
@@ -164,10 +165,14 @@ export async function POST(
   }
 }
 
-// Parse box score to extract player stats (handles multiple formats)
-function parseBoxScore(
-  boxScore: string | null,
-): Map<
+/**
+ * Parse box score to extract player stats (handles multiple formats)
+ *
+ * IMPORTANT: Keep this in sync with parseBoxScore in:
+ * - /lib/analysis/multi-agent-gemini.ts
+ * - /scripts/reprocess-game-stats.ts
+ */
+function parseBoxScore(boxScore: string | null): Map<
   string,
   {
     points: number;
@@ -187,13 +192,55 @@ function parseBoxScore(
   const playerStats = new Map();
   if (!boxScore) return playerStats;
 
+  // Format 5: Human-readable format (most common for user input)
+  // Example: #32 Cooper Flagg: 23pts, 10-17FG, 2-53PT, 1-2FT, 3reb, 5ast, 2stl, 8blk
+  const format5Regex =
+    /#(\d{1,2})\s+[^:]+:\s*(\d+)pts?,\s*(\d+)-(\d+)FG,\s*(\d+)-(\d+)3PT,\s*(\d+)-(\d+)FT,\s*(\d+)reb,\s*(\d+)ast,\s*(\d+)stl,\s*(\d+)blk/gi;
+
+  let match;
+  while ((match = format5Regex.exec(boxScore)) !== null) {
+    const jersey = match[1];
+    const pts = parseInt(match[2]) || 0;
+    const fgm = parseInt(match[3]) || 0;
+    const fga = parseInt(match[4]) || 0;
+    const threePm = parseInt(match[5]) || 0;
+    const threePa = parseInt(match[6]) || 0;
+    const ftm = parseInt(match[7]) || 0;
+    const fta = parseInt(match[8]) || 0;
+    const reb = parseInt(match[9]) || 0;
+    const ast = parseInt(match[10]) || 0;
+    const stl = parseInt(match[11]) || 0;
+    const blk = parseInt(match[12]) || 0;
+
+    playerStats.set(jersey, {
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: 0,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (playerStats.size > 0) {
+    console.log(
+      `Parsed ${playerStats.size} players from box score (format 5 - human readable)`,
+    );
+    return playerStats;
+  }
+
   // Format 1: Compact ESPN-style format (no spaces between stats)
   // Example: 01Robert Wright*5-121-43-4731412003214
   // Pattern: #{jersey}{name}*{FGM}-{FGA}{3PM}-{3PA}{FTM}-{FTA}{REB}{PF}{PTS}{AST}{TO}{BLK}{STL}{MIN}
   const format1Regex =
     /(\d{1,2})([A-Za-z\s\-']+)\*?(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})(\d)(\d{1,2})(\d{1,2})(\d)(\d)(\d)(\d)/g;
 
-  let match;
   while ((match = format1Regex.exec(boxScore)) !== null) {
     const jersey = match[1];
     const fgm = parseInt(match[3]) || 0;
@@ -227,6 +274,93 @@ function parseBoxScore(
 
   if (playerStats.size > 0) {
     console.log(`Parsed ${playerStats.size} players from box score (format 1)`);
+    return playerStats;
+  }
+
+  // Format 1.5: MaxPreps-style with Sr/Jr notation (NO turnovers column)
+  // Header: #PlayerPtsFGM-A3PM-AFTM-AORebDRebRebAstStlBlk
+  // Example: 32Cooper Flagg (Sr)2310-172-51-20310528
+  // Example: 1R. Wright III (Sr)156-113-50-0033910
+  // Pattern: {jersey}{Name (Grade)}{PTS}{FGM}-{FGA}{3PM}-{3PA}{FTM}-{FTA}{trailing_stats}
+  // Trailing stats (6-8 digits): OREB(1d), DREB(1d), REB(1-2d), AST(1-2d), STL(1d), BLK(1d)
+  // Name can include periods (R.), hyphens, apostrophes, and Roman numerals (III, IV)
+  // Use lookahead to stop trailing stats before next player's jersey (digit followed by letter)
+  const format15Regex =
+    /(\d{1,2})([A-Za-z][A-Za-z\s\-'.]+(?:\s+[IVX]+)?)\s*\([A-Za-z]+\)(\d{1,2})(\d{1,2})-(\d{1,2})(\d)-(\d{1,2})(\d)-(\d)(\d{5,7})(?=\d[A-Za-z]|TEAM|$|\s)/g;
+
+  while ((match = format15Regex.exec(boxScore)) !== null) {
+    const jersey = match[1];
+    const pts = parseInt(match[3]) || 0;
+    const fgm = parseInt(match[4]) || 0;
+    const fga = parseInt(match[5]) || 0;
+    const threePm = parseInt(match[6]) || 0;
+    const threePa = parseInt(match[7]) || 0;
+    const ftm = parseInt(match[8]) || 0;
+    const fta = parseInt(match[9]) || 0;
+
+    // Parse trailing stats: OREB(1), DREB(1), REB(1-2), AST(1-2), STL(1), BLK(1)
+    // Note: Some box scores have an extra digit at the end (possibly turnovers or minutes)
+    const trailingStats = match[10];
+    const oreb = parseInt(trailingStats[0]) || 0;
+    const dreb = parseInt(trailingStats[1]) || 0;
+
+    // REB should logically be >= OREB + DREB
+    // Use this to determine if REB is 1 or 2 digits
+    let reb: number, ast: number, stl: number, blk: number;
+    const remaining = trailingStats.substring(2);
+
+    // Try 2-digit REB first
+    const twoDigitReb = parseInt(remaining.substring(0, 2)) || 0;
+    const oneDigitReb = parseInt(remaining[0]) || 0;
+
+    // If 2-digit REB is reasonable (close to oreb + dreb and not too large for one player)
+    // and we have enough remaining digits (5+ for AST, STL, BLK + possibly extra)
+    if (
+      remaining.length >= 5 &&
+      twoDigitReb >= oreb + dreb &&
+      twoDigitReb <= 25
+    ) {
+      reb = twoDigitReb;
+      const afterReb = remaining.substring(2);
+      ast = parseInt(afterReb[0]) || 0;
+      stl = parseInt(afterReb[1]) || 0;
+      blk = parseInt(afterReb[2]) || 0;
+    } else {
+      // Use 1-digit REB - verify it's reasonable
+      reb = oneDigitReb;
+      const afterReb = remaining.substring(1);
+      // If we have 5+ digits remaining, AST might be 2 digits
+      if (afterReb.length >= 5) {
+        ast = parseInt(afterReb.substring(0, 2)) || 0;
+        stl = parseInt(afterReb[2]) || 0;
+        blk = parseInt(afterReb[3]) || 0;
+      } else {
+        ast = parseInt(afterReb[0]) || 0;
+        stl = parseInt(afterReb[1]) || 0;
+        blk = parseInt(afterReb[2]) || 0;
+      }
+    }
+
+    playerStats.set(jersey, {
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: 0, // Not available in this format
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (playerStats.size > 0) {
+    console.log(
+      `Parsed ${playerStats.size} players from box score (format 1.5 - MaxPreps)`,
+    );
     return playerStats;
   }
 
@@ -316,7 +450,21 @@ async function storeAnalysisResults(gameId: string, analysis: any) {
     .select({ boxScore: games.boxScore })
     .from(games)
     .where(eq(games.id, gameId));
+
+  // Log box score status for debugging
+  if (gameRecord?.boxScore) {
+    console.log(
+      `[BoxScore] Game ${gameId} has box score (${gameRecord.boxScore.length} chars)`,
+    );
+    console.log(
+      `[BoxScore] First 100 chars: ${gameRecord.boxScore.substring(0, 100)}`,
+    );
+  } else {
+    console.log(`[BoxScore] Game ${gameId} has NO box score`);
+  }
+
   const boxScoreStats = parseBoxScore(gameRecord?.boxScore || null);
+  console.log(`[BoxScore] Parsed ${boxScoreStats.size} players from box score`);
 
   // Store full analysis JSON on game record
   await db
@@ -395,11 +543,30 @@ async function storeAnalysisResults(gameId: string, analysis: any) {
     }
 
     if (playerId) {
-      // Get stats from box score
-      const stats =
-        boxScoreStats.get(String(jerseyNumber)) ||
-        boxScoreStats.get(jerseyNumber?.toString().padStart(2, "0")) ||
-        null;
+      // Get stats from box score - ONLY for home team (user's team)
+      // Box score is provided by the user for their team only
+      const isUserTeam = player.team === "home";
+      const stats = isUserTeam
+        ? boxScoreStats.get(String(jerseyNumber)) ||
+          boxScoreStats.get(jerseyNumber?.toString().padStart(2, "0")) ||
+          null
+        : null;
+
+      // Log stat matching
+      if (stats) {
+        console.log(
+          `[BoxScore] #${jerseyNumber} (${player.team}): ${stats.points}pts, ${stats.rebounds}reb, ${stats.assists}ast`,
+        );
+      } else if (boxScoreStats.size > 0 && isUserTeam) {
+        console.log(
+          `[BoxScore] #${jerseyNumber} (${player.team}): NO MATCH in box score`,
+        );
+      } else if (!isUserTeam) {
+        console.log(
+          `[BoxScore] #${jerseyNumber} (${player.team}): Skipping - opponent team`,
+        );
+      }
+
       const overallGrade = calculateOverallGrade(stats);
 
       // Generate development areas based on tendencies
@@ -510,9 +677,41 @@ async function storeAnalysisResults(gameId: string, analysis: any) {
     }
   }
 
+  // Add all players to scouting review queue for admin review
+  // This allows admins to verify/correct scouting observations
+  for (const player of players) {
+    const jerseyNumber = player.jerseyNumber || player.jersey;
+    try {
+      await addToScoutingReviewQueue(gameId, {
+        team: player.team as "home" | "away",
+        jerseyNumber: jerseyNumber,
+        playerName: player.name || `#${jerseyNumber}`,
+        scoutingData: {
+          position: player.position,
+          physicalProfile: player.physicalProfile,
+          overallAssessment: player.overallAssessment,
+          preferredHand: player.preferredHand,
+          primaryMoves: player.primaryMoves,
+          shootingAbility: player.shootingAbility,
+          defensiveRating: player.defensiveRating,
+          basketballIQ: player.basketballIQ,
+          motor: player.motor,
+          howToGuard: player.howToGuard,
+          howToAttack: player.howToAttack,
+        },
+      });
+    } catch (e) {
+      console.error(
+        `Failed to add player #${jerseyNumber} to scouting review queue:`,
+        e,
+      );
+    }
+  }
+
   console.log(`Stored multi-agent analysis for game ${gameId}:`, {
     players: players.length,
     homeTeam: homeTeamName,
     awayTeam: awayTeamName,
+    scoutingReviewQueueAdded: players.length,
   });
 }

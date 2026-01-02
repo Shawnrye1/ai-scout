@@ -12,6 +12,7 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 ## Features
 
 ### Core Functionality (v1.0)
+
 - **Video Analysis** - Upload game film or paste YouTube/Hudl URLs
 - **Player Detection** - AI identifies all players by jersey number
 - **Team Separation** - Automatically identifies home vs away teams
@@ -21,6 +22,7 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 - **Box Score Integration** - Official stats validation
 
 ### Coach Dashboard
+
 - **Home** - Quick stats, recent games, team roster, coaching insights
 - **Games** - All uploaded games with processing status
 - **Roster** - Team roster management linked to sports team
@@ -31,12 +33,14 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 ## Tech Stack
 
 ### Frontend
+
 - Next.js 14 (App Router)
 - TypeScript
 - Tailwind CSS
 - SWR for data fetching
 
 ### Backend
+
 - Drizzle ORM
 - Neon PostgreSQL (with pgvector)
 - Cloudflare R2 (video storage)
@@ -44,15 +48,18 @@ AI-powered sports scouting platform for high school and college athletics. Uploa
 - Resend (email)
 
 ### AI/Analysis
+
 - **Google Gemini 3 Pro** - Primary video analysis (multi-agent architecture)
 - **Anthropic Claude** - Report generation and text processing
 
 ## Architecture
 
 ### Gemini Multi-Agent Analysis
+
 The system uses a two-phase multi-agent pipeline:
 
 **Phase 1 - Specialist Agents (parallel):**
+
 1. Offensive Scout - Offensive systems and tendencies
 2. Defensive Scout - Defensive schemes and coverages
 3. Jersey Scan - Player identification by jersey number
@@ -61,10 +68,13 @@ The system uses a two-phase multi-agent pipeline:
 6. Stat Tracker - Individual player statistics
 
 **Phase 2 - Player Deep Dive:**
+
 - Detailed scouting reports for each detected player
 - Strengths, development areas, tendencies
+- **Video observations only** - No prior knowledge about players (rankings, commits, etc.)
 
 ### Data Model
+
 ```
 Game → DetectedTeams → DetectedPlayers → PlayerAnalysis
                                       → KeyMoments
@@ -116,6 +126,7 @@ RESEND_API_KEY=re_...
 ## Version History
 
 ### v1.0.0 (December 2024)
+
 - Stable coach dashboard with full functionality
 - Gemini-based video analysis (replaced custom ML pipeline)
 - Player Insights with development tracking
@@ -127,14 +138,15 @@ RESEND_API_KEY=re_...
 
 ### Branch Structure
 
-| Branch | Purpose | Auto-Deploys To |
-|--------|---------|-----------------|
-| `main` | Production code (LIVE) | https://ai-scout-jet.vercel.app |
-| `develop` | Active development | Preview URL (auto-generated) |
+| Branch    | Purpose                | Auto-Deploys To                 |
+| --------- | ---------------------- | ------------------------------- |
+| `main`    | Production code (LIVE) | https://ai-scout-jet.vercel.app |
+| `develop` | Active development     | Preview URL (auto-generated)    |
 
 ### Daily Development Process
 
 **Step 1: Start on develop branch**
+
 ```bash
 # Make sure you're on develop (not main!)
 git checkout develop
@@ -144,6 +156,7 @@ git pull origin develop
 ```
 
 **Step 2: Make your changes**
+
 ```bash
 # Start local dev server
 npm run dev
@@ -154,6 +167,7 @@ npm run dev
 ```
 
 **Step 3: Save and push to develop**
+
 ```bash
 # Stage your changes
 git add .
@@ -166,12 +180,14 @@ git push origin develop
 ```
 
 **Step 4: Test on Preview URL**
+
 - Vercel automatically creates a preview deployment
 - Check Vercel dashboard or GitHub for the preview URL
 - Test the preview to make sure it works in production environment
 - Share preview URL with others for feedback if needed
 
 **Step 5: Deploy to Production (when ready)**
+
 ```bash
 # Switch to main branch
 git checkout main
@@ -225,6 +241,7 @@ git reset --soft HEAD~1
 ### If Something Goes Wrong
 
 **Accidentally pushed bad code to main:**
+
 ```bash
 # Find the last good commit
 git log --oneline
@@ -235,6 +252,7 @@ git push origin main
 ```
 
 **Need to abandon current changes:**
+
 ```bash
 # Discard all uncommitted changes
 git checkout -- .
@@ -244,6 +262,7 @@ git stash
 ```
 
 **Preview not working:**
+
 - Check Vercel dashboard for build errors
 - Look at build logs for error messages
 - Make sure all environment variables are set
@@ -253,15 +272,17 @@ git stash
 Local development uses `.env` file. Production (Vercel) uses environment variables set in Vercel dashboard.
 
 **Required for local development:**
+
 - Copy `.env.example` to `.env`
 - Fill in all required values
 - Never commit `.env` to git (it's in .gitignore)
 
 **Vercel environment variables are already configured for:**
+
 - POSTGRES_URL
 - AUTH_SECRET
 - GEMINI_API_KEY
-- CLOUDFLARE_R2_* credentials
+- CLOUDFLARE*R2*\* credentials
 - ANTHROPIC_API_KEY
 
 ## Development Guidelines
@@ -274,11 +295,11 @@ Local development uses `.env` file. Production (Vercel) uses environment variabl
 
 ## Deployment URLs
 
-| Environment | URL | Branch |
-|-------------|-----|--------|
-| Production | https://ai-scout-jet.vercel.app | main |
-| Preview | Auto-generated per push | develop / feature branches |
-| Local | http://localhost:3000 | any |
+| Environment | URL                             | Branch                     |
+| ----------- | ------------------------------- | -------------------------- |
+| Production  | https://ai-scout-jet.vercel.app | main                       |
+| Preview     | Auto-generated per push         | develop / feature branches |
+| Local       | http://localhost:3000           | any                        |
 
 ## License
 

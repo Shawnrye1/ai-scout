@@ -254,7 +254,9 @@ This step-by-step reasoning ensures accurate, verifiable detection.
 // FOOTBALL AGENT PROMPTS
 // ============================================================================
 
-export const FOOTBALL_OFFENSIVE_SCOUT_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_OFFENSIVE_SCOUT_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: OFFENSIVE SCOUT
 
@@ -311,7 +313,9 @@ Return JSON:
 }
 `;
 
-export const FOOTBALL_DEFENSIVE_SCOUT_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_DEFENSIVE_SCOUT_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: DEFENSIVE SCOUT
 
@@ -383,7 +387,9 @@ Return JSON:
 }
 `;
 
-export const FOOTBALL_JERSEY_SCAN_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_JERSEY_SCAN_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: JERSEY SCANNER
 
@@ -422,7 +428,9 @@ Return JSON:
 }
 `;
 
-export const FOOTBALL_GAME_FLOW_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_GAME_FLOW_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: GAME FLOW ANALYST
 
@@ -481,7 +489,9 @@ Return JSON:
 }
 `;
 
-export const FOOTBALL_STAT_TRACKER_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_STAT_TRACKER_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: STAT TRACKER
 
@@ -565,7 +575,9 @@ Return JSON:
 }
 `;
 
-export const FOOTBALL_COACHING_STRATEGIST_PROMPT = FOOTBALL_SCOUT_KNOWLEDGE + `
+export const FOOTBALL_COACHING_STRATEGIST_PROMPT =
+  FOOTBALL_SCOUT_KNOWLEDGE +
+  `
 
 ## YOUR TASK: COACHING STRATEGIST
 
@@ -624,10 +636,25 @@ Return JSON:
 }
 `;
 
-export function FOOTBALL_PLAYER_DEEP_DIVE_PROMPT(playerList: string, teamName: string): string {
-  return FOOTBALL_SCOUT_KNOWLEDGE + `
+export function FOOTBALL_PLAYER_DEEP_DIVE_PROMPT(
+  playerList: string,
+  teamName: string,
+): string {
+  return (
+    FOOTBALL_SCOUT_KNOWLEDGE +
+    `
 
 ## YOUR TASK: PLAYER DEEP DIVE - ${teamName.toUpperCase()}
+
+**CRITICAL INSTRUCTION - VIDEO OBSERVATIONS ONLY:**
+Base your scouting ONLY on what you observe in THIS VIDEO. Do NOT use any prior knowledge about:
+- Player names, schools, or recruiting rankings
+- Commit status (e.g., "Alabama signee")
+- Star ratings (e.g., "5-star prospect")
+- Family connections (e.g., "son of NFL player")
+- Any information not directly observable in the video
+
+If you recognize a player, IGNORE what you know about them. Only report what you SEE them do in this game.
 
 Analyze EACH of the following players in detail based on their performance in this game:
 
@@ -681,7 +708,8 @@ Return JSON:
     }
   ]
 }
-`;
+`
+  );
 }
 
 // ============================================================================
@@ -689,21 +717,21 @@ Return JSON:
 // ============================================================================
 
 export const FOOTBALL_EVENT_TYPES = [
-  'completion',
-  'incompletion',
-  'interception',
-  'sack',
-  'rush',
-  'rushing_td',
-  'passing_td',
-  'receiving_td',
-  'fumble',
-  'fumble_recovery',
-  'tackle',
-  'tackle_for_loss',
-  'pass_breakup',
-  'forced_fumble',
-  'penalty'
+  "completion",
+  "incompletion",
+  "interception",
+  "sack",
+  "rush",
+  "rushing_td",
+  "passing_td",
+  "receiving_td",
+  "fumble",
+  "fumble_recovery",
+  "tackle",
+  "tackle_for_loss",
+  "pass_breakup",
+  "forced_fumble",
+  "penalty",
 ] as const;
 
-export type FootballEventType = typeof FOOTBALL_EVENT_TYPES[number];
+export type FootballEventType = (typeof FOOTBALL_EVENT_TYPES)[number];

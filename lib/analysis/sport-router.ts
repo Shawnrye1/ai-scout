@@ -15,15 +15,15 @@ import {
   FOOTBALL_COACHING_STRATEGIST_PROMPT,
   FOOTBALL_PLAYER_DEEP_DIVE_PROMPT,
   FOOTBALL_EVENT_TYPES,
-} from './football-prompts';
+} from "./football-prompts";
 
 // ============================================================================
 // Sport Types
 // ============================================================================
 
-export type Sport = 'basketball' | 'football';
+export type Sport = "basketball" | "football";
 
-export const SUPPORTED_SPORTS: Sport[] = ['basketball', 'football'];
+export const SUPPORTED_SPORTS: Sport[] = ["basketball", "football"];
 
 // ============================================================================
 // Unified Prompt Interface
@@ -446,13 +446,26 @@ Return JSON:
   "exploitableTendencies": [{"situation": "Situation", "tendency": "Tendency", "counter": "Counter"}]
 }`;
 
-const BASKETBALL_PLAYER_DEEP_DIVE_PROMPT = (playerList: string, teamName: string) => `${BASKETBALL_SCOUT_KNOWLEDGE}
+const BASKETBALL_PLAYER_DEEP_DIVE_PROMPT = (
+  playerList: string,
+  teamName: string,
+) => `${BASKETBALL_SCOUT_KNOWLEDGE}
 
 ---
 
 ## YOUR ASSIGNMENT: PLAYER SCOUT (${teamName.toUpperCase()} TEAM)
 
 Scout these players in detail for a professional scouting report.
+
+**CRITICAL INSTRUCTION - VIDEO OBSERVATIONS ONLY:**
+Base your scouting ONLY on what you observe in THIS VIDEO. Do NOT use any prior knowledge about:
+- Player names, schools, or recruiting rankings
+- Commit status (e.g., "Florida State signee")
+- Star ratings (e.g., "5-star prospect")
+- Family connections (e.g., "son of NBA player")
+- Any information not directly observable in the video
+
+If you recognize a player, IGNORE what you know about them. Only report what you SEE them do in this game.
 
 **PLAYERS TO SCOUT:**
 ${playerList}
@@ -492,13 +505,13 @@ Return JSON array:
 ]`;
 
 const BASKETBALL_EVENT_TYPES = [
-  'scoring',
-  'rebound',
-  'assist',
-  'steal',
-  'block',
-  'turnover',
-  'foul',
+  "scoring",
+  "rebound",
+  "assist",
+  "steal",
+  "block",
+  "turnover",
+  "foul",
 ];
 
 // ============================================================================
@@ -506,7 +519,7 @@ const BASKETBALL_EVENT_TYPES = [
 // ============================================================================
 
 const BASKETBALL_PROMPTS: SportPrompts = {
-  sport: 'basketball',
+  sport: "basketball",
   knowledgeBase: BASKETBALL_SCOUT_KNOWLEDGE,
   offensiveScoutPrompt: BASKETBALL_OFFENSIVE_SCOUT_PROMPT,
   defensiveScoutPrompt: BASKETBALL_DEFENSIVE_SCOUT_PROMPT,
@@ -519,7 +532,7 @@ const BASKETBALL_PROMPTS: SportPrompts = {
 };
 
 const FOOTBALL_PROMPTS: SportPrompts = {
-  sport: 'football',
+  sport: "football",
   knowledgeBase: FOOTBALL_SCOUT_KNOWLEDGE,
   offensiveScoutPrompt: FOOTBALL_OFFENSIVE_SCOUT_PROMPT,
   defensiveScoutPrompt: FOOTBALL_DEFENSIVE_SCOUT_PROMPT,
@@ -546,9 +559,9 @@ export function getSportPrompts(sport: string): SportPrompts {
   const normalizedSport = sport.toLowerCase().trim();
 
   switch (normalizedSport) {
-    case 'basketball':
+    case "basketball":
       return BASKETBALL_PROMPTS;
-    case 'football':
+    case "football":
       return FOOTBALL_PROMPTS;
     default:
       console.warn(`Unknown sport "${sport}", defaulting to basketball`);
@@ -569,10 +582,10 @@ export function isSupportedSport(sport: string): sport is Sport {
 export function getSportDisplayName(sport: string): string {
   const normalized = sport.toLowerCase();
   switch (normalized) {
-    case 'basketball':
-      return 'Basketball';
-    case 'football':
-      return 'Football';
+    case "basketball":
+      return "Basketball";
+    case "football":
+      return "Football";
     default:
       return sport.charAt(0).toUpperCase() + sport.slice(1);
   }

@@ -210,33 +210,104 @@ Coach views results in dashboard
 - Better accuracy for complex game understanding
 - Self-learning via few-shot examples and box score validation
 
-### Self-Learning System
+### Self-Learning System (Scouting-Focused)
 
-The system improves over time without manual ML training:
+The system improves scouting accuracy over time through admin review:
 
 ```
 Upload Video
     ↓
-Gemini analyzes (6 specialist agents)
+Gemini analyzes (6 specialist agents + Player Deep Dive)
     ↓
-Events detected with confidence scores
+Player scouting observations generated:
+  - Position, preferred hand, primary moves
+  - Defensive rating, basketball IQ, motor
+  - How to guard, how to attack
     ↓
-Auto-Approval (3 methods):
-  1. Box Score Match - Stats match official box score → Auto-approved
-  2. Few-Shot Learning - 10+ verified examples + 90%+ confidence → Auto-approved
-  3. Human Review - Low confidence or discrepancies → Review queue
+Players added to Scouting Review Queue
     ↓
-Verified events become few-shot examples for future analyses
+Admin reviews & verifies/corrects observations
     ↓
-System gets smarter with every game
+Verified observations become few-shot examples
+    ↓
+Future Player Deep Dive prompts include:
+  "VERIFIED OBSERVATIONS: #23 drives LEFT (corrected from 'right')"
+    ↓
+Scouting accuracy improves with every review
 ```
 
-### How to Improve Accuracy
+### How to Improve Scouting Accuracy
 
-1. **Provide Box Scores** - Official stats auto-validate matching events
-2. **Review Events** - Verify/reject detections in `/admin/review`
-3. **Check Patterns** - View accuracy by event type in `/admin/performance`
-4. **View Suggestions** - Auto-generated prompt improvements based on rejection patterns
+1. **Review Players** - Verify/correct scouting observations in `/admin/review`
+2. **Provide Corrections** - When Gemini gets it wrong, correct the value
+3. **Mark Exemplary** - Flag high-quality observations to prioritize in prompts
+4. **Provide Box Scores** - Stats come from box scores (not event detection)
+
+### Key Data Sources
+
+| Data Type             | Source                  | Reliability             |
+| --------------------- | ----------------------- | ----------------------- |
+| Player Stats          | Box score you provide   | High                    |
+| Scouting Observations | Gemini Player Deep Dive | Improves with review    |
+| Event Detection       | Stat Tracker agent      | Deprecated (unreliable) |
+
+### Box Score Parsing (CRITICAL - THREE FUNCTIONS MUST STAY IN SYNC)
+
+There are **THREE** `parseBoxScore` functions that MUST support the same formats:
+
+1. `/app/api/games/[id]/analyze-gemini/route.ts` - Used during initial validation
+2. `/lib/analysis/multi-agent-gemini.ts` - Used during finalization to apply stats
+3. `/scripts/reprocess-game-stats.ts` - Used to reprocess existing games
+
+**If you update one, you MUST update ALL THREE!** If they get out of sync, box score stats will parse correctly in one phase but fail in another, resulting in players having 0 points/rebounds/assists.
+
+Supported formats (checked in order, first match wins):
+
+- **Format 5** (MOST COMMON): Human-readable: `#32 Cooper Flagg: 23pts, 10-17FG, 2-53PT, 1-2FT, 3reb, 5ast, 2stl, 8blk`
+- Format 1: ESPN-style compact (no spaces): `01Robert Wright*5-121-43-4731412003214`
+- Format 1.5: MaxPreps with grade: `32Cooper Flagg (Sr)2310-172-51-20310528`
+- Format 2: PTS-first condensed: `32Cooper Flagg215-90-211-1214 (4-10)31430`
+- Format 3: Space-separated: `* 32  Name    PTS  REB  AST  STL  BLK  TO`
+- Format 4: Simple points: `#23 - 18 pts`
+
+To reprocess stats for an existing game without re-uploading:
+
+```bash
+npx tsx scripts/reprocess-game-stats.ts <game-id>
+```
+
+### Video Observations Only (CRITICAL)
+
+**Scouting reports MUST be based solely on what Gemini observes in the video.**
+
+The Player Deep Dive prompts explicitly instruct Gemini to ignore any prior knowledge about players. This is critical because:
+
+1. **Most users won't have famous players** - Gemini won't have prior knowledge about random high school players, so the system must work without it
+2. **Consistency** - Reports should be comparable across all players, not better for famous ones
+3. **Accuracy** - Training data can be outdated or incorrect (player transferred, got injured, etc.)
+4. **Scout integrity** - Real scouts evaluate what they SEE, not what they've heard
+
+**What Gemini should NOT include:**
+
+- Player names, schools, or recruiting rankings
+- Commit status (e.g., "Florida State signee")
+- Star ratings (e.g., "5-star prospect")
+- Family connections (e.g., "son of NBA player")
+- Any information not directly observable in the video
+
+**Prompt enforcement (in sport-router.ts and football-prompts.ts):**
+
+```
+**CRITICAL INSTRUCTION - VIDEO OBSERVATIONS ONLY:**
+Base your scouting ONLY on what you observe in THIS VIDEO. Do NOT use any prior knowledge about:
+- Player names, schools, or recruiting rankings
+- Commit status (e.g., "Florida State signee")
+- Star ratings (e.g., "5-star prospect")
+- Family connections (e.g., "son of NBA player")
+- Any information not directly observable in the video
+
+If you recognize a player, IGNORE what you know about them. Only report what you SEE them do in this game.
+```
 
 See "Gemini Video Analysis" section below for full architecture details.
 

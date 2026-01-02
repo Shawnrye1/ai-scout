@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "opponent_box_score" text;

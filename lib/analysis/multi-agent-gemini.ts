@@ -8,12 +8,21 @@
  */
 
 // Imports are dynamic to avoid server/client issues
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { buildFewShotContext, getAllVerifiedExampleCounts, type AgentType, type EventType } from './few-shot-learning';
-import { getSportPrompts, type Sport, type SportPrompts } from './sport-router';
+import { execSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import {
+  buildFewShotContext,
+  getAllVerifiedExampleCounts,
+  type AgentType,
+  type EventType,
+} from "./few-shot-learning";
+import {
+  buildScoutingFewShotContext,
+  addToScoutingReviewQueue,
+} from "./scouting-few-shot";
+import { getSportPrompts, type Sport, type SportPrompts } from "./sport-router";
 
 // ============================================================================
 // BASKETBALL SCOUT KNOWLEDGE BASE
@@ -575,7 +584,10 @@ Return JSON:
   ]
 }`;
 
-const PLAYER_DEEP_DIVE_PROMPT = (playerList: string, teamName: string) => `${BASKETBALL_SCOUT_KNOWLEDGE}
+const PLAYER_DEEP_DIVE_PROMPT = (
+  playerList: string,
+  teamName: string,
+) => `${BASKETBALL_SCOUT_KNOWLEDGE}
 
 ---
 
@@ -634,38 +646,292 @@ Be specific. Use professional scouting language. This report goes to coaches.`;
 
 interface ParsedBoxScorePlayer {
   jersey: number;
-  team: 'home' | 'away';
+  team: "home" | "away";
   points: number;
   rebounds?: number;
   assists?: number;
   steals?: number;
   blocks?: number;
   turnovers?: number;
+  fgm?: number;
+  fga?: number;
+  threePm?: number;
+  threePa?: number;
+  ftm?: number;
+  fta?: number;
 }
 
 /**
  * Parse box score text to extract player stats
- * Handles common formats like:
- * "* 32  Cooper Flagg    12  5  3  1  2  0"
- * "#23 - 18 pts, 5 reb, 3 ast"
+ *
+ * IMPORTANT: This function MUST support all the same formats as the parseBoxScore
+ * in /app/api/games/[id]/analyze-gemini/route.ts and /scripts/reprocess-game-stats.ts
+ * Keep them in sync!
+ *
+ * Supported formats:
+ * - Format 5: Human-readable e.g., "#32 Cooper Flagg: 23pts, 10-17FG, 2-53PT, 1-2FT, 3reb, 5ast, 2stl, 8blk"
+ * - Format 1: ESPN-style compact CSV (no spaces) e.g., "01Robert Wright*5-121-43-4731412003214"
+ * - Format 1.5: MaxPreps-style with grade notation e.g., "32Cooper Flagg (Sr)2310-172-51-20310528"
+ * - Format 2: PTS-first condensed e.g., "32Cooper Flagg215-90-211-1214 (4-10)31430"
+ * - Format 3: Space-separated e.g., "* 32  Name    PTS  REB  AST  STL  BLK  TO"
+ * - Format 4: Simple points e.g., "#23 - 18 pts"
  */
 function parseBoxScore(boxScoreText: string): ParsedBoxScorePlayer[] {
   const players: ParsedBoxScorePlayer[] = [];
   if (!boxScoreText) return players;
 
-  const lines = boxScoreText.split('\n');
-  let currentTeam: 'home' | 'away' = 'home';
+  // Detect team sections
+  let currentTeam: "home" | "away" = "home";
+  const lines = boxScoreText.split("\n");
 
+  // Check for team markers in the text
   for (const line of lines) {
-    // Detect team switch (common patterns)
     if (/away|opponent|visiting/i.test(line) && !/home/i.test(line)) {
-      currentTeam = 'away';
+      currentTeam = "away";
+    }
+  }
+  // Reset for actual parsing
+  currentTeam = "home";
+
+  // Format 5: Human-readable format (most common for user input)
+  // Example: #32 Cooper Flagg: 23pts, 10-17FG, 2-53PT, 1-2FT, 3reb, 5ast, 2stl, 8blk
+  const format5Regex =
+    /#(\d{1,2})\s+[^:]+:\s*(\d+)pts?,\s*(\d+)-(\d+)FG,\s*(\d+)-(\d+)3PT,\s*(\d+)-(\d+)FT,\s*(\d+)reb,\s*(\d+)ast,\s*(\d+)stl,\s*(\d+)blk/gi;
+
+  let match;
+  while ((match = format5Regex.exec(boxScoreText)) !== null) {
+    const jersey = parseInt(match[1]);
+    const pts = parseInt(match[2]) || 0;
+    const fgm = parseInt(match[3]) || 0;
+    const fga = parseInt(match[4]) || 0;
+    const threePm = parseInt(match[5]) || 0;
+    const threePa = parseInt(match[6]) || 0;
+    const ftm = parseInt(match[7]) || 0;
+    const fta = parseInt(match[8]) || 0;
+    const reb = parseInt(match[9]) || 0;
+    const ast = parseInt(match[10]) || 0;
+    const stl = parseInt(match[11]) || 0;
+    const blk = parseInt(match[12]) || 0;
+
+    players.push({
+      jersey,
+      team: currentTeam,
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: 0,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (players.length > 0) {
+    console.log(
+      `Parsed ${players.length} players from box score (format 5 - human readable)`,
+    );
+    return players;
+  }
+
+  // Format 1: Compact ESPN-style format (no spaces between stats)
+  // Example: 01Robert Wright*5-121-43-4731412003214
+  // Pattern: #{jersey}{name}*{FGM}-{FGA}{3PM}-{3PA}{FTM}-{FTA}{REB}{PF}{PTS}{AST}{TO}{BLK}{STL}{MIN}
+  const format1Regex =
+    /(\d{1,2})([A-Za-z\s\-']+)\*?(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})(\d)(\d{1,2})(\d{1,2})(\d)(\d)(\d)(\d)/g;
+
+  while ((match = format1Regex.exec(boxScoreText)) !== null) {
+    const jersey = parseInt(match[1]);
+    const fgm = parseInt(match[3]) || 0;
+    const fga = parseInt(match[4]) || 0;
+    const threePm = parseInt(match[5]) || 0;
+    const threePa = parseInt(match[6]) || 0;
+    const ftm = parseInt(match[7]) || 0;
+    const fta = parseInt(match[8]) || 0;
+    const reb = parseInt(match[9]) || 0;
+    const pts = parseInt(match[11]) || 0;
+    const ast = parseInt(match[12]) || 0;
+    const to = parseInt(match[13]) || 0;
+    const blk = parseInt(match[14]) || 0;
+    const stl = parseInt(match[15]) || 0;
+
+    players.push({
+      jersey,
+      team: currentTeam,
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: to,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (players.length > 0) {
+    console.log(
+      `Parsed ${players.length} players from box score (format 1 - ESPN)`,
+    );
+    return players;
+  }
+
+  // Format 1.5: MaxPreps-style with Sr/Jr notation (NO turnovers column)
+  // Header: #PlayerPtsFGM-A3PM-AFTM-AORebDRebRebAstStlBlk
+  // Example: 32Cooper Flagg (Sr)2310-172-51-20310528
+  const format15Regex =
+    /(\d{1,2})([A-Za-z][A-Za-z\s\-'.]+(?:\s+[IVX]+)?)\s*\([A-Za-z]+\)(\d{1,2})(\d{1,2})-(\d{1,2})(\d)-(\d{1,2})(\d)-(\d)(\d{5,7})(?=\d[A-Za-z]|TEAM|$|\s)/g;
+
+  while ((match = format15Regex.exec(boxScoreText)) !== null) {
+    const jersey = parseInt(match[1]);
+    const pts = parseInt(match[3]) || 0;
+    const fgm = parseInt(match[4]) || 0;
+    const fga = parseInt(match[5]) || 0;
+    const threePm = parseInt(match[6]) || 0;
+    const threePa = parseInt(match[7]) || 0;
+    const ftm = parseInt(match[8]) || 0;
+    const fta = parseInt(match[9]) || 0;
+
+    // Parse trailing stats: OREB(1), DREB(1), REB(1-2), AST(1-2), STL(1), BLK(1)
+    const trailingStats = match[10];
+    const oreb = parseInt(trailingStats[0]) || 0;
+    const dreb = parseInt(trailingStats[1]) || 0;
+
+    let reb: number, ast: number, stl: number, blk: number;
+    const remaining = trailingStats.substring(2);
+
+    const twoDigitReb = parseInt(remaining.substring(0, 2)) || 0;
+    const oneDigitReb = parseInt(remaining[0]) || 0;
+
+    if (
+      remaining.length >= 5 &&
+      twoDigitReb >= oreb + dreb &&
+      twoDigitReb <= 25
+    ) {
+      reb = twoDigitReb;
+      const afterReb = remaining.substring(2);
+      ast = parseInt(afterReb[0]) || 0;
+      stl = parseInt(afterReb[1]) || 0;
+      blk = parseInt(afterReb[2]) || 0;
+    } else {
+      reb = oneDigitReb;
+      const afterReb = remaining.substring(1);
+      if (afterReb.length >= 5) {
+        ast = parseInt(afterReb.substring(0, 2)) || 0;
+        stl = parseInt(afterReb[2]) || 0;
+        blk = parseInt(afterReb[3]) || 0;
+      } else {
+        ast = parseInt(afterReb[0]) || 0;
+        stl = parseInt(afterReb[1]) || 0;
+        blk = parseInt(afterReb[2]) || 0;
+      }
+    }
+
+    players.push({
+      jersey,
+      team: currentTeam,
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: 0,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (players.length > 0) {
+    console.log(
+      `Parsed ${players.length} players from box score (format 1.5 - MaxPreps)`,
+    );
+    return players;
+  }
+
+  // Format 2: Condensed PTS-first format (all players on one line)
+  // Example: 32Cooper Flagg215-90-211-1214 (4-10)31430Liam McNeeley155-93-42-45 (0-5)2002
+  const playerEntries = boxScoreText.match(
+    /(\d{1,2})([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*(?:\s+[IVX]+)?)\d{1,2}\d-\d.*?\(\d+-\d+\)\d{1,3}/g,
+  );
+
+  if (playerEntries && playerEntries.length > 0) {
+    for (const entry of playerEntries) {
+      const parts = entry.match(
+        /^(\d{1,2})([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*(?:\s+[IVX]+)?)/,
+      );
+      if (!parts) continue;
+
+      const jersey = parseInt(parts[1]);
+      const name = parts[2];
+      const statsStr = entry.substring(parts[1].length + name.length);
+
+      const fullMatch = statsStr.match(
+        /^(\d{1,2})(\d)-(\d)(\d)-(\d)(\d{1,2})-(\d{1,2})(\d{1,2})\s*\(\d+-\d+\)(\d{1,2})(\d)(\d)/,
+      );
+
+      if (!fullMatch) continue;
+
+      const pts = parseInt(fullMatch[1]) || 0;
+      const fgm = parseInt(fullMatch[2]) || 0;
+      const fga = parseInt(fullMatch[3]) || 0;
+      const threePm = parseInt(fullMatch[4]) || 0;
+      const threePa = parseInt(fullMatch[5]) || 0;
+      const ftm = parseInt(fullMatch[6]) || 0;
+      const fta = parseInt(fullMatch[7]) || 0;
+      const reb = parseInt(fullMatch[8]) || 0;
+      const ast = parseInt(fullMatch[9]) || 0;
+      const stl = parseInt(fullMatch[10]) || 0;
+      const blk = parseInt(fullMatch[11]) || 0;
+
+      players.push({
+        jersey,
+        team: currentTeam,
+        points: pts,
+        rebounds: reb,
+        assists: ast,
+        steals: stl,
+        blocks: blk,
+        turnovers: 0,
+        fgm,
+        fga,
+        threePm,
+        threePa,
+        ftm,
+        fta,
+      });
+    }
+  }
+
+  if (players.length > 0) {
+    console.log(
+      `Parsed ${players.length} players from box score (format 2 - PTS-first)`,
+    );
+    return players;
+  }
+
+  // Format 3: Space-separated format (fallback for line-by-line box scores)
+  // Example: "* 32  Name    PTS  REB  AST  STL  BLK  TO"
+  for (const line of lines) {
+    if (/away|opponent|visiting/i.test(line) && !/home/i.test(line)) {
+      currentTeam = "away";
       continue;
     }
 
-    // Try to extract player stats
-    // Pattern 1: "* 32  Name    PTS  REB  AST  STL  BLK  TO"
-    const pattern1 = line.match(/\*?\s*(\d{1,2})\s+[\w\s]+\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+    const pattern1 = line.match(
+      /\*?\s*(\d{1,2})\s+[\w\s]+\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/,
+    );
     if (pattern1) {
       players.push({
         jersey: parseInt(pattern1[1]),
@@ -680,8 +946,11 @@ function parseBoxScore(boxScoreText: string): ParsedBoxScorePlayer[] {
       continue;
     }
 
-    // Pattern 2: "#23 - 18 pts" or "23: 18 points"
-    const pattern2 = line.match(/#?(\d{1,2})\s*[-:]\s*(\d+)\s*(?:pts?|points?)/i);
+    // Format 4: Simple points format
+    // Example: "#23 - 18 pts" or "23: 18 points"
+    const pattern2 = line.match(
+      /#?(\d{1,2})\s*[-:]\s*(\d+)\s*(?:pts?|points?)/i,
+    );
     if (pattern2) {
       players.push({
         jersey: parseInt(pattern2[1]),
@@ -692,6 +961,11 @@ function parseBoxScore(boxScoreText: string): ParsedBoxScorePlayer[] {
     }
   }
 
+  if (players.length > 0) {
+    console.log(
+      `Parsed ${players.length} players from box score (format 3/4 - legacy)`,
+    );
+  }
   return players;
 }
 
@@ -701,12 +975,12 @@ function parseBoxScore(boxScoreText: string): ParsedBoxScorePlayer[] {
  */
 function validateEventsAgainstBoxScore(
   events: DetectedEvent[],
-  boxScore: ParsedBoxScorePlayer[]
+  boxScore: ParsedBoxScorePlayer[],
 ): {
   validatedEvents: DetectedEvent[];
   discrepancies: Array<{
     jersey: number;
-    team: 'home' | 'away';
+    team: "home" | "away";
     detected: number;
     boxScore: number;
     type: string;
@@ -724,20 +998,27 @@ function validateEventsAgainstBoxScore(
     const key = `${event.team}-${event.jersey}`;
 
     if (!detectedStats[key]) {
-      detectedStats[key] = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, turnovers: 0 };
+      detectedStats[key] = {
+        points: 0,
+        rebounds: 0,
+        assists: 0,
+        steals: 0,
+        blocks: 0,
+        turnovers: 0,
+      };
     }
 
-    if (event.type === 'scoring' && event.points) {
+    if (event.type === "scoring" && event.points) {
       detectedStats[key].points += event.points;
-    } else if (event.type === 'rebound') {
+    } else if (event.type === "rebound") {
       detectedStats[key].rebounds += 1;
-    } else if (event.type === 'assist') {
+    } else if (event.type === "assist") {
       detectedStats[key].assists += 1;
-    } else if (event.type === 'steal') {
+    } else if (event.type === "steal") {
       detectedStats[key].steals += 1;
-    } else if (event.type === 'block') {
+    } else if (event.type === "block") {
       detectedStats[key].blocks += 1;
-    } else if (event.type === 'turnover') {
+    } else if (event.type === "turnover") {
       detectedStats[key].turnovers += 1;
     }
   }
@@ -745,7 +1026,7 @@ function validateEventsAgainstBoxScore(
   // Compare with box score
   const discrepancies: Array<{
     jersey: number;
-    team: 'home' | 'away';
+    team: "home" | "away";
     detected: number;
     boxScore: number;
     type: string;
@@ -755,7 +1036,14 @@ function validateEventsAgainstBoxScore(
 
   for (const player of boxScore) {
     const key = `${player.team}-${player.jersey}`;
-    const detected = detectedStats[key] || { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, turnovers: 0 };
+    const detected = detectedStats[key] || {
+      points: 0,
+      rebounds: 0,
+      assists: 0,
+      steals: 0,
+      blocks: 0,
+      turnovers: 0,
+    };
 
     // Check points (most important)
     if (player.points !== undefined && detected.points !== player.points) {
@@ -764,26 +1052,32 @@ function validateEventsAgainstBoxScore(
         team: player.team,
         detected: detected.points,
         boxScore: player.points,
-        type: 'points',
+        type: "points",
       });
-    } else if (player.points !== undefined && detected.points === player.points) {
+    } else if (
+      player.points !== undefined &&
+      detected.points === player.points
+    ) {
       matchedPlayers.add(key);
     }
 
     // Check other stats if available
-    if (player.rebounds !== undefined && detected.rebounds !== player.rebounds) {
+    if (
+      player.rebounds !== undefined &&
+      detected.rebounds !== player.rebounds
+    ) {
       discrepancies.push({
         jersey: player.jersey,
         team: player.team,
         detected: detected.rebounds,
         boxScore: player.rebounds,
-        type: 'rebounds',
+        type: "rebounds",
       });
     }
   }
 
   // Mark events from matched players as box-score validated
-  const validatedEvents = events.map(event => {
+  const validatedEvents = events.map((event) => {
     if (event.jersey === null) return event;
     const key = `${event.team}-${event.jersey}`;
 
@@ -792,7 +1086,7 @@ function validateEventsAgainstBoxScore(
         ...event,
         autoApproved: true,
         verified: true,
-        reviewStatus: 'verified' as const,
+        reviewStatus: "verified" as const,
         boxScoreValidated: true,
       };
     }
@@ -807,8 +1101,15 @@ function validateEventsAgainstBoxScore(
 // ============================================================================
 
 export interface DetectedEvent {
-  type: 'scoring' | 'rebound' | 'assist' | 'steal' | 'block' | 'turnover' | 'foul';
-  team: 'home' | 'away';
+  type:
+    | "scoring"
+    | "rebound"
+    | "assist"
+    | "steal"
+    | "block"
+    | "turnover"
+    | "foul";
+  team: "home" | "away";
   jersey: number | null;
   timestamp: string;
   timestampSeconds: number;
@@ -822,7 +1123,7 @@ export interface DetectedEvent {
   verified?: boolean;
   autoApproved?: boolean;
   boxScoreValidated?: boolean;
-  reviewStatus?: 'pending' | 'verified' | 'rejected';
+  reviewStatus?: "pending" | "verified" | "rejected";
 }
 
 export interface MultiAgentAnalysisResult {
@@ -848,7 +1149,13 @@ export interface MultiAgentAnalysisResult {
     boxScoreValidated: number;
     pendingReview: number;
     byType: Record<string, number>;
-    discrepancies: Array<{ jersey: number; team: string; detected: number; boxScore: number; type: string }>;
+    discrepancies: Array<{
+      jersey: number;
+      team: string;
+      detected: number;
+      boxScore: number;
+      type: string;
+    }>;
   };
   agentResults: {
     offensive: any;
@@ -866,40 +1173,40 @@ export async function runMultiAgentAnalysis(
   videoPath: string,
   onProgress?: (progress: number, message: string) => void,
   boxScore?: string,
-  sport: Sport = 'basketball'
+  sport: Sport = "basketball",
 ): Promise<MultiAgentAnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
+    throw new Error("GEMINI_API_KEY not configured");
   }
 
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-  const { GoogleAIFileManager } = await import('@google/generative-ai/server');
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const { GoogleAIFileManager } = await import("@google/generative-ai/server");
 
   const genai = new GoogleGenerativeAI(apiKey);
   const fileManager = new GoogleAIFileManager(apiKey);
   // Use Gemini 3 Pro for best video analysis quality
   // Lower temperature (0.2) for more consistent, deterministic event detection
   const model = genai.getGenerativeModel({
-    model: 'gemini-3-pro-preview',
+    model: "gemini-3-pro-preview",
     generationConfig: {
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
       temperature: 0.2, // Lower temp for accurate, consistent detection
     },
   });
 
-  onProgress?.(5, 'Preparing video for analysis...');
+  onProgress?.(5, "Preparing video for analysis...");
 
   // Get video duration
   let duration = 0;
   try {
     const durationOutput = execSync(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
     duration = parseFloat(durationOutput.trim());
   } catch (e) {
-    console.warn('Could not get video duration:', e);
+    console.warn("Could not get video duration:", e);
   }
 
   // For long videos, extract a 45-min sample
@@ -908,48 +1215,55 @@ export async function runMultiAgentAnalysis(
   fs.mkdirSync(tempDir, { recursive: true });
 
   if (duration > 45 * 60) {
-    onProgress?.(10, 'Extracting 45-min sample from video...');
-    const samplePath = path.join(tempDir, 'sample.mp4');
+    onProgress?.(10, "Extracting 45-min sample from video...");
+    const samplePath = path.join(tempDir, "sample.mp4");
     execSync(
       `ffmpeg -y -ss 60 -i "${videoPath}" -t ${45 * 60} -c copy "${samplePath}" 2>/dev/null`,
-      { encoding: 'utf8' }
+      { encoding: "utf8" },
     );
     analysisVideoPath = samplePath;
   }
 
   // Upload to Gemini
-  onProgress?.(15, 'Uploading video to Gemini...');
+  onProgress?.(15, "Uploading video to Gemini...");
   const uploadResult = await fileManager.uploadFile(analysisVideoPath, {
-    mimeType: 'video/mp4',
-    displayName: 'scouting-sample',
+    mimeType: "video/mp4",
+    displayName: "scouting-sample",
   });
 
   // Wait for processing
   let file = uploadResult.file;
-  while (file.state === 'PROCESSING') {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+  while (file.state === "PROCESSING") {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     file = await fileManager.getFile(file.name);
   }
 
-  if (file.state === 'FAILED') {
-    throw new Error('Video processing failed');
+  if (file.state === "FAILED") {
+    throw new Error("Video processing failed");
   }
 
   // Get sport-specific prompts
   const sportPrompts = getSportPrompts(sport);
   console.log(`Using ${sportPrompts.sport} prompts for analysis`);
 
-  onProgress?.(25, `Running Phase 1: Parallel ${sportPrompts.sport} specialist agents...`);
+  onProgress?.(
+    25,
+    `Running Phase 1: Parallel ${sportPrompts.sport} specialist agents...`,
+  );
 
   // Helper to run an agent with retry logic for rate limiting
-  async function runAgent(prompt: string, name: string, maxRetries = 3): Promise<any> {
+  async function runAgent(
+    prompt: string,
+    name: string,
+    maxRetries = 3,
+  ): Promise<any> {
     console.log(`[${name}] Starting analysis...`);
     const startTime = Date.now();
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const result = await model.generateContent([
-          { fileData: { fileUri: file.uri, mimeType: 'video/mp4' } },
+          { fileData: { fileUri: file.uri, mimeType: "video/mp4" } },
           prompt,
         ]);
 
@@ -970,8 +1284,8 @@ export async function runMultiAgentAnalysis(
           console.error(`[${name}] JSON parse error:`, parseError.message);
           // Try to fix common issues
           let fixed = jsonMatch[0]
-            .replace(/,\s*}/g, '}')
-            .replace(/,\s*]/g, ']')
+            .replace(/,\s*}/g, "}")
+            .replace(/,\s*]/g, "]")
             .replace(/'/g, '"');
           try {
             return JSON.parse(fixed);
@@ -980,19 +1294,22 @@ export async function runMultiAgentAnalysis(
           }
         }
       } catch (e: any) {
-        const errorMsg = e.message || '';
+        const errorMsg = e.message || "";
         // Check for retryable errors (rate limit or network issues)
-        const isRetryable = errorMsg.includes('429') ||
-                           errorMsg.includes('Too Many Requests') ||
-                           errorMsg.includes('fetch failed') ||
-                           errorMsg.includes('ECONNRESET') ||
-                           errorMsg.includes('ETIMEDOUT') ||
-                           errorMsg.includes('network');
+        const isRetryable =
+          errorMsg.includes("429") ||
+          errorMsg.includes("Too Many Requests") ||
+          errorMsg.includes("fetch failed") ||
+          errorMsg.includes("ECONNRESET") ||
+          errorMsg.includes("ETIMEDOUT") ||
+          errorMsg.includes("network");
 
         if (isRetryable && attempt < maxRetries - 1) {
           const waitTime = Math.min(60, 30 * (attempt + 1)); // 30s, 60s, 60s
-          console.log(`[${name}] Error: ${errorMsg}. Waiting ${waitTime}s before retry ${attempt + 1}/${maxRetries}...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+          console.log(
+            `[${name}] Error: ${errorMsg}. Waiting ${waitTime}s before retry ${attempt + 1}/${maxRetries}...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
           continue;
         }
         console.error(`[${name}] Error:`, errorMsg);
@@ -1004,7 +1321,8 @@ export async function runMultiAgentAnalysis(
   }
 
   // Build box score context if provided
-  const boxScoreContext = boxScore ? `
+  const boxScoreContext = boxScore
+    ? `
 ## OFFICIAL BOX SCORE (Use this to map jersey numbers to player names!)
 The coach has provided the official box score. Use this to:
 1. Map jersey numbers to actual player NAMES (not just "Player #32")
@@ -1014,94 +1332,154 @@ The coach has provided the official box score. Use this to:
 ${boxScore}
 
 ---
-` : '';
+`
+    : "";
 
   // Phase 1: Run all agents in parallel
   // Build few-shot context for agents that can benefit from verified examples
-  const [offensiveFewShot, defensiveFewShot, gameFlowFewShot] = await Promise.all([
-    buildFewShotContext('offensive').catch(() => ''),
-    buildFewShotContext('defensive').catch(() => ''),
-    buildFewShotContext('game_flow').catch(() => ''),
-  ]);
+  const [offensiveFewShot, defensiveFewShot, gameFlowFewShot] =
+    await Promise.all([
+      buildFewShotContext("offensive").catch(() => ""),
+      buildFewShotContext("defensive").catch(() => ""),
+      buildFewShotContext("game_flow").catch(() => ""),
+    ]);
 
   // Use sport-specific prompts from router
-  const jerseyPromptWithBoxScore = boxScoreContext + sportPrompts.jerseyScanPrompt;
+  const jerseyPromptWithBoxScore =
+    boxScoreContext + sportPrompts.jerseyScanPrompt;
 
-  const [offensiveResults, defensiveResults, jerseyResults, gameFlowResults, coachingResults, statTrackerResults] = await Promise.all([
-    runAgent(offensiveFewShot + sportPrompts.offensiveScoutPrompt, 'OFFENSIVE SCOUT'),
-    runAgent(defensiveFewShot + sportPrompts.defensiveScoutPrompt, 'DEFENSIVE SCOUT'),
-    runAgent(jerseyPromptWithBoxScore, 'JERSEY SCAN'),
-    runAgent(gameFlowFewShot + sportPrompts.gameFlowPrompt, 'GAME FLOW'),
-    runAgent(sportPrompts.coachingStrategistPrompt, 'COACHING STRATEGIST'),
-    runAgent(sportPrompts.statTrackerPrompt, 'STAT TRACKER'),
+  const [
+    offensiveResults,
+    defensiveResults,
+    jerseyResults,
+    gameFlowResults,
+    coachingResults,
+    statTrackerResults,
+  ] = await Promise.all([
+    runAgent(
+      offensiveFewShot + sportPrompts.offensiveScoutPrompt,
+      "OFFENSIVE SCOUT",
+    ),
+    runAgent(
+      defensiveFewShot + sportPrompts.defensiveScoutPrompt,
+      "DEFENSIVE SCOUT",
+    ),
+    runAgent(jerseyPromptWithBoxScore, "JERSEY SCAN"),
+    runAgent(gameFlowFewShot + sportPrompts.gameFlowPrompt, "GAME FLOW"),
+    runAgent(sportPrompts.coachingStrategistPrompt, "COACHING STRATEGIST"),
+    runAgent(sportPrompts.statTrackerPrompt, "STAT TRACKER"),
   ]);
 
-  onProgress?.(50, 'Phase 1 complete. Starting Phase 2: Player deep dive...');
+  onProgress?.(50, "Phase 1 complete. Starting Phase 2: Player deep dive...");
+
+  // Normalize jersey results - Gemini sometimes returns an array instead of object
+  const jerseyData = Array.isArray(jerseyResults)
+    ? jerseyResults[0]
+    : jerseyResults;
 
   // Extract team names
-  const homeTeamName = jerseyResults?.homeTeam?.teamName || 'Home';
-  const awayTeamName = jerseyResults?.awayTeam?.teamName || 'Away';
+  const homeTeamName = jerseyData?.homeTeam?.teamName || "Home";
+  const awayTeamName = jerseyData?.awayTeam?.teamName || "Away";
 
   // Build player lists from jersey scan
-  const homePlayers = jerseyResults?.homeTeam?.players || [];
-  const awayPlayers = jerseyResults?.awayTeam?.players || [];
+  const homePlayers = jerseyData?.homeTeam?.players || [];
+  const awayPlayers = jerseyData?.awayTeam?.players || [];
 
-  console.log(`Jersey scan found ${homePlayers.length} home, ${awayPlayers.length} away players`);
+  console.log(
+    `Jersey scan found ${homePlayers.length} home, ${awayPlayers.length} away players`,
+  );
 
   // Wait for rate limit to reset before Phase 2 (Gemini has 1M tokens/min limit)
-  console.log('Waiting 60s for rate limit reset before Phase 2...');
-  await new Promise(resolve => setTimeout(resolve, 60000));
-  onProgress?.(55, 'Rate limit cooldown complete. Starting Phase 2...');
+  console.log("Waiting 60s for rate limit reset before Phase 2...");
+  await new Promise((resolve) => setTimeout(resolve, 60000));
+  onProgress?.(55, "Rate limit cooldown complete. Starting Phase 2...");
 
   // Phase 2: Deep dive on players (parallel by team)
   // Include player names from box score if available
-  const homePlayerList = homePlayers.map((p: any) => {
-    const name = p.name || p.playerName || '';
-    return `#${p.jersey} ${name ? `(${name})` : ''} - ${p.position || 'unknown'} - ${p.notes || ''}`;
-  }).join('\n');
-  const awayPlayerList = awayPlayers.map((p: any) => {
-    const name = p.name || p.playerName || '';
-    return `#${p.jersey} ${name ? `(${name})` : ''} - ${p.position || 'unknown'} - ${p.notes || ''}`;
-  }).join('\n');
+  const homePlayerList = homePlayers
+    .map((p: any) => {
+      const name = p.name || p.playerName || "";
+      return `#${p.jersey} ${name ? `(${name})` : ""} - ${p.position || "unknown"} - ${p.notes || ""}`;
+    })
+    .join("\n");
+  const awayPlayerList = awayPlayers
+    .map((p: any) => {
+      const name = p.name || p.playerName || "";
+      return `#${p.jersey} ${name ? `(${name})` : ""} - ${p.position || "unknown"} - ${p.notes || ""}`;
+    })
+    .join("\n");
 
-  // Add box score context and few-shot examples to player deep dive for stat validation
-  const [homePlayerFewShot, awayPlayerFewShot] = await Promise.all([
-    buildFewShotContext('player_home').catch(() => ''),
-    buildFewShotContext('player_away').catch(() => ''),
-  ]);
+  // Add scouting few-shot examples to player deep dive for improved accuracy
+  // This uses verified scouting observations (preferred hand, moves, defensive rating, etc.)
+  // NOT event-based examples (which are for stats like rebounds/steals)
+  const scoutingFewShotContext = await buildScoutingFewShotContext().catch(
+    () => "",
+  );
 
-  // Use sport-specific player deep dive prompt
-  const playerDeepDiveWithContext = (playerList: string, teamName: string, fewShotContext: string) => {
-    return fewShotContext + boxScoreContext + sportPrompts.playerDeepDivePrompt(playerList, teamName);
+  // Use sport-specific player deep dive prompt with scouting calibration
+  const playerDeepDiveWithContext = (playerList: string, teamName: string) => {
+    return (
+      scoutingFewShotContext +
+      boxScoreContext +
+      sportPrompts.playerDeepDivePrompt(playerList, teamName)
+    );
   };
 
   const [homePlayerResults, awayPlayerResults] = await Promise.all([
-    homePlayers.length > 0 ? runAgent(playerDeepDiveWithContext(homePlayerList, homeTeamName, homePlayerFewShot), 'HOME PLAYERS') : Promise.resolve([]),
-    awayPlayers.length > 0 ? runAgent(playerDeepDiveWithContext(awayPlayerList, awayTeamName, awayPlayerFewShot), 'AWAY PLAYERS') : Promise.resolve([]),
+    homePlayers.length > 0
+      ? runAgent(
+          playerDeepDiveWithContext(homePlayerList, homeTeamName),
+          "HOME PLAYERS",
+        )
+      : Promise.resolve([]),
+    awayPlayers.length > 0
+      ? runAgent(
+          playerDeepDiveWithContext(awayPlayerList, awayTeamName),
+          "AWAY PLAYERS",
+        )
+      : Promise.resolve([]),
   ]);
 
-  onProgress?.(75, 'Combining results...');
+  onProgress?.(75, "Combining results...");
 
   // Combine player results and normalize team values
-  const homePlayersAnalyzed = (Array.isArray(homePlayerResults) ? homePlayerResults : (homePlayerResults?.players || []))
-    .map((p: any) => ({ ...p, team: 'home' }));
-  const awayPlayersAnalyzed = (Array.isArray(awayPlayerResults) ? awayPlayerResults : (awayPlayerResults?.players || []))
-    .map((p: any) => ({ ...p, team: 'away' }));
+  const homePlayersAnalyzed = (
+    Array.isArray(homePlayerResults)
+      ? homePlayerResults
+      : homePlayerResults?.players || []
+  ).map((p: any) => ({ ...p, team: "home" }));
+  const awayPlayersAnalyzed = (
+    Array.isArray(awayPlayerResults)
+      ? awayPlayerResults
+      : awayPlayerResults?.players || []
+  ).map((p: any) => ({ ...p, team: "away" }));
 
   // Build team scouting from offensive/defensive results
   // Agent may return team names like "Montverde Academy" instead of "home"/"away"
   // Match by: 1) literal "home"/"away", 2) actual team name, 3) array position fallback
-  const offensiveArray = Array.isArray(offensiveResults) ? offensiveResults.filter(Boolean) : (offensiveResults ? [offensiveResults] : []);
-  const defensiveArray = Array.isArray(defensiveResults) ? defensiveResults.filter(Boolean) : (defensiveResults ? [defensiveResults] : []);
+  const offensiveArray = Array.isArray(offensiveResults)
+    ? offensiveResults.filter(Boolean)
+    : offensiveResults
+      ? [offensiveResults]
+      : [];
+  const defensiveArray = Array.isArray(defensiveResults)
+    ? defensiveResults.filter(Boolean)
+    : defensiveResults
+      ? [defensiveResults]
+      : [];
 
   const matchTeam = (arr: any[], teamName: string, isHome: boolean) => {
     // First try literal match on home/away
-    const literal = arr.find((o: any) => o?.team?.toLowerCase() === (isHome ? 'home' : 'away'));
+    const literal = arr.find(
+      (o: any) => o?.team?.toLowerCase() === (isHome ? "home" : "away"),
+    );
     if (literal) return literal;
 
     // Then try matching the actual team name
     if (teamName) {
-      const byName = arr.find((o: any) => o?.team?.toLowerCase()?.includes(teamName.toLowerCase().split(' ')[0]));
+      const byName = arr.find((o: any) =>
+        o?.team?.toLowerCase()?.includes(teamName.toLowerCase().split(" ")[0]),
+      );
       if (byName) return byName;
     }
 
@@ -1118,7 +1496,7 @@ ${boxScore}
   const homeDefense = matchTeam(defensiveArray, homeTeamName, true);
   const awayDefense = matchTeam(defensiveArray, awayTeamName, false);
 
-  console.log('Team matching results:', {
+  console.log("Team matching results:", {
     homeOffense: !!homeOffense,
     awayOffense: !!awayOffense,
     homeDefense: !!homeDefense,
@@ -1131,13 +1509,15 @@ ${boxScore}
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (e) {
-    console.warn('Failed to clean up temp directory:', e);
+    console.warn("Failed to clean up temp directory:", e);
   }
 
   // Handle coaching results (may be array)
-  const coaching = Array.isArray(coachingResults) ? coachingResults[0] : coachingResults;
+  const coaching = Array.isArray(coachingResults)
+    ? coachingResults[0]
+    : coachingResults;
 
-  onProgress?.(85, 'Processing events and building review queue...');
+  onProgress?.(85, "Processing events and building review queue...");
 
   // Process stat tracker results and build review queue
   const rawEvents: DetectedEvent[] = statTrackerResults?.events || [];
@@ -1151,9 +1531,9 @@ ${boxScore}
   let verifiedCounts: Record<string, number> = {};
   try {
     verifiedCounts = await getAllVerifiedExampleCounts();
-    console.log('Verified example counts:', verifiedCounts);
+    console.log("Verified example counts:", verifiedCounts);
   } catch (e) {
-    console.warn('Could not get verified example counts:', e);
+    console.warn("Could not get verified example counts:", e);
   }
 
   // Parse box score for validation (if provided)
@@ -1161,7 +1541,7 @@ ${boxScore}
   console.log(`Parsed ${parsedBoxScore.length} players from box score`);
 
   // First pass: Create typed events
-  let typedEvents: DetectedEvent[] = rawEvents.map(event => ({
+  let typedEvents: DetectedEvent[] = rawEvents.map((event) => ({
     type: event.type,
     team: event.team,
     jersey: event.jersey,
@@ -1170,18 +1550,29 @@ ${boxScore}
     confidence: event.confidence,
     description: event.description,
     points: event.points,
-    reviewStatus: 'pending' as const,
+    reviewStatus: "pending" as const,
     autoApproved: false,
     verified: false,
   }));
 
   // Box score validation: Auto-approve events that match official stats
-  let boxScoreDiscrepancies: Array<{ jersey: number; team: string; detected: number; boxScore: number; type: string }> = [];
+  let boxScoreDiscrepancies: Array<{
+    jersey: number;
+    team: string;
+    detected: number;
+    boxScore: number;
+    type: string;
+  }> = [];
   if (parsedBoxScore.length > 0) {
-    const validation = validateEventsAgainstBoxScore(typedEvents, parsedBoxScore);
+    const validation = validateEventsAgainstBoxScore(
+      typedEvents,
+      parsedBoxScore,
+    );
     typedEvents = validation.validatedEvents;
     boxScoreDiscrepancies = validation.discrepancies;
-    console.log(`Box score validation: ${validation.discrepancies.length} discrepancies found`);
+    console.log(
+      `Box score validation: ${validation.discrepancies.length} discrepancies found`,
+    );
   }
 
   // Second pass: Categorize events
@@ -1191,7 +1582,10 @@ ${boxScore}
 
   for (const event of typedEvents) {
     // Ensure clip boundaries are set (fallback to 3s before / 5s after if not provided)
-    if (event.clipStartSeconds === undefined || event.clipStartSeconds === null) {
+    if (
+      event.clipStartSeconds === undefined ||
+      event.clipStartSeconds === null
+    ) {
       event.clipStartSeconds = Math.max(0, event.timestampSeconds - 3);
     }
     if (event.clipEndSeconds === undefined || event.clipEndSeconds === null) {
@@ -1206,7 +1600,8 @@ ${boxScore}
     }
 
     // Check if we can auto-approve via few-shot learning
-    const hasEnoughExamples = (verifiedCounts[event.type] || 0) >= MIN_VERIFIED_EXAMPLES;
+    const hasEnoughExamples =
+      (verifiedCounts[event.type] || 0) >= MIN_VERIFIED_EXAMPLES;
     const isHighConfidence = event.confidence >= AUTO_APPROVE_THRESHOLD;
     const hasJersey = event.jersey !== null;
 
@@ -1214,7 +1609,7 @@ ${boxScore}
       // Auto-approve: high confidence + we have training data
       event.autoApproved = true;
       event.verified = true;
-      event.reviewStatus = 'verified';
+      event.reviewStatus = "verified";
       verifiedEvents.push(event);
     } else {
       // Needs human review
@@ -1234,7 +1629,9 @@ ${boxScore}
     eventsByType[event.type] = (eventsByType[event.type] || 0) + 1;
   }
 
-  const boxScoreValidatedCount = allEvents.filter(e => e.boxScoreValidated).length;
+  const boxScoreValidatedCount = allEvents.filter(
+    (e) => e.boxScoreValidated,
+  ).length;
 
   const eventSummary = {
     totalEvents: allEvents.length,
@@ -1245,12 +1642,15 @@ ${boxScore}
     discrepancies: boxScoreDiscrepancies,
   };
 
-  console.log(`Event processing: ${verifiedEvents.length} auto-approved, ${humanReviewQueue.length} need review`);
+  console.log(
+    `Event processing: ${verifiedEvents.length} auto-approved, ${humanReviewQueue.length} need review`,
+  );
 
-  onProgress?.(90, 'Finalizing scouting report...');
+  onProgress?.(90, "Finalizing scouting report...");
 
   // Check if analysis is complete - primarily based on player detection
-  const hasPlayerScouting = homePlayersAnalyzed.length > 0 || awayPlayersAnalyzed.length > 0;
+  const hasPlayerScouting =
+    homePlayersAnalyzed.length > 0 || awayPlayersAnalyzed.length > 0;
   // Mark complete if we have players - other sections are optional
   const analysisComplete = hasPlayerScouting;
 
@@ -1258,7 +1658,7 @@ ${boxScore}
     sport,
     homeTeamName,
     awayTeamName,
-    analysisMethod: 'multi-agent-two-pass',
+    analysisMethod: "multi-agent-two-pass",
     analysisComplete,
     analyzedAt: new Date().toISOString(),
     // Event tracking
@@ -1276,7 +1676,7 @@ ${boxScore}
     },
     teamScouting: {
       homeTeam: {
-        jerseyColor: jerseyResults?.homeTeam?.jerseyColor,
+        jerseyColor: jerseyData?.homeTeam?.jerseyColor,
         offensiveSystem: homeOffense?.primarySystem,
         defensiveSystem: homeDefense?.baseDefense,
         pnrCoverage: homeDefense?.pnrCoverage,
@@ -1290,7 +1690,7 @@ ${boxScore}
         defensiveWeaknesses: homeDefense?.weaknessesToAttack,
       },
       awayTeam: {
-        jerseyColor: jerseyResults?.awayTeam?.jerseyColor,
+        jerseyColor: jerseyData?.awayTeam?.jerseyColor,
         offensiveSystem: awayOffense?.primarySystem,
         defensiveSystem: awayDefense?.baseDefense,
         pnrCoverage: awayDefense?.pnrCoverage,

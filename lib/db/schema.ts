@@ -259,6 +259,8 @@ export const games = pgTable("games", {
   isHomeGame: boolean("is_home_game"), // true = home, false = away
   // Box score text (optional, provided by coach for validation and player name mapping)
   boxScore: text("box_score"),
+  // Opponent box score (optional, for tracking opponent stats)
+  opponentBoxScore: text("opponent_box_score"),
   // Full Gemini analysis JSON (gameInfo, plays, playerScouting, teamAnalysis, gameFlow, coachingInsights)
   geminiAnalysis: jsonb("gemini_analysis"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -724,3 +726,98 @@ export type PromptVersion = typeof promptVersions.$inferSelect;
 export type NewPromptVersion = typeof promptVersions.$inferInsert;
 export type PromptSuggestion = typeof promptSuggestions.$inferSelect;
 export type NewPromptSuggestion = typeof promptSuggestions.$inferInsert;
+
+// ============================================
+// SCOUTING OBSERVATIONS - Few-Shot Learning
+// ============================================
+
+// Scouting observation types that can be verified/corrected
+export const scoutingObservationTypes = [
+  "preferred_hand",
+  "primary_moves",
+  "shooting_ability",
+  "defensive_rating",
+  "basketball_iq",
+  "motor",
+  "physical_profile",
+  "position",
+  "how_to_guard",
+  "how_to_attack",
+  "overall_assessment",
+] as const;
+
+export type ScoutingObservationType = (typeof scoutingObservationTypes)[number];
+
+// Verified scouting observations for few-shot learning
+// Admin reviews Gemini's player scouting output and confirms/corrects observations
+// Verified observations become examples in future Player Deep Dive prompts
+export const verifiedScouting = pgTable(
+  "verified_scouting",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }),
+    detectedPlayerId: uuid("detected_player_id").references(
+      () => detectedPlayers.id,
+      { onDelete: "cascade" },
+    ),
+    team: varchar("team", { length: 10 }).notNull(), // 'home' or 'away'
+    jerseyNumber: integer("jersey_number"),
+    observationType: varchar("observation_type", { length: 50 }).notNull(), // from scoutingObservationTypes
+    // Original observation from Gemini
+    originalValue: text("original_value").notNull(),
+    // Corrected value (if admin corrected it) or same as original (if confirmed)
+    verifiedValue: text("verified_value").notNull(),
+    wasCorrection: boolean("was_correction").default(false), // true if admin changed the value
+    // Video context
+    videoTimestamp: varchar("video_timestamp", { length: 20 }), // optional timestamp showing the observation
+    videoTimestampSeconds: integer("video_timestamp_seconds"),
+    // Metadata
+    verifiedBy: varchar("verified_by", { length: 100 }),
+    quality: varchar("quality", { length: 20 }).default("standard"), // 'standard', 'exemplary'
+    notes: text("notes"), // admin notes on why correction was made
+    usedInPromptCount: integer("used_in_prompt_count").default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    gameIdIdx: index("verified_scouting_game_id_idx").on(table.gameId),
+    observationTypeIdx: index("verified_scouting_type_idx").on(
+      table.observationType,
+    ),
+  }),
+);
+
+// Scouting review queue - player observations that need admin review
+// Populated during analysis, cleared as admin reviews
+export const scoutingReviewQueue = pgTable(
+  "scouting_review_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    detectedPlayerId: uuid("detected_player_id").references(
+      () => detectedPlayers.id,
+      { onDelete: "cascade" },
+    ),
+    team: varchar("team", { length: 10 }).notNull(),
+    jerseyNumber: integer("jersey_number"),
+    playerName: varchar("player_name", { length: 100 }),
+    // The full scouting output for this player
+    scoutingData: jsonb("scouting_data").notNull(), // position, preferredHand, primaryMoves, etc.
+    // Review status
+    status: varchar("status", { length: 20 }).default("pending"), // 'pending', 'reviewed', 'skipped'
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: varchar("reviewed_by", { length: 100 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    gameIdIdx: index("scouting_review_game_id_idx").on(table.gameId),
+    statusIdx: index("scouting_review_status_idx").on(table.status),
+  }),
+);
+
+// Types
+export type VerifiedScouting = typeof verifiedScouting.$inferSelect;
+export type NewVerifiedScouting = typeof verifiedScouting.$inferInsert;
+export type ScoutingReviewQueue = typeof scoutingReviewQueue.$inferSelect;
+export type NewScoutingReviewQueue = typeof scoutingReviewQueue.$inferInsert;

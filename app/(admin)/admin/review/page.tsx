@@ -1,380 +1,242 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Check,
   X,
-  Play,
-  Clock,
-  AlertTriangle,
   ChevronRight,
   Loader2,
   RefreshCw,
+  User,
   Edit3,
-  MessageSquare,
-  Plus,
+  Eye,
+  Sparkles,
 } from "lucide-react";
 
-interface ReviewEvent {
-  id: string;
-  gameId: string;
-  gameName: string;
-  timestamp: string;
-  timestampSeconds: number;
-  type: string;
-  team: "home" | "away";
-  jersey: number | null;
-  confidence: number;
-  reason: string;
-  specialistConfidence?: number;
-  // Scoring event fields
-  points?: number;
-  shotType?: string;
+interface ScoutingData {
+  position?: string;
+  physicalProfile?: string;
+  overallAssessment?: string;
+  preferredHand?: string;
+  primaryMoves?: string[];
+  shootingAbility?: { range?: string; form?: string };
+  defensiveRating?: string;
+  basketballIQ?: string;
+  motor?: string;
+  howToGuard?: string;
+  howToAttack?: string;
 }
 
-const REJECTION_REASONS = [
-  {
-    value: "not_real",
-    label: "Not a real event",
-    description: "Nothing actually happened here",
-  },
-  {
-    value: "wrong_type",
-    label: "Wrong stat type",
-    description: "This is a different type of event",
-  },
-  {
-    value: "wrong_team",
-    label: "Wrong team",
-    description: "Event happened but for the other team",
-  },
-  {
-    value: "wrong_player",
-    label: "Wrong player",
-    description: "Event happened but different player",
-  },
-  {
-    value: "unclear",
-    label: "Too unclear to tell",
-    description: "Video quality or angle makes it impossible to verify",
-  },
-  { value: "other", label: "Other", description: "Explain in notes" },
-];
+interface PlayerReview {
+  reviewId: string;
+  team: "home" | "away";
+  jerseyNumber: number | null;
+  playerName: string | null;
+  scoutingData: ScoutingData;
+}
 
-const STAT_TYPES = [
-  "rebound",
-  "steal",
-  "block",
-  "turnover",
-  "assist",
-  "scoring",
-];
-
-interface GameWithReview {
+interface GameWithReviews {
   id: string;
   name: string;
-  date?: string;
-  videoUrl: string;
-  homeScore: number;
-  awayScore: number;
-  officialBoxScore?: { home: number; away: number };
-  scoreDiscrepancy?: { home: number; away: number };
-  reviewCount: number;
-  events: ReviewEvent[];
+  date: string;
+  videoUrl: string | null;
+  players: PlayerReview[];
 }
 
-interface TrainingMetrics {
-  totalReviewed: number;
-  verified: number;
-  rejected: number;
-  verificationRate: number;
-  byStatType: Record<
-    string,
-    { verified: number; rejected: number; rate: number }
-  >;
-  improvements: string[];
+interface FewShotStats {
+  totalExamples: number;
+  totalCorrections: number;
+  byObservationType: Record<string, { total: number; corrections: number }>;
 }
 
-export default function ReviewQueue() {
-  const [games, setGames] = useState<GameWithReview[]>([]);
+// Observation fields we can review and verify
+const OBSERVATION_FIELDS: Array<{
+  key: keyof ScoutingData;
+  label: string;
+  type: "text" | "select" | "array";
+  options?: string[];
+}> = [
+  {
+    key: "position",
+    label: "Position",
+    type: "select",
+    options: ["PG", "SG", "SF", "PF", "C"],
+  },
+  {
+    key: "preferredHand",
+    label: "Preferred Hand",
+    type: "select",
+    options: ["right", "left", "ambidextrous"],
+  },
+  {
+    key: "defensiveRating",
+    label: "Defensive Rating",
+    type: "select",
+    options: ["elite", "above average", "average", "below average", "poor"],
+  },
+  {
+    key: "basketballIQ",
+    label: "Basketball IQ",
+    type: "select",
+    options: ["elite", "above average", "average", "below average", "poor"],
+  },
+  {
+    key: "motor",
+    label: "Motor/Effort",
+    type: "select",
+    options: ["elite", "above average", "average", "below average", "poor"],
+  },
+  { key: "physicalProfile", label: "Physical Profile", type: "text" },
+  { key: "overallAssessment", label: "Overall Assessment", type: "text" },
+  { key: "howToGuard", label: "How to Guard", type: "text" },
+  { key: "howToAttack", label: "How to Attack", type: "text" },
+];
+
+export default function ScoutingReviewQueue() {
+  const [games, setGames] = useState<GameWithReviews[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedGame, setSelectedGame] = useState<GameWithReview | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<ReviewEvent | null>(null);
-  const [videoLoading, setVideoLoading] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [selectedGame, setSelectedGame] = useState<GameWithReviews | null>(
+    null,
+  );
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerReview | null>(
+    null,
+  );
+  const [fewShotStats, setFewShotStats] = useState<FewShotStats | null>(null);
 
-  // Rejection context state
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [correctType, setCorrectType] = useState("");
-  const [correctTeam, setCorrectTeam] = useState<"home" | "away" | "">("");
-  const [correctJersey, setCorrectJersey] = useState("");
-  const [notes, setNotes] = useState("");
+  // Editing state
+  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  // Training metrics state
-  const [trainingMetrics, setTrainingMetrics] =
-    useState<TrainingMetrics | null>(null);
-
-  // Add missed event state
-  const [showAddEvent, setShowAddEvent] = useState(false);
-  const [addEventTeam, setAddEventTeam] = useState<"home" | "away">("home");
-  const [addEventPoints, setAddEventPoints] = useState<number>(2);
-  const [addEventShotType, setAddEventShotType] = useState("layup");
-  const [addEventTimestamp, setAddEventTimestamp] = useState("");
-  const [addEventJersey, setAddEventJersey] = useState("");
-  const [addEventNotes, setAddEventNotes] = useState("");
-
-  // Clip URL state
-  const [clipUrl, setClipUrl] = useState<string | null>(null);
-  const [clipSeekTo, setClipSeekTo] = useState<number>(0);
-  const [clipEndTime, setClipEndTime] = useState<number>(0);
-  const [clipError, setClipError] = useState<string | null>(null);
-  const [loopCount, setLoopCount] = useState(0); // Used to force video remount on loop
-
-  // Refs for interval access (avoids stale closure)
-  const clipSeekToRef = useRef(clipSeekTo);
-  const clipEndTimeRef = useRef(clipEndTime);
-  const loopCountRef = useRef(loopCount);
-  clipSeekToRef.current = clipSeekTo;
-  clipEndTimeRef.current = clipEndTime;
-  loopCountRef.current = loopCount;
+  const [markExemplary, setMarkExemplary] = useState(false);
 
   useEffect(() => {
-    fetchGamesWithReview();
-    fetchTrainingMetrics();
+    fetchScoutingReviews();
   }, []);
 
-  // Fetch clip URL when selected event changes
   useEffect(() => {
-    if (!selectedGame || !selectedEvent) {
-      setClipUrl(null);
-      return;
-    }
-
-    // Reset loop count when event changes
-    setLoopCount(0);
-
-    const fetchClipUrl = async () => {
-      setVideoLoading(true);
-      setClipError(null);
-      try {
-        // Build URL with optional clip boundaries from Gemini
-        const event = selectedEvent as any;
-        let url = `/api/admin/review/clip?gameId=${selectedGame.id}&timestamp=${selectedEvent.timestampSeconds}`;
-        if (event.clipStartSeconds) {
-          url += `&clipStart=${event.clipStartSeconds}`;
+    // Reset edited values when player changes
+    if (selectedPlayer) {
+      const initial: Record<string, string> = {};
+      for (const field of OBSERVATION_FIELDS) {
+        const value = selectedPlayer.scoutingData[field.key];
+        if (field.type === "array" && Array.isArray(value)) {
+          initial[field.key] = value.join(", ");
+        } else if (typeof value === "object" && value !== null) {
+          initial[field.key] = JSON.stringify(value);
+        } else {
+          initial[field.key] = value?.toString() || "";
         }
-        if (event.clipEndSeconds) {
-          url += `&clipEnd=${event.clipEndSeconds}`;
-        }
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error("Failed to load video");
-        }
-        const data = await response.json();
-        console.log("Clip info loaded:", data);
-        setClipUrl(data.videoUrl);
-        setClipSeekTo(data.seekTo || 0);
-        setClipEndTime(data.endTime || (data.seekTo || 0) + 8);
-      } catch (e) {
-        console.error("Failed to fetch clip URL:", e);
-        setClipError("Failed to load video clip");
-        setClipUrl(null);
-      } finally {
-        setVideoLoading(false);
       }
-    };
-
-    fetchClipUrl();
-  }, [selectedGame?.id, selectedEvent?.timestampSeconds]);
-
-  async function fetchTrainingMetrics() {
-    try {
-      const res = await fetch("/api/admin/training/metrics");
-      if (res.ok) {
-        const data = await res.json();
-        setTrainingMetrics(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch training metrics:", error);
+      setEditedValues(initial);
+      setMarkExemplary(false);
     }
-  }
+  }, [selectedPlayer?.reviewId]);
 
-  async function fetchGamesWithReview() {
+  async function fetchScoutingReviews() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/review");
+      const res = await fetch("/api/admin/scouting-review");
       if (res.ok) {
         const data = await res.json();
         setGames(data.games || []);
+        setFewShotStats(data.fewShotStats || null);
       }
     } catch (error) {
-      console.error("Failed to fetch review queue:", error);
+      console.error("Failed to fetch scouting reviews:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function verifyEvent(eventId: string) {
-    setSubmitting(true);
-    try {
-      await fetch("/api/admin/review/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, action: "verify" }),
-      });
-
-      removeEventFromList(eventId);
-    } catch (error) {
-      console.error("Failed to verify:", error);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitRejection(eventId: string) {
-    if (!rejectionReason) {
-      alert("Please select a reason for rejection");
-      return;
-    }
+  async function submitVerification() {
+    if (!selectedPlayer || !selectedGame) return;
 
     setSubmitting(true);
     try {
-      await fetch("/api/admin/review/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          action: "reject",
-          context: {
-            reason: rejectionReason,
-            correctType: correctType || null,
-            correctTeam: correctTeam || null,
-            correctJersey: correctJersey ? parseInt(correctJersey) : null,
-            notes: notes || null,
-          },
-        }),
-      });
+      // Build observations array
+      const observations = OBSERVATION_FIELDS.map((field) => {
+        const originalValue = (() => {
+          const val = selectedPlayer.scoutingData[field.key];
+          if (field.type === "array" && Array.isArray(val))
+            return val.join(", ");
+          if (typeof val === "object" && val !== null)
+            return JSON.stringify(val);
+          return val?.toString() || "";
+        })();
+        const verifiedValue = editedValues[field.key] || "";
+        const wasCorrection = originalValue !== verifiedValue;
 
-      removeEventFromList(eventId);
-      resetRejectionForm();
-    } catch (error) {
-      console.error("Failed to reject:", error);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function removeEventFromList(eventId: string) {
-    if (selectedGame) {
-      const updatedEvents = selectedGame.events.filter((e) => e.id !== eventId);
-      if (updatedEvents.length === 0) {
-        setGames(games.filter((g) => g.id !== selectedGame.id));
-        setSelectedGame(null);
-        setSelectedEvent(null);
-      } else {
-        const updatedGame = {
-          ...selectedGame,
-          events: updatedEvents,
-          reviewCount: updatedEvents.length,
+        return {
+          observationType: field.key,
+          originalValue,
+          verifiedValue,
+          wasCorrection,
         };
-        setGames(
-          games.map((g) => (g.id === selectedGame.id ? updatedGame : g)),
-        );
-        setSelectedGame(updatedGame);
-        setSelectedEvent(updatedEvents[0]);
-      }
-    }
-    // Refresh training metrics after action
-    fetchTrainingMetrics();
-  }
+      }).filter((obs) => obs.verifiedValue); // Only include non-empty
 
-  function resetRejectionForm() {
-    setShowRejectDialog(false);
-    setRejectionReason("");
-    setCorrectType("");
-    setCorrectTeam("");
-    setCorrectJersey("");
-    setNotes("");
-  }
-
-  function resetAddEventForm() {
-    setShowAddEvent(false);
-    setAddEventTeam("home");
-    setAddEventPoints(2);
-    setAddEventShotType("layup");
-    setAddEventTimestamp("");
-    setAddEventJersey("");
-    setAddEventNotes("");
-  }
-
-  async function submitMissedEvent() {
-    if (!selectedGame || !addEventTimestamp) {
-      alert("Please enter a timestamp");
-      return;
-    }
-
-    // Parse timestamp (format: "MM:SS" or "M:SS")
-    const parts = addEventTimestamp.split(":");
-    const minutes = parseInt(parts[0]) || 0;
-    const seconds = parseInt(parts[1]) || 0;
-    const timestampSeconds = minutes * 60 + seconds;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/admin/review/add-event", {
+      const res = await fetch("/api/admin/scouting-review/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          gameId: selectedGame.id,
-          event: {
-            type: "scoring",
-            team: addEventTeam,
-            points: addEventPoints,
-            shotType: addEventShotType,
-            timestamp: addEventTimestamp,
-            timestampSeconds,
-            jersey: addEventJersey ? parseInt(addEventJersey) : undefined,
-            notes: addEventNotes || undefined,
-          },
+          reviewId: selectedPlayer.reviewId,
+          observations,
+          markAsExemplary: markExemplary,
         }),
       });
 
       if (res.ok) {
-        const data = await res.json();
-        // Update the game's score in the local state
-        setGames(
-          games.map((g) => {
-            if (g.id === selectedGame.id) {
-              return {
-                ...g,
-                homeScore: data.newScore.home,
-                awayScore: data.newScore.away,
-              };
-            }
-            return g;
-          }),
-        );
-        setSelectedGame({
-          ...selectedGame,
-          homeScore: data.newScore.home,
-          awayScore: data.newScore.away,
-        });
-        resetAddEventForm();
-        fetchTrainingMetrics();
+        removePlayerFromList(selectedPlayer.reviewId);
       }
     } catch (error) {
-      console.error("Failed to add event:", error);
+      console.error("Failed to verify scouting:", error);
     } finally {
       setSubmitting(false);
     }
   }
 
-  // Video ref is now used for clip playback, no seeking needed
+  async function skipReview() {
+    if (!selectedPlayer) return;
 
-  const totalReviewItems = games.reduce((sum, g) => sum + g.reviewCount, 0);
+    setSubmitting(true);
+    try {
+      await fetch(
+        `/api/admin/scouting-review/verify?reviewId=${selectedPlayer.reviewId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      removePlayerFromList(selectedPlayer.reviewId);
+    } catch (error) {
+      console.error("Failed to skip review:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function removePlayerFromList(reviewId: string) {
+    if (selectedGame) {
+      const updatedPlayers = selectedGame.players.filter(
+        (p) => p.reviewId !== reviewId,
+      );
+      if (updatedPlayers.length === 0) {
+        setGames(games.filter((g) => g.id !== selectedGame.id));
+        setSelectedGame(null);
+        setSelectedPlayer(null);
+      } else {
+        const updatedGame = { ...selectedGame, players: updatedPlayers };
+        setGames(
+          games.map((g) => (g.id === selectedGame.id ? updatedGame : g)),
+        );
+        setSelectedGame(updatedGame);
+        setSelectedPlayer(updatedPlayers[0]);
+      }
+    }
+    fetchScoutingReviews(); // Refresh stats
+  }
+
+  const totalPendingPlayers = games.reduce(
+    (sum, g) => sum + g.players.length,
+    0,
+  );
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -383,10 +245,10 @@ export default function ReviewQueue() {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Review Queue
+              Scouting Review
             </h1>
             <button
-              onClick={fetchGamesWithReview}
+              onClick={fetchScoutingReviews}
               className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               title="Refresh"
             >
@@ -394,48 +256,31 @@ export default function ReviewQueue() {
             </button>
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Gemini-detected events needing human review
+            Verify player scouting observations
           </p>
-          {totalReviewItems > 0 && (
-            <div className="mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {totalReviewItems} events need review
+          {totalPendingPlayers > 0 && (
+            <div className="mt-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {totalPendingPlayers} players need review
               </span>
             </div>
           )}
 
-          {/* Training Metrics Card */}
-          {trainingMetrics && trainingMetrics.totalReviewed > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-                  AI Accuracy
-                </span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {trainingMetrics.verificationRate.toFixed(0)}%
+          {/* Few-Shot Learning Stats */}
+          {fewShotStats && fewShotStats.totalExamples > 0 && (
+            <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">
+                  AI Learning
                 </span>
               </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    trainingMetrics.verificationRate >= 80
-                      ? "bg-green-500"
-                      : trainingMetrics.verificationRate >= 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                  style={{ width: `${trainingMetrics.verificationRate}%` }}
-                />
+              <div className="text-sm text-purple-700 dark:text-purple-300">
+                <div>{fewShotStats.totalExamples} verified observations</div>
+                <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  {fewShotStats.totalCorrections} corrections improve accuracy
+                </div>
               </div>
-              <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <span>{trainingMetrics.verified} verified</span>
-                <span>{trainingMetrics.rejected} rejected</span>
-              </div>
-              {trainingMetrics.totalReviewed < 10 && (
-                <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                  Review {10 - trainingMetrics.totalReviewed} more to see trends
-                </p>
-              )}
             </div>
           )}
         </div>
@@ -452,7 +297,7 @@ export default function ReviewQueue() {
               <Check className="w-12 h-12 text-green-500 mx-auto mb-3" />
               <p className="text-gray-600 dark:text-gray-300">All caught up!</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                No events need review
+                No scouting reviews pending
               </p>
             </div>
           ) : (
@@ -461,7 +306,7 @@ export default function ReviewQueue() {
                 key={game.id}
                 onClick={() => {
                   setSelectedGame(game);
-                  setSelectedEvent(game.events[0]);
+                  setSelectedPlayer(game.players[0]);
                 }}
                 className={`w-full text-left p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
                   selectedGame?.id === game.id
@@ -480,120 +325,63 @@ export default function ReviewQueue() {
                     {game.date}
                   </div>
                 )}
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    HOME {game.homeScore} - {game.awayScore} AWAY
-                  </span>
-                  <span className="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                    {game.reviewCount} to review
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                    <User className="w-3.5 h-3.5" />
+                    {game.players.length} players
+                  </div>
+                  <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    Review
                   </span>
                 </div>
-                {game.scoreDiscrepancy &&
-                  (game.scoreDiscrepancy.home !== 0 ||
-                    game.scoreDiscrepancy.away !== 0) && (
-                    <div className="mt-2 text-xs p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                      <span className="font-medium text-red-700 dark:text-red-400">
-                        Score mismatch:
-                      </span>
-                      <div className="text-red-600 dark:text-red-300">
-                        {game.scoreDiscrepancy.home > 0 && (
-                          <div>
-                            HOME: +{game.scoreDiscrepancy.home} pts needed
-                          </div>
-                        )}
-                        {game.scoreDiscrepancy.away > 0 && (
-                          <div>
-                            AWAY: +{game.scoreDiscrepancy.away} pts needed
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
               </button>
             ))
           )}
         </div>
       </div>
 
-      {/* Events List Panel */}
+      {/* Players List Panel */}
       {selectedGame && (
-        <div className="w-72 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900 dark:text-white truncate">
-                {selectedGame.name}
-              </h2>
-              <button
-                onClick={() => setShowAddEvent(true)}
-                className="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
-                title="Add missed basket"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
+            <h2 className="font-semibold text-gray-900 dark:text-white truncate">
+              {selectedGame.name}
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {selectedGame.reviewCount} events to review
+              {selectedGame.players.length} players to review
             </p>
-            {selectedGame.scoreDiscrepancy &&
-              (selectedGame.scoreDiscrepancy.home > 0 ||
-                selectedGame.scoreDiscrepancy.away > 0) && (
-                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs">
-                  <div className="font-medium text-red-700 dark:text-red-400 mb-1">
-                    Missing points:
-                  </div>
-                  {selectedGame.scoreDiscrepancy.home > 0 && (
-                    <div className="text-red-600 dark:text-red-300">
-                      HOME: +{selectedGame.scoreDiscrepancy.home} pts
-                    </div>
-                  )}
-                  {selectedGame.scoreDiscrepancy.away > 0 && (
-                    <div className="text-red-600 dark:text-red-300">
-                      AWAY: +{selectedGame.scoreDiscrepancy.away} pts
-                    </div>
-                  )}
-                </div>
-              )}
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {selectedGame.events.map((event, idx) => (
+            {selectedGame.players.map((player) => (
               <button
-                key={event.id}
-                onClick={() => setSelectedEvent(event)}
+                key={player.reviewId}
+                onClick={() => setSelectedPlayer(player)}
                 className={`w-full text-left p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                  selectedEvent?.id === event.id
+                  selectedPlayer?.reviewId === player.reviewId
                     ? "bg-blue-100 dark:bg-blue-900/30"
                     : ""
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900 dark:text-white capitalize">
-                    {event.type === "scoring" ? (
-                      <span className="flex items-center gap-1">
-                        <span className="text-lg">{event.points}pt</span>
-                        <span className="text-xs text-gray-500">
-                          {event.shotType}
-                        </span>
-                      </span>
-                    ) : (
-                      event.type
-                    )}
-                  </span>
-                  <span
-                    className={`px-1.5 py-0.5 text-xs rounded ${
-                      event.confidence >= 6
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      player.team === "home"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                        : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                     }`}
                   >
-                    {event.confidence}/10
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  <Clock className="w-3 h-3" />
-                  <span>{event.timestamp}</span>
-                  <span className="capitalize">{event.team}</span>
-                  {event.jersey && <span>#{event.jersey}</span>}
+                    #{player.jerseyNumber || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white truncate">
+                      {player.playerName || `Player #${player.jerseyNumber}`}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                      {player.team} •{" "}
+                      {player.scoutingData.position || "Unknown"}
+                    </div>
+                  </div>
                 </div>
               </button>
             ))}
@@ -603,508 +391,193 @@ export default function ReviewQueue() {
 
       {/* Review Detail Panel */}
       <div className="flex-1 bg-gray-100 dark:bg-gray-950 overflow-y-auto">
-        {selectedEvent ? (
-          <div className="p-6">
-            {/* Video Clip Preview */}
-            <div className="bg-black rounded-lg aspect-video mb-6 flex items-center justify-center relative">
-              {selectedGame && selectedEvent ? (
-                <>
-                  {videoLoading ? (
-                    <div className="text-gray-400 flex flex-col items-center">
-                      <Loader2 className="w-12 h-12 mb-2 animate-spin" />
-                      <span>Loading video...</span>
-                    </div>
-                  ) : clipError ? (
-                    <div className="text-red-400 flex flex-col items-center">
-                      <AlertTriangle className="w-12 h-12 mb-2" />
-                      <span>{clipError}</span>
-                    </div>
-                  ) : clipUrl && clipEndTime > 0 ? (
-                    <>
-                      <video
-                        ref={videoRef}
-                        key={`${selectedEvent.id}-${loopCount}`}
-                        src={`${clipUrl}#t=${clipSeekTo}`}
-                        className="w-full h-full rounded-lg"
-                        controls
-                        autoPlay
-                        onTimeUpdate={(e) => {
-                          const video = e.currentTarget;
-                          const endTime = clipEndTimeRef.current;
-                          if (endTime > 0 && video.currentTime >= endTime) {
-                            video.pause();
-                            // Increment loopCount to force React to remount with fresh seek
-                            setLoopCount((prev) => prev + 1);
-                          }
-                        }}
-                      />
-                      {/* Clip info overlay */}
-                      <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm">
-                        <span className="font-medium capitalize">
-                          {selectedEvent.type}
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span>{selectedEvent.timestamp}</span>
-                      </div>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <div className="text-gray-400 flex flex-col items-center">
-                  <Play className="w-12 h-12 mb-2" />
-                  <span>Select an event to view clip</span>
+        {selectedPlayer ? (
+          <div className="p-6 max-w-3xl mx-auto">
+            {/* Player Header */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <div className="flex items-center gap-4">
+                <div
+                  className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${
+                    selectedPlayer.team === "home"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                  }`}
+                >
+                  #{selectedPlayer.jerseyNumber || "?"}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {selectedPlayer.playerName ||
+                      `Player #${selectedPlayer.jerseyNumber}`}
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-400 capitalize">
+                    {selectedPlayer.team} Team •{" "}
+                    {selectedPlayer.scoutingData.position || "Unknown Position"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Overall Assessment */}
+              {selectedPlayer.scoutingData.overallAssessment && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    AI Assessment
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {selectedPlayer.scoutingData.overallAssessment}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Event Details */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-                    {selectedEvent.type === "scoring" ? (
-                      <span className="flex items-center gap-2">
-                        <span className="text-3xl">
-                          {selectedEvent.points}pt
-                        </span>
-                        <span className="text-lg text-gray-500 font-normal">
-                          {selectedEvent.shotType}
-                        </span>
-                      </span>
-                    ) : (
-                      selectedEvent.type
-                    )}
-                  </h2>
-                  <p className="text-gray-500 dark:text-gray-400 mt-1">
-                    {selectedEvent.timestamp} •{" "}
-                    {selectedEvent.team.toUpperCase()}
-                    {selectedEvent.jersey && ` #${selectedEvent.jersey}`}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div
-                    className={`text-3xl font-bold ${
-                      selectedEvent.confidence >= 6
-                        ? "text-yellow-600 dark:text-yellow-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {selectedEvent.confidence}/10
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    confidence
-                  </div>
-                </div>
+            {/* Observation Fields */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Edit3 className="w-5 h-5 text-gray-500" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Review Observations
+                </h3>
               </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Confirm or correct each observation. Your input trains the AI.
+              </p>
 
-              {/* Reason */}
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Why needs review
-                </div>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedEvent.reason}
-                </p>
-                {selectedEvent.specialistConfidence && (
-                  <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                    Specialist confidence: {selectedEvent.specialistConfidence}
-                    /10
-                  </p>
-                )}
-              </div>
+              <div className="space-y-4">
+                {OBSERVATION_FIELDS.map((field) => {
+                  const originalValue = (() => {
+                    const val = selectedPlayer.scoutingData[field.key];
+                    if (field.type === "array" && Array.isArray(val))
+                      return val.join(", ");
+                    if (typeof val === "object" && val !== null)
+                      return JSON.stringify(val);
+                    return val?.toString() || "";
+                  })();
+                  const currentValue = editedValues[field.key] || "";
+                  const wasEdited = originalValue !== currentValue;
 
-              {/* Action Buttons */}
-              {!showRejectDialog ? (
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => verifyEvent(selectedEvent.id)}
-                    disabled={submitting}
-                    className="flex-1 py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Check className="w-5 h-5" />
-                    )}
-                    {selectedEvent.type === "scoring"
-                      ? `Yes, ${selectedEvent.team} scored ${selectedEvent.points}pts`
-                      : `Yes, this is a ${selectedEvent.type}`}
-                  </button>
-                  <button
-                    onClick={() => setShowRejectDialog(true)}
-                    className="flex-1 py-4 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <X className="w-5 h-5" />
-                    No, this is wrong
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-red-800 dark:text-red-300">
-                      Why is this wrong?
-                    </h3>
-                    <button
-                      onClick={resetRejectionForm}
-                      className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  return (
+                    <div
+                      key={field.key}
+                      className="grid grid-cols-3 gap-4 items-start"
                     >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {/* Rejection Reason */}
-                  <div className="space-y-2">
-                    {REJECTION_REASONS.map((reason) => (
-                      <label
-                        key={reason.value}
-                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                          rejectionReason === reason.value
-                            ? "bg-red-100 dark:bg-red-900/40 border-2 border-red-400"
-                            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="rejectionReason"
-                          value={reason.value}
-                          checked={rejectionReason === reason.value}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          className="mt-1"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">
-                            {reason.label}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {reason.description}
-                          </div>
-                        </div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pt-2">
+                        {field.label}
                       </label>
-                    ))}
-                  </div>
-
-                  {/* Correction fields - show based on reason */}
-                  {rejectionReason === "wrong_type" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        What type of event is this actually?
-                      </label>
-                      <select
-                        value={correctType}
-                        onChange={(e) => setCorrectType(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
-                      >
-                        <option value="">Select correct type...</option>
-                        {STAT_TYPES.filter((t) => t !== selectedEvent.type).map(
-                          (type) => (
-                            <option
-                              key={type}
-                              value={type}
-                              className="capitalize"
-                            >
-                              {type}
-                            </option>
-                          ),
+                      <div className="col-span-2">
+                        {field.type === "select" ? (
+                          <select
+                            value={currentValue}
+                            onChange={(e) =>
+                              setEditedValues({
+                                ...editedValues,
+                                [field.key]: e.target.value,
+                              })
+                            }
+                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 ${
+                              wasEdited
+                                ? "border-yellow-400 dark:border-yellow-600"
+                                : "border-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            <option value="">Not specified</option>
+                            {field.options?.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <textarea
+                            value={currentValue}
+                            onChange={(e) =>
+                              setEditedValues({
+                                ...editedValues,
+                                [field.key]: e.target.value,
+                              })
+                            }
+                            rows={field.key === "overallAssessment" ? 3 : 2}
+                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 resize-none ${
+                              wasEdited
+                                ? "border-yellow-400 dark:border-yellow-600"
+                                : "border-gray-300 dark:border-gray-600"
+                            }`}
+                          />
                         )}
-                      </select>
-                    </div>
-                  )}
-
-                  {rejectionReason === "wrong_team" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Which team actually made the {selectedEvent.type}?
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setCorrectTeam("home")}
-                          className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                            correctTeam === "home"
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          HOME (White)
-                        </button>
-                        <button
-                          onClick={() => setCorrectTeam("away")}
-                          className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                            correctTeam === "away"
-                              ? "bg-green-600 text-white"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          AWAY (Green)
-                        </button>
+                        {wasEdited && (
+                          <div className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                            Original: {originalValue || "(empty)"}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {rejectionReason === "wrong_player" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        What's the correct jersey number?
-                      </label>
-                      <input
-                        type="number"
-                        value={correctJersey}
-                        onChange={(e) => setCorrectJersey(e.target.value)}
-                        placeholder="e.g., 23"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
-                      />
-                    </div>
-                  )}
-
-                  {/* Notes - always available */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Additional notes (optional)
-                    </label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any additional context that would help train the AI..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg resize-none"
-                      rows={2}
-                    />
-                  </div>
-
-                  {/* Submit rejection */}
-                  <button
-                    onClick={() => submitRejection(selectedEvent.id)}
-                    disabled={!rejectionReason || submitting}
-                    className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <X className="w-5 h-5" />
-                    )}
-                    Submit Rejection
-                  </button>
-                </div>
-              )}
-
-              {/* Quick Stats Reference */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  {selectedEvent.type === "scoring"
-                    ? `What to verify for a ${selectedEvent.points}pt basket`
-                    : `What counts as a ${selectedEvent.type}?`}
-                </h3>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedEvent.type === "rebound" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Shot must be attempted and MISSED</li>
-                      <li>Player must gain clear POSSESSION of the ball</li>
-                      <li>Not a rebound if ball goes out of bounds</li>
-                    </ul>
-                  )}
-                  {selectedEvent.type === "steal" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Defender must ACTIVELY take the ball</li>
-                      <li>Defender's team must gain possession</li>
-                      <li>Not a steal if ball just goes loose</li>
-                    </ul>
-                  )}
-                  {selectedEvent.type === "block" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Must be during a shot attempt</li>
-                      <li>Defender must contact the ball</li>
-                      <li>Ball must be going UP (not goaltending)</li>
-                    </ul>
-                  )}
-                  {selectedEvent.type === "turnover" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Offense loses possession without a shot</li>
-                      <li>Could be: bad pass, violation, offensive foul</li>
-                      <li>Not a turnover if a shot was attempted</li>
-                    </ul>
-                  )}
-                  {selectedEvent.type === "assist" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Pass leads directly to a made basket</li>
-                      <li>Scorer must not dribble extensively</li>
-                      <li>Clear passing connection to score</li>
-                    </ul>
-                  )}
-                  {selectedEvent.type === "scoring" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Ball must GO THROUGH the hoop</li>
-                      <li>
-                        Verify point value: 2pt (inside arc) or 3pt (beyond arc)
-                      </li>
-                      <li>Verify correct team scored (jersey color)</li>
-                      <li>Watch for goaltending or basket interference</li>
-                      {selectedEvent.points === 1 && (
-                        <li>Free throw: must be during dead ball</li>
-                      )}
-                    </ul>
-                  )}
-                </div>
+                  );
+                })}
               </div>
+
+              {/* Exemplary checkbox */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={markExemplary}
+                    onChange={(e) => setMarkExemplary(e.target.checked)}
+                    className="w-4 h-4 rounded"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      Mark as exemplary
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Prioritize these observations in future AI prompts
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={submitVerification}
+                disabled={submitting}
+                className="flex-1 py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Check className="w-5 h-5" />
+                )}
+                Verify Scouting
+              </button>
+              <button
+                onClick={skipReview}
+                disabled={submitting}
+                className="px-6 py-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+                Skip
+              </button>
             </div>
           </div>
         ) : selectedGame ? (
           <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
             <div className="text-center">
-              <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-              <p>Select an event to review</p>
+              <User className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+              <p>Select a player to review</p>
             </div>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
             <div className="text-center">
-              <Play className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+              <Eye className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p>Select a game to start reviewing</p>
+              <p className="text-sm mt-2">
+                Your reviews help the AI provide better scouting insights
+              </p>
             </div>
           </div>
         )}
       </div>
-
-      {/* Add Missed Event Modal */}
-      {showAddEvent && selectedGame && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Add Missed Basket
-              </h3>
-              <button
-                onClick={resetAddEventForm}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Team */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Which team scored?
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAddEventTeam("home")}
-                    className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                      addEventTeam === "home"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    HOME
-                    {selectedGame.scoreDiscrepancy?.home ? (
-                      <span className="text-xs ml-1">
-                        (+{selectedGame.scoreDiscrepancy.home})
-                      </span>
-                    ) : null}
-                  </button>
-                  <button
-                    onClick={() => setAddEventTeam("away")}
-                    className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                      addEventTeam === "away"
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    AWAY
-                    {selectedGame.scoreDiscrepancy?.away ? (
-                      <span className="text-xs ml-1">
-                        (+{selectedGame.scoreDiscrepancy.away})
-                      </span>
-                    ) : null}
-                  </button>
-                </div>
-              </div>
-
-              {/* Points */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Points
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3].map((pts) => (
-                    <button
-                      key={pts}
-                      onClick={() => setAddEventPoints(pts)}
-                      className={`flex-1 py-3 rounded-lg font-bold text-lg transition-colors ${
-                        addEventPoints === pts
-                          ? "bg-purple-600 text-white"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {pts}pt
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Shot Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Shot Type
-                </label>
-                <select
-                  value={addEventShotType}
-                  onChange={(e) => setAddEventShotType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
-                >
-                  <option value="layup">Layup</option>
-                  <option value="jumper">Jump Shot</option>
-                  <option value="three_pointer">3-Pointer</option>
-                  <option value="dunk">Dunk</option>
-                  <option value="free_throw">Free Throw</option>
-                  <option value="tip_in">Tip-In</option>
-                </select>
-              </div>
-
-              {/* Timestamp */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Timestamp (MM:SS)
-                </label>
-                <input
-                  type="text"
-                  value={addEventTimestamp}
-                  onChange={(e) => setAddEventTimestamp(e.target.value)}
-                  placeholder="e.g., 12:34"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
-                />
-              </div>
-
-              {/* Jersey (optional) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Jersey Number (optional)
-                </label>
-                <input
-                  type="number"
-                  value={addEventJersey}
-                  onChange={(e) => setAddEventJersey(e.target.value)}
-                  placeholder="e.g., 23"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg"
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                onClick={submitMissedEvent}
-                disabled={!addEventTimestamp || submitting}
-                className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Plus className="w-5 h-5" />
-                )}
-                Add {addEventPoints}pt {addEventTeam.toUpperCase()} Basket
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

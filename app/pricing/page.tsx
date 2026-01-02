@@ -15,46 +15,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect width="40" height="40" rx="8" fill="#0f2d52" />
-      <circle
-        cx="20"
-        cy="16"
-        r="4"
-        stroke="white"
-        strokeWidth="2"
-        fill="none"
-      />
-      <path
-        d="M12 28L20 20L28 28"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="28" r="2" fill="white" />
-      <circle cx="28" cy="28" r="2" fill="white" />
-    </svg>
-  );
-}
-
 function Header() {
   return (
     <header className="w-full border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-8 w-8 sm:h-10 sm:w-10" />
-            <span className="text-lg sm:text-xl font-semibold text-gray-900">
+          <Link href="/" className="flex items-center">
+            <span className="text-lg sm:text-xl font-bold text-gray-900">
               AI Scout
             </span>
           </Link>
@@ -111,11 +78,8 @@ function Footer() {
     <footer className="py-12 bg-white border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <Logo className="h-8 w-8" />
-            <span className="text-lg font-semibold text-gray-900">
-              AI Scout
-            </span>
+          <div className="flex items-center">
+            <span className="text-lg font-bold text-gray-900">AI Scout</span>
           </div>
           <div className="flex items-center space-x-6">
             <Link
@@ -156,7 +120,7 @@ const plans = [
   {
     name: "Starter",
     description: "Perfect for individual coaches",
-    price: 49,
+    price: 149,
     interval: "month",
     gamesPerMonth: 10,
     features: [
@@ -167,14 +131,13 @@ const plans = [
       "Email support",
       "Football & Basketball",
     ],
-    cta: "Start free trial",
+    cta: "Sign up",
     highlighted: false,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
   },
   {
     name: "Pro",
     description: "For serious programs",
-    price: 149,
+    price: 249,
     interval: "month",
     gamesPerMonth: 50,
     features: [
@@ -186,9 +149,8 @@ const plans = [
       "Export reports to PDF",
       "Priority support",
     ],
-    cta: "Start free trial",
+    cta: "Sign up",
     highlighted: true,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
   },
   {
     name: "Team",
@@ -206,9 +168,8 @@ const plans = [
       "Dedicated support",
       "Training sessions",
     ],
-    cta: "Contact sales",
+    cta: "Sign up",
     highlighted: false,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID,
   },
 ];
 
@@ -370,11 +331,7 @@ export default function PricingPage() {
                 </div>
 
                 <Link
-                  href={
-                    plan.name === "Team"
-                      ? "/contact"
-                      : `/sign-up?priceId=${plan.priceId}`
-                  }
+                  href={`/sign-up?plan=${plan.name.toLowerCase()}`}
                   className={`block w-full text-center py-3 px-4 rounded-lg font-semibold transition-colors mb-6 ${
                     plan.highlighted
                       ? "bg-[#0f2d52] text-white hover:bg-[#1a4a7a]"

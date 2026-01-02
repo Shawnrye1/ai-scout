@@ -429,38 +429,38 @@ const statusConfig: Record<
 > = {
   uploading: {
     label: "Uploading",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-900/30",
   },
   queued: {
     label: "Queued for Processing",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
+    color: "text-yellow-600 dark:text-yellow-400",
+    bgColor: "bg-yellow-50 dark:bg-yellow-900/30",
   },
   detecting: {
     label: "Detecting Players",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-900/30",
   },
   tracking: {
     label: "Tracking Movement",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-900/30",
   },
   analyzing: {
     label: "Generating Reports",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-900/30",
   },
   ready: {
     label: "Analysis Complete",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-900/30",
   },
   failed: {
     label: "Processing Failed",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-50 dark:bg-red-900/30",
   },
 };
 
@@ -522,8 +522,8 @@ function PlayerCard({
           onClick={handleFlag}
           className={`absolute top-2 right-2 p-1.5 rounded-lg transition-colors ${
             flagged
-              ? "bg-orange-100 text-orange-600"
-              : "bg-gray-100 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-orange-100 hover:text-orange-600"
+              ? "bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-orange-100 dark:hover:bg-orange-900 hover:text-orange-600 dark:hover:text-orange-400"
           }`}
           title={flagged ? "Flagged for review" : "Flag for review"}
         >
@@ -539,7 +539,7 @@ function PlayerCard({
                 className="w-12 h-12 rounded-lg object-cover"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                 <Users className="w-6 h-6 text-gray-400" />
               </div>
             )}
@@ -647,7 +647,7 @@ function PlayerCard({
 
         {/* Key Moments */}
         {player.keyMoments && player.keyMoments.length > 0 && onMomentClick && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <p className="text-xs text-gray-500 mb-2">Key Moments</p>
             <div className="flex flex-wrap gap-1">
               {player.keyMoments.slice(0, 3).map((moment: any) => {
@@ -1133,11 +1133,22 @@ function TeamScoutingCard({
   if (!team) return null;
 
   const accentColor = teamLabel === "home" ? "blue" : "orange";
-  const bgClass = teamLabel === "home" ? "bg-blue-50" : "bg-orange-50";
+  const bgClass =
+    teamLabel === "home"
+      ? "bg-blue-50 dark:bg-blue-900/30"
+      : "bg-orange-50 dark:bg-orange-900/30";
   const borderClass =
-    teamLabel === "home" ? "border-blue-200" : "border-orange-200";
-  const iconBg = teamLabel === "home" ? "bg-blue-100" : "bg-orange-100";
-  const iconText = teamLabel === "home" ? "text-blue-600" : "text-orange-600";
+    teamLabel === "home"
+      ? "border-blue-200 dark:border-blue-800"
+      : "border-orange-200 dark:border-orange-800";
+  const iconBg =
+    teamLabel === "home"
+      ? "bg-blue-100 dark:bg-blue-800"
+      : "bg-orange-100 dark:bg-orange-800";
+  const iconText =
+    teamLabel === "home"
+      ? "text-blue-600 dark:text-blue-400"
+      : "text-orange-600 dark:text-orange-400";
 
   return (
     <div
@@ -1411,27 +1422,17 @@ function GeminiInsights({ game }: { game: any }) {
             <div className="bg-white dark:bg-gray-700 rounded-lg p-3 text-center border border-gray-100 dark:border-gray-600">
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {(() => {
-                  const boxScore = (game.boxScore as string) || "";
-                  // Handle both formats:
-                  // Game 1: "TOTALS26-48..." (FGM-FGA immediately after TOTALS)
-                  // Game 2: "TEAM TOTALS7323-45..." (PTS then FGM-FGA)
-                  let totalFGA = 0;
+                  // Calculate total shots (FGA) from user team players' metrics
+                  const userTeam = game?.detectedTeams?.find(
+                    (t: any) => t.isUserTeam,
+                  );
+                  const userPlayers = userTeam?.players || [];
 
-                  // Try format 1: TOTALS followed directly by FGM-FGA
-                  const format1 = [
-                    ...boxScore.matchAll(/TOTALS(\d{1,2})-(\d{2})/g),
-                  ];
-                  if (format1.length > 0) {
-                    for (const match of format1.slice(0, 2)) {
-                      totalFGA += parseInt(match[2]) || 0;
-                    }
-                  } else {
-                    // Try format 2: TOTALS followed by PTS then FGM-FGA
-                    const format2 = [
-                      ...boxScore.matchAll(/TOTALS\d{2,3}(\d{1,2})-(\d{2})/g),
-                    ];
-                    for (const match of format2.slice(0, 2)) {
-                      totalFGA += parseInt(match[2]) || 0;
+                  let totalFGA = 0;
+                  for (const player of userPlayers) {
+                    const metrics = player.analysis?.metrics;
+                    if (metrics?.fieldGoalsAttempted) {
+                      totalFGA += metrics.fieldGoalsAttempted;
                     }
                   }
 
@@ -1652,31 +1653,34 @@ function GeminiInsights({ game }: { game: any }) {
           <div className="grid md:grid-cols-2 gap-4">
             {/* Attacking Their Defense */}
             {coachingInsights.forNextGame.attackingTheirDefense?.length > 0 && (
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                <h4 className="text-sm font-semibold text-green-700 mb-2">
+              <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 border border-green-100 dark:border-green-800">
+                <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">
                   Attacking Their Defense
                 </h4>
                 <ul className="space-y-3">
                   {coachingInsights.forNextGame.attackingTheirDefense.map(
                     (item: any, i: number) => (
-                      <li key={i} className="text-sm text-green-800">
+                      <li
+                        key={i}
+                        className="text-sm text-green-800 dark:text-green-300"
+                      >
                         {typeof item === "string" ? (
                           <div className="flex items-start gap-2">
                             <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                             {item}
                           </div>
                         ) : (
-                          <div className="bg-green-100/50 rounded-lg p-3">
-                            <div className="font-medium text-green-900 mb-1">
+                          <div className="bg-green-100/50 dark:bg-green-800/50 rounded-lg p-3">
+                            <div className="font-medium text-green-900 dark:text-green-200 mb-1">
                               {item.action}
                             </div>
                             {item.why && (
-                              <div className="text-xs text-green-700">
+                              <div className="text-xs text-green-700 dark:text-green-400">
                                 Why: {item.why}
                               </div>
                             )}
                             {item.when && (
-                              <div className="text-xs text-green-600 mt-1">
+                              <div className="text-xs text-green-600 dark:text-green-500 mt-1">
                                 When: {item.when}
                               </div>
                             )}
@@ -1691,31 +1695,34 @@ function GeminiInsights({ game }: { game: any }) {
 
             {/* Defending Their Offense */}
             {coachingInsights.forNextGame.defendingTheirOffense?.length > 0 && (
-              <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-                <h4 className="text-sm font-semibold text-red-700 mb-2">
+              <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-4 border border-red-100 dark:border-red-800">
+                <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
                   Defending Their Offense
                 </h4>
                 <ul className="space-y-3">
                   {coachingInsights.forNextGame.defendingTheirOffense.map(
                     (item: any, i: number) => (
-                      <li key={i} className="text-sm text-red-800">
+                      <li
+                        key={i}
+                        className="text-sm text-red-800 dark:text-red-300"
+                      >
                         {typeof item === "string" ? (
                           <div className="flex items-start gap-2">
                             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                             {item}
                           </div>
                         ) : (
-                          <div className="bg-red-100/50 rounded-lg p-3">
-                            <div className="font-medium text-red-900 mb-1">
+                          <div className="bg-red-100/50 dark:bg-red-800/50 rounded-lg p-3">
+                            <div className="font-medium text-red-900 dark:text-red-200 mb-1">
                               {item.adjustment || item.action}
                             </div>
                             {item.why && (
-                              <div className="text-xs text-red-700">
+                              <div className="text-xs text-red-700 dark:text-red-400">
                                 Why: {item.why}
                               </div>
                             )}
                             {item.personnel && (
-                              <div className="text-xs text-red-600 mt-1">
+                              <div className="text-xs text-red-600 dark:text-red-500 mt-1">
                                 Personnel: {item.personnel}
                               </div>
                             )}
@@ -2453,26 +2460,28 @@ function ProcessingStatus({ game }: { game: any }) {
 
       {isProcessing && (
         <>
-          <div className="h-2 bg-white/50 rounded-full overflow-hidden mb-2">
+          <div className="h-2 bg-white/50 dark:bg-gray-700 rounded-full overflow-hidden mb-2">
             <div
-              className="h-full bg-[#0f2d52] transition-all duration-500"
+              className="h-full bg-[#0f2d52] dark:bg-blue-500 transition-all duration-500"
               style={{ width: `${game.processingProgress || 0}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {game.processingProgress || 0}% complete
           </p>
         </>
       )}
 
       {game.status === "queued" && (
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           Your video is in the queue. Processing will begin shortly.
         </p>
       )}
 
       {game.status === "failed" && game.processingError && (
-        <p className="text-sm text-red-600 mt-2">{game.processingError}</p>
+        <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+          {game.processingError}
+        </p>
       )}
     </div>
   );
@@ -2615,7 +2624,7 @@ export default function GameDetailPage({
   if (error || !data?.game) {
     return (
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-        <div className="bg-red-50 text-red-600 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg p-4">
           Failed to load game. Please try again.
         </div>
       </div>
@@ -2680,7 +2689,7 @@ export default function GameDetailPage({
 
       {/* Gemini Analysis Error */}
       {analyzeError && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center gap-2">
+        <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg p-4 flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           <span>{analyzeError}</span>
           <button
@@ -2704,13 +2713,13 @@ export default function GameDetailPage({
         <div>
           {/* Show banner if analysis is in progress */}
           {game.geminiAnalysis && !isAnalysisComplete(game) && (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-lg p-4 mb-6 flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-100 dark:border-purple-800 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-purple-600 dark:text-purple-400 animate-spin" />
               <div>
-                <p className="text-sm font-medium text-purple-900">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
                   Analysis in progress...
                 </p>
-                <p className="text-xs text-purple-700">
+                <p className="text-xs text-purple-700 dark:text-purple-400">
                   Full scouting report will be available when complete
                 </p>
               </div>
@@ -3207,8 +3216,8 @@ export default function GameDetailPage({
                   {/* Highlights Grid - always 2 columns on md+ */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {/* Key Moments */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-yellow-500" />
                         Key Moments{" "}
                         {keyMoments.length > 0 && `(${keyMoments.length})`}
@@ -3224,24 +3233,24 @@ export default function GameDetailPage({
                               <button
                                 key={idx}
                                 onClick={() => jumpToTime(seconds)}
-                                className="w-full text-left p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors border border-yellow-200"
+                                className="w-full text-left p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors border border-yellow-200 dark:border-yellow-800"
                               >
                                 <div className="flex items-center gap-2 mb-1">
-                                  <Play className="w-3 h-3 text-yellow-600 flex-shrink-0" />
-                                  <span className="text-xs font-mono font-bold text-yellow-700">
+                                  <Play className="w-3 h-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                  <span className="text-xs font-mono font-bold text-yellow-700 dark:text-yellow-400">
                                     {formatTime(seconds)}
                                   </span>
                                   {moment.type && (
-                                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 capitalize flex-shrink-0">
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 capitalize flex-shrink-0">
                                       {moment.type.replace("_", " ")}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                   {moment.description}
                                 </p>
                                 {moment.significance && (
-                                  <p className="text-xs text-gray-500 mt-1 italic">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
                                     {moment.significance}
                                   </p>
                                 )}
@@ -3258,8 +3267,8 @@ export default function GameDetailPage({
                     </div>
 
                     {/* Scoring Runs */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-green-500" />
                         Scoring Runs{" "}
                         {scoringRuns.length > 0 && `(${scoringRuns.length})`}
@@ -3285,14 +3294,14 @@ export default function GameDetailPage({
                                 className={`w-full text-left p-3 rounded-lg transition-colors border ${
                                   run.team?.toLowerCase() === "home" ||
                                   run.team === "MVA"
-                                    ? "bg-blue-50 hover:bg-blue-100 border-blue-200"
-                                    : "bg-orange-50 hover:bg-orange-100 border-orange-200"
+                                    ? "bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border-blue-200 dark:border-blue-800"
+                                    : "bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 border-orange-200 dark:border-orange-800"
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center gap-2">
-                                    <Play className="w-3 h-3 text-gray-600 flex-shrink-0" />
-                                    <span className="text-xs font-mono font-bold text-gray-700">
+                                    <Play className="w-3 h-3 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+                                    <span className="text-xs font-mono font-bold text-gray-700 dark:text-gray-300">
                                       {run.quarter ? `Q${run.quarter} • ` : ""}
                                       {formatTime(startSeconds)}
                                     </span>
@@ -3301,14 +3310,14 @@ export default function GameDetailPage({
                                     className={`text-sm font-bold flex-shrink-0 ${
                                       run.team?.toLowerCase() === "home" ||
                                       run.team === "MVA"
-                                        ? "text-blue-700"
-                                        : "text-orange-700"
+                                        ? "text-blue-700 dark:text-blue-400"
+                                        : "text-orange-700 dark:text-orange-400"
                                     }`}
                                   >
                                     {run.run || run.score} {run.team}
                                   </span>
                                 </div>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                   {run.cause || run.description}
                                 </p>
                               </button>
@@ -3326,12 +3335,12 @@ export default function GameDetailPage({
 
                   {/* No highlights message */}
                   {keyMoments.length === 0 && scoringRuns.length === 0 && (
-                    <div className="bg-gray-50 rounded-xl p-8 text-center">
-                      <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-8 text-center">
+                      <Sparkles className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-gray-400">
                         No highlights available yet.
                       </p>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                         Run AI analysis to generate key moments and scoring
                         runs.
                       </p>
@@ -3345,12 +3354,12 @@ export default function GameDetailPage({
 
       {/* Waiting State */}
       {!isReady && game.status !== "failed" && (
-        <div className="bg-gray-50 rounded-xl p-12 text-center">
-          <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-12 text-center">
+          <Video className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             Processing Your Game Film
           </h3>
-          <p className="text-gray-500 max-w-md mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
             Our AI is analyzing your video. This typically takes 30-60 minutes
             depending on the length. We'll email you when it's ready.
           </p>

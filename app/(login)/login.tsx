@@ -34,11 +34,22 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+const planDetails: Record<
+  string,
+  { name: string; price: number; features: string }
+> = {
+  starter: { name: "Starter", price: 149, features: "10 games/month" },
+  pro: { name: "Pro", price: 249, features: "50 games/month" },
+  team: { name: "Team", price: 299, features: "Unlimited games" },
+};
+
 export function Login({ mode = "signin" }: { mode?: "signin" | "signup" }) {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const priceId = searchParams.get("priceId");
+  const plan = searchParams.get("plan");
   const inviteId = searchParams.get("inviteId");
+  const selectedPlan = plan ? planDetails[plan] : null;
   const [rememberMe, setRememberMe] = useState(false);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     mode === "signin" ? signIn : signUp,
@@ -76,7 +87,30 @@ export function Login({ mode = "signin" }: { mode?: "signin" | "signup" }) {
             <form className="space-y-5" action={formAction}>
               <input type="hidden" name="redirect" value={redirect || ""} />
               <input type="hidden" name="priceId" value={priceId || ""} />
+              <input type="hidden" name="plan" value={plan || ""} />
               <input type="hidden" name="inviteId" value={inviteId || ""} />
+
+              {/* Show selected plan */}
+              {mode === "signup" && selectedPlan && (
+                <div className="rounded-lg bg-[#0f2d52]/5 border border-[#0f2d52]/20 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {selectedPlan.name} Plan
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {selectedPlan.features}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-[#0f2d52]">
+                        ${selectedPlan.price}
+                      </p>
+                      <p className="text-xs text-gray-500">/month</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Email Field */}
               <div>
@@ -211,7 +245,7 @@ export function Login({ mode = "signin" }: { mode?: "signin" | "signup" }) {
               Don't have an account?{" "}
               <Link
                 href={`/sign-up${redirect ? `?redirect=${redirect}` : ""}${
-                  priceId ? `&priceId=${priceId}` : ""
+                  plan ? `${redirect ? "&" : "?"}plan=${plan}` : ""
                 }`}
                 className="font-semibold text-[#0f2d52] hover:text-[#1a4a7a]"
               >
@@ -223,7 +257,7 @@ export function Login({ mode = "signin" }: { mode?: "signin" | "signup" }) {
               Already have an account?{" "}
               <Link
                 href={`/sign-in${redirect ? `?redirect=${redirect}` : ""}${
-                  priceId ? `&priceId=${priceId}` : ""
+                  plan ? `${redirect ? "&" : "?"}plan=${plan}` : ""
                 }`}
                 className="font-semibold text-[#0f2d52] hover:text-[#1a4a7a]"
               >

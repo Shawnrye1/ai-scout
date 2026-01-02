@@ -1,11 +1,20 @@
 import { db } from "../lib/db/drizzle";
-import { games, playerAnalysis, detectedPlayers } from "../lib/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  games,
+  playerAnalysis,
+  detectedPlayers,
+  detectedTeams,
+} from "../lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
-// Parse box score to extract player stats (handles multiple formats)
-function parseBoxScore(
-  boxScore: string | null,
-): Map<
+/**
+ * Parse box score to extract player stats (handles multiple formats)
+ *
+ * IMPORTANT: Keep this in sync with parseBoxScore in:
+ * - /app/api/games/[id]/analyze-gemini/route.ts
+ * - /lib/analysis/multi-agent-gemini.ts
+ */
+function parseBoxScore(boxScore: string | null): Map<
   string,
   {
     points: number;
@@ -25,12 +34,54 @@ function parseBoxScore(
   const playerStats = new Map();
   if (!boxScore) return playerStats;
 
+  // Format 5: Human-readable format (most common for user input)
+  // Example: #32 Cooper Flagg: 23pts, 10-17FG, 2-53PT, 1-2FT, 3reb, 5ast, 2stl, 8blk
+  const format5Regex =
+    /#(\d{1,2})\s+[^:]+:\s*(\d+)pts?,\s*(\d+)-(\d+)FG,\s*(\d+)-(\d+)3PT,\s*(\d+)-(\d+)FT,\s*(\d+)reb,\s*(\d+)ast,\s*(\d+)stl,\s*(\d+)blk/gi;
+
+  let match;
+  while ((match = format5Regex.exec(boxScore)) !== null) {
+    const jersey = match[1];
+    const pts = parseInt(match[2]) || 0;
+    const fgm = parseInt(match[3]) || 0;
+    const fga = parseInt(match[4]) || 0;
+    const threePm = parseInt(match[5]) || 0;
+    const threePa = parseInt(match[6]) || 0;
+    const ftm = parseInt(match[7]) || 0;
+    const fta = parseInt(match[8]) || 0;
+    const reb = parseInt(match[9]) || 0;
+    const ast = parseInt(match[10]) || 0;
+    const stl = parseInt(match[11]) || 0;
+    const blk = parseInt(match[12]) || 0;
+
+    playerStats.set(jersey, {
+      points: pts,
+      rebounds: reb,
+      assists: ast,
+      steals: stl,
+      blocks: blk,
+      turnovers: 0,
+      fgm,
+      fga,
+      threePm,
+      threePa,
+      ftm,
+      fta,
+    });
+  }
+
+  if (playerStats.size > 0) {
+    console.log(
+      `Parsed ${playerStats.size} players from box score (format 5 - human readable)`,
+    );
+    return playerStats;
+  }
+
   // Format 1: Compact format (no spaces) - older ESPN-style
   // Example: 01Robert Wright*5-121-43-4731412003214
   const format1Regex =
     /(\d{1,2})([A-Za-z\s\-']+)\*?(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})-(\d{1,2})(\d{1,2})(\d)(\d{1,2})(\d{1,2})(\d)(\d)(\d)(\d)/g;
 
-  let match;
   while ((match = format1Regex.exec(boxScore)) !== null) {
     const jersey = match[1];
     const fgm = parseInt(match[3]) || 0;
@@ -162,7 +213,7 @@ function calculateOverallGrade(
   return Math.min(Math.round(grade), 99);
 }
 
-async function reprocessGame(gameId: string) {
+async function reprocessGame(gameId: string, teamIdOverride?: string) {
   console.log(`\nReprocessing game ${gameId}...`);
 
   // Get box score
@@ -179,7 +230,35 @@ async function reprocessGame(gameId: string) {
   const boxScoreStats = parseBoxScore(game.boxScore as string);
   console.log("Parsed stats:", Array.from(boxScoreStats.entries()));
 
-  // Get all players for this game
+  // Get the home team (or user's team) - box score applies only to this team
+  let targetTeamId = teamIdOverride;
+  if (!targetTeamId) {
+    const teams = await db
+      .select({
+        id: detectedTeams.id,
+        name: detectedTeams.teamName,
+        isUserTeam: detectedTeams.isUserTeam,
+      })
+      .from(detectedTeams)
+      .where(eq(detectedTeams.gameId, gameId));
+
+    // Prefer user's team, otherwise take the first one
+    const userTeam = teams.find((t) => t.isUserTeam);
+    const firstTeam = teams[0];
+    targetTeamId = userTeam?.id || firstTeam?.id;
+
+    console.log(`Teams found: ${teams.map((t) => t.name).join(", ")}`);
+    console.log(
+      `Applying stats to: ${userTeam?.name || firstTeam?.name || "unknown"}`,
+    );
+  }
+
+  if (!targetTeamId) {
+    console.log("No team found for this game");
+    return;
+  }
+
+  // Get only players from the target team (not all players!)
   const players = await db
     .select({
       id: detectedPlayers.id,
@@ -192,9 +271,14 @@ async function reprocessGame(gameId: string) {
       playerAnalysis,
       eq(detectedPlayers.id, playerAnalysis.detectedPlayerId),
     )
-    .where(eq(detectedPlayers.gameId, gameId));
+    .where(
+      and(
+        eq(detectedPlayers.gameId, gameId),
+        eq(detectedPlayers.detectedTeamId, targetTeamId),
+      ),
+    );
 
-  console.log(`Found ${players.length} players`);
+  console.log(`Found ${players.length} players on target team`);
 
   let updated = 0;
   for (const player of players) {
@@ -248,8 +332,21 @@ async function reprocessGame(gameId: string) {
 }
 
 async function main() {
-  const gameId = process.argv[2] || "700762a3-319a-43ee-88ee-f95c0c4445ce"; // Game 2
-  await reprocessGame(gameId);
+  const gameId = process.argv[2];
+  const teamId = process.argv[3]; // Optional: specify team ID to apply stats to
+
+  if (!gameId) {
+    console.log(
+      "Usage: npx tsx scripts/reprocess-game-stats.ts <gameId> [teamId]",
+    );
+    console.log("  gameId: The game ID to reprocess");
+    console.log(
+      "  teamId: Optional. The team ID to apply stats to. If not provided, uses user's team or first team.",
+    );
+    process.exit(1);
+  }
+
+  await reprocessGame(gameId, teamId);
   process.exit(0);
 }
 
