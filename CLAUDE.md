@@ -647,6 +647,61 @@ GEMINI_API_KEY=xxx npx tsx scripts/test-gemini-stats.ts <video-url>
 22. ✅ **Prompt Suggestions** - Auto-generates improvements from rejection patterns
 23. ✅ **Prompt Versioning** - Tracks prompt changes with accuracy metrics
 
+## Recent Bug Fixes (January 2026)
+
+### Box Score Stats Only Apply to User's Team
+
+**File:** `/app/api/games/[id]/analyze-gemini/route.ts`
+
+Previously, box score stats were matched by jersey number only, so opponent players with the same jersey number as user's team players would incorrectly receive stats. Now stats only apply to `player.team === "home"` (user's team).
+
+```typescript
+const isUserTeam = player.team === "home";
+const stats = isUserTeam
+  ? boxScoreStats.get(String(jerseyNumber)) || null
+  : null;
+```
+
+### Box Score Input Simplified
+
+**File:** `/app/(dashboard)/games/new/page.tsx`
+
+Removed Photo/OCR option from box score input. Now only supports:
+
+- **CSV** - Paste CSV data, Gemini converts to structured format
+- **Paste** - Paste human-readable box score (Format 5 most common)
+
+### Total Shots Display Fixed
+
+**File:** `/app/(dashboard)/game/[id]/page.tsx`
+
+Total Shots now calculated from player metrics (sum of FGA from user team players) instead of regex parsing box score text that looked for "TOTALS" keyword.
+
+### Player Aggregation Across Games Fixed
+
+**File:** `/app/api/players/route.ts`
+
+Players are grouped by `jerseyNumber-teamName` for aggregation across games. Added `normalizeTeamName()` function that strips mascot suffixes (Eagles, Bulldogs, Tigers, etc.) so "Montverde Academy" and "Montverde Academy Eagles" are treated as the same team.
+
+```typescript
+function normalizeTeamName(name: string): string {
+  const mascots = ['eagles', 'bulldogs', 'tigers', ...];
+  const words = name.trim().split(/\s+/);
+  const lastWord = words[words.length - 1]?.toLowerCase();
+  if (mascots.includes(lastWord)) {
+    return words.slice(0, -1).join(' ').trim() || name;
+  }
+  return name;
+}
+```
+
+## Current State (January 2026)
+
+- **Live URL:** https://ai-scout-jet.vercel.app
+- **Branch:** develop
+- **Test Games:** 3 games uploaded for Montverde Academy
+- **All systems working:** Box score parsing, player aggregation, stats display
+
 ## Self-Learning Database Tables
 
 ### verified_examples
