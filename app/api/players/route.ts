@@ -1,26 +1,86 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db/drizzle';
-import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments } from '@/lib/db/schema';
-import { desc, eq, and, inArray } from 'drizzle-orm';
-import { getUser } from '@/lib/db/queries';
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db/drizzle";
+import {
+  games,
+  detectedPlayers,
+  detectedTeams,
+  playerAnalysis,
+  keyMoments,
+} from "@/lib/db/schema";
+import { desc, eq, and, inArray } from "drizzle-orm";
+import { getUser } from "@/lib/db/queries";
+
+// Normalize team names for grouping (remove mascots like "Eagles", "Bulldogs", etc.)
+function normalizeTeamName(name: string): string {
+  if (!name) return "Unknown";
+  // Common mascots/suffixes to remove for matching
+  const mascots = [
+    "eagles",
+    "bulldogs",
+    "tigers",
+    "lions",
+    "bears",
+    "panthers",
+    "wildcats",
+    "warriors",
+    "knights",
+    "raiders",
+    "hawks",
+    "falcons",
+    "mustangs",
+    "cougars",
+    "broncos",
+    "cardinals",
+    "rockets",
+    "trojans",
+    "vikings",
+    "spartans",
+    "hornets",
+    "blazers",
+    "wolves",
+    "jaguars",
+    "rebels",
+    "gators",
+    "hurricanes",
+    "bucks",
+    "rams",
+    "chargers",
+    "chiefs",
+  ];
+
+  const words = name.trim().split(/\s+/);
+  const lastWord = words[words.length - 1]?.toLowerCase();
+
+  // If last word is a mascot, remove it
+  if (mascots.includes(lastWord)) {
+    return words.slice(0, -1).join(" ").trim() || name;
+  }
+  return name;
+}
 
 function normalizeDevArea(area: string): string | null {
   const lower = area.toLowerCase();
   // Skip generic hand development suggestions - not useful for elite players
-  if (lower.includes('left hand') || lower.includes('right hand')) return null;
-  if (lower.includes('shooting') || lower.includes('shot')) return 'Shooting';
-  if (lower.includes('defense') || lower.includes('defensive')) return 'Defense';
-  if (lower.includes('ball handling') || lower.includes('dribbl')) return 'Ball Handling';
-  if (lower.includes('passing') || lower.includes('assist')) return 'Passing';
-  if (lower.includes('rebound')) return 'Rebounding';
-  if (lower.includes('footwork') || lower.includes('feet')) return 'Footwork';
-  if (lower.includes('decision') || lower.includes('iq')) return 'Basketball IQ';
-  if (lower.includes('transition') || lower.includes('fast break')) return 'Transition';
-  if (lower.includes('post') || lower.includes('low block')) return 'Post Play';
-  if (lower.includes('screen') || lower.includes('pick')) return 'Screening';
-  if (lower.includes('communication')) return 'Communication';
-  if (lower.includes('conditioning') || lower.includes('endurance')) return 'Conditioning';
-  if (lower.includes('ball security') || lower.includes('turnover')) return 'Ball Security';
+  if (lower.includes("left hand") || lower.includes("right hand")) return null;
+  if (lower.includes("shooting") || lower.includes("shot")) return "Shooting";
+  if (lower.includes("defense") || lower.includes("defensive"))
+    return "Defense";
+  if (lower.includes("ball handling") || lower.includes("dribbl"))
+    return "Ball Handling";
+  if (lower.includes("passing") || lower.includes("assist")) return "Passing";
+  if (lower.includes("rebound")) return "Rebounding";
+  if (lower.includes("footwork") || lower.includes("feet")) return "Footwork";
+  if (lower.includes("decision") || lower.includes("iq"))
+    return "Basketball IQ";
+  if (lower.includes("transition") || lower.includes("fast break"))
+    return "Transition";
+  if (lower.includes("post") || lower.includes("low block")) return "Post Play";
+  if (lower.includes("screen") || lower.includes("pick")) return "Screening";
+  if (lower.includes("communication")) return "Communication";
+  if (lower.includes("conditioning") || lower.includes("endurance"))
+    return "Conditioning";
+  if (lower.includes("ball security") || lower.includes("turnover"))
+    return "Ball Security";
   return area.charAt(0).toUpperCase() + area.slice(1).toLowerCase();
 }
 
@@ -28,7 +88,7 @@ export async function GET() {
   try {
     const user = await getUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get all players from user's games with their full analysis
@@ -54,8 +114,14 @@ export async function GET() {
       })
       .from(detectedPlayers)
       .innerJoin(games, eq(games.id, detectedPlayers.gameId))
-      .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
-      .leftJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
+      .innerJoin(
+        detectedTeams,
+        eq(detectedTeams.id, detectedPlayers.detectedTeamId),
+      )
+      .leftJoin(
+        playerAnalysis,
+        eq(playerAnalysis.detectedPlayerId, detectedPlayers.id),
+      )
       .where(and(eq(games.userId, user.id), eq(detectedTeams.isUserTeam, true)))
       .orderBy(desc(games.createdAt));
 
@@ -63,20 +129,21 @@ export async function GET() {
     const playerIds = playersData.map((p) => p.id);
 
     // Get key moments for all players
-    const allKeyMoments = playerIds.length > 0
-      ? await db
-          .select({
-            playerId: keyMoments.detectedPlayerId,
-            description: keyMoments.description,
-            sentiment: keyMoments.sentiment,
-            momentType: keyMoments.momentType,
-            timestampSeconds: keyMoments.timestampSeconds,
-            createdAt: keyMoments.createdAt,
-          })
-          .from(keyMoments)
-          .where(inArray(keyMoments.detectedPlayerId, playerIds))
-          .orderBy(desc(keyMoments.createdAt))
-      : [];
+    const allKeyMoments =
+      playerIds.length > 0
+        ? await db
+            .select({
+              playerId: keyMoments.detectedPlayerId,
+              description: keyMoments.description,
+              sentiment: keyMoments.sentiment,
+              momentType: keyMoments.momentType,
+              timestampSeconds: keyMoments.timestampSeconds,
+              createdAt: keyMoments.createdAt,
+            })
+            .from(keyMoments)
+            .where(inArray(keyMoments.detectedPlayerId, playerIds))
+            .orderBy(desc(keyMoments.createdAt))
+        : [];
 
     // Group key moments by player
     const momentsByPlayer = new Map<string, typeof allKeyMoments>();
@@ -88,35 +155,60 @@ export async function GET() {
     }
 
     // Group by jersey number to aggregate across games
-    const playerMap = new Map<string, {
-      id: string;
-      jerseyNumber: string;
-      displayName: string | null;
-      positionGuess: string | null;
-      teamName: string;
-      grades: number[];
-      allStats: { points: number; rebounds: number; assists: number; steals: number; blocks: number };
-      games: { gameId: string; gameName: string; grade: number; date: string; stats: any }[];
-      allStrengths: string[];
-      allDevAreas: string[];
-      latestSummary: string | null;
-      latestTendencies: any;
-      keyMoments: typeof allKeyMoments;
-      playerIds: string[];
-    }>();
+    const playerMap = new Map<
+      string,
+      {
+        id: string;
+        jerseyNumber: string;
+        displayName: string | null;
+        positionGuess: string | null;
+        teamName: string;
+        grades: number[];
+        allStats: {
+          points: number;
+          rebounds: number;
+          assists: number;
+          steals: number;
+          blocks: number;
+        };
+        games: {
+          gameId: string;
+          gameName: string;
+          grade: number;
+          date: string;
+          stats: any;
+        }[];
+        allStrengths: string[];
+        allDevAreas: string[];
+        latestSummary: string | null;
+        latestTendencies: any;
+        keyMoments: typeof allKeyMoments;
+        playerIds: string[];
+      }
+    >();
 
     for (const player of playersData) {
-      const key = `${player.jerseyNumber}-${player.teamName || player.teamLabel}`;
+      // Normalize team name to group players across games with slight name variations
+      const normalizedTeam = normalizeTeamName(
+        player.teamName || player.teamLabel || "",
+      );
+      const key = `${player.jerseyNumber}-${normalizedTeam}`;
 
       if (!playerMap.has(key)) {
         playerMap.set(key, {
           id: player.id,
-          jerseyNumber: player.jerseyNumber || '??',
+          jerseyNumber: player.jerseyNumber || "??",
           displayName: player.displayName,
           positionGuess: player.positionGuess,
-          teamName: player.teamName || player.teamLabel || 'Unknown',
+          teamName: player.teamName || player.teamLabel || "Unknown",
           grades: [],
-          allStats: { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0 },
+          allStats: {
+            points: 0,
+            rebounds: 0,
+            assists: 0,
+            steals: 0,
+            blocks: 0,
+          },
           games: [],
           allStrengths: [],
           allDevAreas: [],
@@ -130,7 +222,9 @@ export async function GET() {
       const entry = playerMap.get(key)!;
       entry.playerIds.push(player.id);
 
-      const grade = player.overallGrade ? parseFloat(player.overallGrade.toString()) : null;
+      const grade = player.overallGrade
+        ? parseFloat(player.overallGrade.toString())
+        : null;
 
       if (grade !== null) {
         entry.grades.push(grade);
@@ -138,7 +232,13 @@ export async function GET() {
 
       // Extract stats from metrics
       const metrics = player.metrics as any;
-      let gameStats = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0 };
+      let gameStats = {
+        points: 0,
+        rebounds: 0,
+        assists: 0,
+        steals: 0,
+        blocks: 0,
+      };
       if (metrics) {
         gameStats = {
           points: metrics.points || metrics.totalPoints || 0,
@@ -156,9 +256,9 @@ export async function GET() {
 
       entry.games.push({
         gameId: player.gameId,
-        gameName: player.gameName || player.gameTitle || 'Game',
+        gameName: player.gameName || player.gameTitle || "Game",
         grade: grade || 0,
-        date: player.gameDate?.toISOString() || '',
+        date: player.gameDate?.toISOString() || "",
         stats: gameStats,
       });
 
@@ -166,17 +266,24 @@ export async function GET() {
       const strengths = player.strengths as any;
       if (Array.isArray(strengths)) {
         for (const s of strengths) {
-          const text = typeof s === 'string' ? s : s?.description || s?.strength;
+          const text =
+            typeof s === "string" ? s : s?.description || s?.strength;
           if (text && !entry.allStrengths.includes(text)) {
             entry.allStrengths.push(text);
           }
         }
-      } else if (strengths && typeof strengths === 'object') {
+      } else if (strengths && typeof strengths === "object") {
         // New format: { howToGuard, howToAttack, primaryMoves, etc. }
-        if (strengths.howToGuard && !entry.allStrengths.includes(strengths.howToGuard)) {
+        if (
+          strengths.howToGuard &&
+          !entry.allStrengths.includes(strengths.howToGuard)
+        ) {
           entry.allStrengths.push(`How to Guard: ${strengths.howToGuard}`);
         }
-        if (strengths.howToAttack && !entry.allStrengths.includes(strengths.howToAttack)) {
+        if (
+          strengths.howToAttack &&
+          !entry.allStrengths.includes(strengths.howToAttack)
+        ) {
           entry.allStrengths.push(`How to Attack: ${strengths.howToAttack}`);
         }
       }
@@ -185,7 +292,8 @@ export async function GET() {
       const devAreas = player.developmentAreas as any;
       if (Array.isArray(devAreas)) {
         for (const area of devAreas) {
-          const areaText = typeof area === 'string' ? area : area?.area || area?.description;
+          const areaText =
+            typeof area === "string" ? area : area?.area || area?.description;
           if (areaText) {
             const normalized = normalizeDevArea(areaText);
             if (normalized && !entry.allDevAreas.includes(normalized)) {
@@ -199,9 +307,12 @@ export async function GET() {
       const tendencies = player.tendencies as any;
       if (tendencies && entry.allDevAreas.length === 0) {
         // Use defensiveRating to infer focus areas
-        if (tendencies.defensiveRating === 'average' || tendencies.defensiveRating === 'below average') {
-          if (!entry.allDevAreas.includes('Defense')) {
-            entry.allDevAreas.push('Defense');
+        if (
+          tendencies.defensiveRating === "average" ||
+          tendencies.defensiveRating === "below average"
+        ) {
+          if (!entry.allDevAreas.includes("Defense")) {
+            entry.allDevAreas.push("Defense");
           }
         }
       }
@@ -227,12 +338,13 @@ export async function GET() {
 
     // Convert to array and calculate trends
     const players = Array.from(playerMap.values()).map((player) => {
-      const avgGrade = player.grades.length > 0
-        ? player.grades.reduce((a, b) => a + b, 0) / player.grades.length
-        : null;
+      const avgGrade =
+        player.grades.length > 0
+          ? player.grades.reduce((a, b) => a + b, 0) / player.grades.length
+          : null;
 
       // Calculate trend (last 2 games vs previous 2)
-      let trend: 'up' | 'down' | 'stable' | null = null;
+      let trend: "up" | "down" | "stable" | null = null;
       let trendValue = 0;
       if (player.grades.length >= 2) {
         const recent = player.grades.slice(0, 2);
@@ -241,9 +353,9 @@ export async function GET() {
           const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
           const prevAvg = previous.reduce((a, b) => a + b, 0) / previous.length;
           trendValue = recentAvg - prevAvg;
-          if (trendValue > 3) trend = 'up';
-          else if (trendValue < -3) trend = 'down';
-          else trend = 'stable';
+          if (trendValue > 3) trend = "up";
+          else if (trendValue < -3) trend = "down";
+          else trend = "stable";
         }
       }
 
@@ -280,7 +392,7 @@ export async function GET() {
           sentiment: m.sentiment,
           momentType: m.momentType,
           timestamp: m.timestampSeconds
-            ? `${Math.floor(parseFloat(m.timestampSeconds) / 60)}:${String(Math.floor(parseFloat(m.timestampSeconds) % 60)).padStart(2, '0')}`
+            ? `${Math.floor(parseFloat(m.timestampSeconds) / 60)}:${String(Math.floor(parseFloat(m.timestampSeconds) % 60)).padStart(2, "0")}`
             : null,
         })),
       };
@@ -302,7 +414,9 @@ export async function GET() {
       .map(([area, count]) => ({ area, playerCount: count }));
 
     // Get unique positions for filtering
-    const positions = [...new Set(players.map((p) => p.positionGuess).filter(Boolean))];
+    const positions = [
+      ...new Set(players.map((p) => p.positionGuess).filter(Boolean)),
+    ];
 
     return NextResponse.json({
       players,
@@ -310,16 +424,25 @@ export async function GET() {
       positions,
       summary: {
         totalPlayers: players.length,
-        avgTeamGrade: players.filter((p) => p.avgGrade !== null).length > 0
-          ? players.reduce((sum, p) => sum + (p.avgGrade || 0), 0) /
-            players.filter((p) => p.avgGrade !== null).length
-          : 0,
+        avgTeamGrade:
+          players.filter((p) => p.avgGrade !== null).length > 0
+            ? players.reduce((sum, p) => sum + (p.avgGrade || 0), 0) /
+              players.filter((p) => p.avgGrade !== null).length
+            : 0,
         topPerformer: players[0] || null,
-        mostImproved: players.filter((p) => p.trend === 'up').sort((a, b) => b.trendValue - a.trendValue)[0] || null,
+        mostImproved:
+          players
+            .filter((p) => p.trend === "up")
+            .sort((a, b) => b.trendValue - a.trendValue)[0] || null,
       },
     });
   } catch (error) {
-    console.error('Players API error:', error);
-    return NextResponse.json({ players: [], teamFocusAreas: [], positions: [], summary: {} });
+    console.error("Players API error:", error);
+    return NextResponse.json({
+      players: [],
+      teamFocusAreas: [],
+      positions: [],
+      summary: {},
+    });
   }
 }
