@@ -115,7 +115,8 @@ export async function GET() {
     }>();
 
     for (const player of playersData) {
-      const key = `${player.jerseyNumber}-${player.teamName || player.teamLabel}`;
+      // Group by jersey number only - since we filter to isUserTeam=true, all are same team
+      const key = `${player.jerseyNumber}`;
 
       if (!playerMap.has(key)) {
         playerMap.set(key, {
