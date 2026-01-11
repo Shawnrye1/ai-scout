@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments } from '@/lib/db/schema';
+import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments, teamMembers } from '@/lib/db/schema';
 import { desc, eq, and, inArray } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
@@ -31,7 +31,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all players from user's games with their full analysis
+    // Get user's team - all team members see same data
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ players: [] });
+    }
+
+    // Get all players from team's games with their full analysis
     const playersData = await db
       .select({
         id: detectedPlayers.id,
@@ -56,7 +65,7 @@ export async function GET() {
       .innerJoin(games, eq(games.id, detectedPlayers.gameId))
       .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
       .leftJoin(playerAnalysis, eq(playerAnalysis.detectedPlayerId, detectedPlayers.id))
-      .where(and(eq(games.userId, user.id), eq(detectedTeams.isUserTeam, true)))
+      .where(and(eq(games.teamId, teamId), eq(detectedTeams.isUserTeam, true)))
       .orderBy(desc(games.createdAt));
 
     // Get all player IDs for key moments lookup
