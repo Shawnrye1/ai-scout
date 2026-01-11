@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { games, detectedTeams, detectedPlayers, playerAnalysis, teamAnalysis } from '@/lib/db/schema';
+import { games, detectedTeams, detectedPlayers, playerAnalysis, teamAnalysis, teamMembers } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
@@ -11,7 +11,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all teams from user's games
+    // Get user's team - all team members see same data
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ teams: [] });
+    }
+
+    // Get all teams from team's games
     const teamsData = await db
       .select({
         id: detectedTeams.id,
@@ -31,7 +40,7 @@ export async function GET() {
       .from(detectedTeams)
       .innerJoin(games, eq(games.id, detectedTeams.gameId))
       .leftJoin(teamAnalysis, eq(teamAnalysis.detectedTeamId, detectedTeams.id))
-      .where(eq(games.userId, user.id))
+      .where(eq(games.teamId, teamId))
       .orderBy(desc(games.createdAt));
 
     // Group teams by name

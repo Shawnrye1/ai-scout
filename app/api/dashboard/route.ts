@@ -73,6 +73,15 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get user's team - all team members see same data
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ error: "No team found" }, { status: 404 });
+    }
+
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -88,18 +97,18 @@ export async function GET() {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(games)
-        .where(eq(games.userId, user.id)),
+        .where(eq(games.teamId, teamId)),
 
       // Get games this month
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(games)
         .where(
-          and(eq(games.userId, user.id), gte(games.createdAt, startOfMonth)),
+          and(eq(games.teamId, teamId), gte(games.createdAt, startOfMonth)),
         ),
 
       // Get all user game IDs
-      db.select({ id: games.id }).from(games).where(eq(games.userId, user.id)),
+      db.select({ id: games.id }).from(games).where(eq(games.teamId, teamId)),
 
       // Get processing games count
       db
@@ -107,7 +116,7 @@ export async function GET() {
         .from(games)
         .where(
           and(
-            eq(games.userId, user.id),
+            eq(games.teamId, teamId),
             sql`${games.status} IN ('queued', 'detecting', 'tracking', 'analyzing')`,
           ),
         ),
@@ -185,7 +194,7 @@ export async function GET() {
           .leftJoin(games, eq(games.id, detectedPlayers.gameId))
           .where(
             and(
-              eq(games.userId, user.id),
+              eq(games.teamId, teamId),
               isNotNull(playerAnalysis.overallGrade),
             ),
           )
@@ -205,7 +214,7 @@ export async function GET() {
             playerCount: sql<number>`(SELECT COUNT(*)::int FROM detected_players WHERE detected_players.game_id = games.id)`,
           })
           .from(games)
-          .where(eq(games.userId, user.id))
+          .where(eq(games.teamId, teamId))
           .orderBy(desc(games.createdAt))
           .limit(5),
 
@@ -462,7 +471,7 @@ export async function GET() {
             eq(detectedTeams.id, detectedPlayers.detectedTeamId),
           )
           .where(
-            and(eq(games.userId, user.id), eq(detectedTeams.isUserTeam, true)),
+            and(eq(games.teamId, teamId), eq(detectedTeams.isUserTeam, true)),
           )
           .groupBy(games.id, games.createdAt, games.name)
           .orderBy(games.createdAt)
