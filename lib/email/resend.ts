@@ -1,6 +1,15 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
+const resend = new Proxy({} as Resend, {
+  get(_, prop) { return getResend()[prop as keyof Resend]; }
+});
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AI Scout <noreply@aiscout.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
