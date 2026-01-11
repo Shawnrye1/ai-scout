@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments } from '@/lib/db/schema';
+import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments, teamMembers } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
@@ -14,13 +14,22 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's team
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+    }
+
     const { id: gameId } = await params;
 
     // Get the game
     const [game] = await db
       .select()
       .from(games)
-      .where(and(eq(games.id, gameId), eq(games.userId, user.id)));
+      .where(and(eq(games.id, gameId), eq(games.teamId, teamId)));
 
     if (!game) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });

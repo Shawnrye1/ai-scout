@@ -45,11 +45,20 @@ export async function GET() {
 
     const teamName = userTeamData[0]?.sportsTeamName || userTeamData[0]?.teamName || 'Your Team';
 
-    // Get all games for this user
+    // Get user's team
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+    }
+
+    // Get all games for this team
     const userGames = await db
       .select({ id: games.id })
       .from(games)
-      .where(eq(games.userId, user.id));
+      .where(eq(games.teamId, teamId));
     const gameIds = userGames.map((g) => g.id);
 
     if (gameIds.length === 0) {
@@ -85,7 +94,7 @@ export async function GET() {
       .innerJoin(detectedTeams, eq(detectedTeams.id, detectedPlayers.detectedTeamId))
       .where(
         and(
-          eq(games.userId, user.id),
+          eq(games.teamId, teamId),
           eq(detectedTeams.isUserTeam, true)
         )
       )

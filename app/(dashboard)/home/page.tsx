@@ -413,44 +413,43 @@ export default function CoachDashboard() {
 
           {/* Position Breakdown & Stat Leaders */}
           <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-            {/* Position Breakdown */}
+            {/* Top Players */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-purple-500" />
                 <h2 className="font-semibold text-gray-900 dark:text-white">
-                  By Position
+                  Top Players
                 </h2>
               </div>
-              {positionBreakdown.length === 0 ? (
+              {playerDevelopment.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  No position data yet
+                  No player data yet
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {positionBreakdown.slice(0, 4).map((pos) => (
+                  {playerDevelopment.slice(0, 4).map((player) => (
                     <div
-                      key={pos.position}
+                      key={player.jerseyNumber}
                       className="flex items-center justify-between"
                     >
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {pos.position}
+                          {player.name || `#${player.jerseyNumber}`}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {pos.playerCount} player
-                          {pos.playerCount !== 1 ? "s" : ""}
+                          {player.position || "Player"}
                         </div>
                       </div>
                       <div
                         className={`text-lg font-bold ${
-                          pos.avgGrade >= 80
+                          player.currentGrade >= 80
                             ? "text-green-600 dark:text-green-400"
-                            : pos.avgGrade >= 60
+                            : player.currentGrade >= 60
                               ? "text-yellow-600 dark:text-yellow-400"
                               : "text-red-600 dark:text-red-400"
                         }`}
                       >
-                        {pos.avgGrade}
+                        {player.currentGrade}
                       </div>
                     </div>
                   ))}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
-import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments } from '@/lib/db/schema';
+import { games, detectedPlayers, detectedTeams, playerAnalysis, keyMoments, teamMembers } from '@/lib/db/schema';
 import { eq, desc, and, inArray, isNotNull } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
@@ -35,11 +35,20 @@ export async function GET(
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
 
-    // Get all games for this user
+    // Get user's team
+    const teamMember = await db.query.teamMembers.findFirst({
+      where: (tm, { eq }) => eq(tm.userId, user.id),
+    });
+    const teamId = teamMember?.teamId;
+    if (!teamId) {
+      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+    }
+
+    // Get all games for this team
     const userGames = await db
       .select({ id: games.id })
       .from(games)
-      .where(eq(games.userId, user.id));
+      .where(eq(games.teamId, teamId));
     const gameIds = userGames.map((g) => g.id);
 
     // Find all instances of this player (by jersey number) across games
