@@ -3,12 +3,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo, Home, Plane, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Upload, Video, Loader2, CheckCircle, Link2, FileVideo, Home, Plane, FileText, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type UploadState = 'idle' | 'creating' | 'uploading' | 'completing' | 'done' | 'error';
+type UploadState = 'idle' | 'creating' | 'uploading' | 'completing' | 'done' | 'error' | 'limit_reached';
 type UploadMethod = 'file' | 'url';
 
 interface SportsTeam {
@@ -139,7 +139,11 @@ export default function NewGamePage() {
       });
 
       if (!createRes.ok) {
-        throw new Error('Failed to create game');
+        const errorData = await createRes.json().catch(() => ({}));
+        if (errorData.code === 'LIMIT_REACHED') {
+          throw { code: 'LIMIT_REACHED', message: errorData.error };
+        }
+        throw new Error(errorData.error || 'Failed to create game');
       }
 
       const { game } = await createRes.json();
@@ -235,9 +239,15 @@ export default function NewGamePage() {
         router.push(`/game/${game.id}`);
       }, 1500);
 
-    } catch (err) {
-      setUploadState('error');
-      setError(err instanceof Error ? err.message : 'Upload failed');
+    } catch (err: any) {
+      // Check if it's a limit reached error
+      if (err?.code === 'LIMIT_REACHED') {
+        setUploadState('limit_reached');
+        setError(err.message || 'Monthly game limit reached');
+      } else {
+        setUploadState('error');
+        setError(err instanceof Error ? err.message : 'Upload failed');
+      }
     }
   };
 
@@ -533,8 +543,8 @@ TEAM B (72)
             )}
           </div>
 
-          {/* Error Message */}
-          {error && (
+          {/* Error Message (not shown for limit_reached since we have dedicated UI) */}
+          {error && uploadState !== 'limit_reached' && (
             <div className="bg-red-50 text-red-600 rounded-lg p-3 text-sm">
               {error}
             </div>
@@ -572,6 +582,24 @@ TEAM B (72)
             </div>
           )}
 
+          {/* Limit Reached - Upgrade Prompt */}
+          {uploadState === 'limit_reached' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+              <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                Monthly Game Limit Reached
+              </h3>
+              <p className="text-amber-700 mb-4">
+                {error || "You've reached your plan's game limit for this month. Upgrade to upload more games."}
+              </p>
+              <Link href="/pricing">
+                <Button className="bg-[#0f2d52] hover:bg-[#1a4a7a]">
+                  View Upgrade Options
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* Submit Button */}
           <Button
             type="submit"
@@ -580,7 +608,8 @@ TEAM B (72)
               (uploadMethod === 'url' && !videoUrl) ||
               !title ||
               isUploading ||
-              uploadState === 'done'
+              uploadState === 'done' ||
+              uploadState === 'limit_reached'
             }
             className="w-full bg-[#0f2d52] hover:bg-[#1a4a7a] py-3 text-base"
           >

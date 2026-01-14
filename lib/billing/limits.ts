@@ -4,10 +4,10 @@ import { eq, and, sql } from 'drizzle-orm';
 
 // Plan limits based on new pricing ($99/249/499)
 export const PLAN_LIMITS = {
-  'Free': { gamesPerMonth: 1, maxVideoDurationMinutes: 180 },      // Free trial: 1 game
-  'Starter': { gamesPerMonth: 5, maxVideoDurationMinutes: 180 },   // $99/mo: 5 games
-  'Pro': { gamesPerMonth: 10, maxVideoDurationMinutes: 180 },      // $249/mo: 10 games
-  'Team': { gamesPerMonth: 20, maxVideoDurationMinutes: 180 },     // $499/mo: 20 games
+  'Free': { gamesPerMonth: 1, maxVideoDurationMinutes: 180, isLifetime: true },  // Free trial: 1 game TOTAL (not per month)
+  'Starter': { gamesPerMonth: 5, maxVideoDurationMinutes: 180, isLifetime: false },   // $99/mo: 5 games/month
+  'Pro': { gamesPerMonth: 10, maxVideoDurationMinutes: 180, isLifetime: false },      // $249/mo: 10 games/month
+  'Team': { gamesPerMonth: 20, maxVideoDurationMinutes: 180, isLifetime: false },     // $499/mo: 20 games/month
 } as const;
 
 export type PlanName = keyof typeof PLAN_LIMITS;
@@ -37,26 +37,38 @@ export async function getUsageLimits(userId: number): Promise<UsageLimits | null
 
   const team = teamMember.team;
 
-  // Get games count this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-
-  const gamesThisMonth = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(games)
-    .where(
-      and(
-        eq(games.teamId, team.id),
-        sql`${games.createdAt} >= ${startOfMonth}`
-      )
-    );
-
-  const gamesUsed = Number(gamesThisMonth[0]?.count || 0);
-
   // Get plan limits (default to Free if no plan)
   const planName = (team.planName as PlanName) || 'Free';
   const limits = PLAN_LIMITS[planName] || PLAN_LIMITS.Free;
+
+  // For Free tier: count ALL games ever (lifetime limit)
+  // For paid tiers: count games this month only
+  let gamesUsed: number;
+
+  if (limits.isLifetime) {
+    // Count all games for this team (lifetime)
+    const allGames = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(games)
+      .where(eq(games.teamId, team.id));
+    gamesUsed = Number(allGames[0]?.count || 0);
+  } else {
+    // Count games this month only
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const gamesThisMonth = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(games)
+      .where(
+        and(
+          eq(games.teamId, team.id),
+          sql`${games.createdAt} >= ${startOfMonth}`
+        )
+      );
+    gamesUsed = Number(gamesThisMonth[0]?.count || 0);
+  }
 
   const canUpload = gamesUsed < limits.gamesPerMonth;
   const remainingGames = Math.max(0, limits.gamesPerMonth - gamesUsed);
@@ -83,8 +95,9 @@ export async function assertCanUpload(userId: number): Promise<UsageLimits> {
 
   if (!limits.canUpload) {
     throw new UploadLimitError(
-      `Monthly game limit reached (${limits.gamesUsed}/${limits.gamesLimit}). ` +
-      `Upgrade your plan for more games.`
+      limits.planName === 'Free'
+        ? `You've used your free trial game. Upgrade to upload more games.`
+        : `Monthly game limit reached (${limits.gamesUsed}/${limits.gamesLimit}). Upgrade your plan for more games.`
     );
   }
 
