@@ -50,8 +50,7 @@ export async function POST(request: NextRequest) {
       where: (tm, { eq }) => eq(tm.userId, user.id),
     });
 
-    const isDev = process.env.NODE_ENV === 'development';
-    if (!isDev && game.teamId !== teamResult?.teamId) {
+    if (game.teamId !== teamResult?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

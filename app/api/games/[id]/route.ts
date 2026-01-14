@@ -40,14 +40,12 @@ export async function GET(
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Verify user has access to this game
+    // Verify user has access to this game (must be on the same team)
     const teamResult = await db.query.teamMembers.findFirst({
       where: (tm, { eq }) => eq(tm.userId, user.id),
     });
 
-    // In development, allow access if user is authenticated
-    const isDev = process.env.NODE_ENV === 'development';
-    if (!isDev && game.teamId !== teamResult?.teamId) {
+    if (game.teamId !== teamResult?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
