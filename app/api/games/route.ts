@@ -4,6 +4,7 @@ import { games } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { eq, desc, and } from 'drizzle-orm';
 import { z } from 'zod';
+import { assertCanUpload, UploadLimitError } from '@/lib/billing/limits';
 
 // GET /api/games - List all games for the current user's team
 export async function GET(request: NextRequest) {
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check subscription limits before creating game
+    await assertCanUpload(user.id);
+
     const body = await request.json();
     const data = createGameSchema.parse(body);
 
@@ -93,6 +97,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ game });
   } catch (error) {
+    if (error instanceof UploadLimitError) {
+      return NextResponse.json({
+        error: error.message,
+        code: 'LIMIT_REACHED',
+      }, { status: 403 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
