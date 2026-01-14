@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   // Sentry organization and project
-  org: "aiscout",
+  org: "shawnearl",
   project: "javascript-nextjs",
 
   // Suppress source map upload logs during build
