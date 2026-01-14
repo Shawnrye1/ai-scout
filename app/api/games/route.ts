@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ game });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Error creating game:', error);
     return NextResponse.json({ error: 'Failed to create game' }, { status: 500 });

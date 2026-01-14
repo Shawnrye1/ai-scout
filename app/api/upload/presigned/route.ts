@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Error generating presigned URL:', error);
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 });

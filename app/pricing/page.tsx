@@ -154,57 +154,72 @@ function Footer() {
 
 const plans = [
   {
-    name: "Starter",
-    description: "Perfect for individual coaches",
-    price: 49,
+    name: "Free Trial",
+    description: "Try AI Scout risk-free",
+    price: 0,
     interval: "month",
-    gamesPerMonth: 10,
+    gamesPerMonth: 1,
     features: [
-      "10 game films/month",
+      "1 game film analysis",
+      "Full scouting reports",
+      "See the AI in action",
+      "No credit card required",
+    ],
+    cta: "Start free",
+    highlighted: false,
+    priceId: null,
+  },
+  {
+    name: "Starter",
+    description: "For individual coaches",
+    price: 99,
+    interval: "month",
+    gamesPerMonth: 5,
+    features: [
+      "5 game films/month",
       "All player scouting reports",
       "Team tendency analysis",
       "Video playback with markers",
       "Email support",
       "Football & Basketball",
     ],
-    cta: "Start free trial",
+    cta: "Get started",
     highlighted: false,
     priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
   },
   {
     name: "Pro",
-    description: "For serious programs",
-    price: 149,
+    description: "For varsity programs",
+    price: 249,
     interval: "month",
-    gamesPerMonth: 50,
+    gamesPerMonth: 10,
     features: [
-      "50 game films/month",
+      "10 game films/month",
       "Everything in Starter",
+      "Player Portal — players see their own reports",
       "Priority processing",
-      "Advanced player metrics",
       "Cross-game player tracking",
       "Export reports to PDF",
       "Priority support",
     ],
-    cta: "Start free trial",
+    cta: "Get started",
     highlighted: true,
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
   },
   {
     name: "Team",
     description: "For athletic departments",
-    price: 299,
+    price: 499,
     interval: "month",
-    gamesPerMonth: -1, // unlimited
+    gamesPerMonth: 20,
     features: [
-      "Unlimited game films",
+      "20 game films/month",
       "Everything in Pro",
       "Multiple sports/teams",
       "Up to 10 coach accounts",
       "API access",
       "Custom integrations",
       "Dedicated support",
-      "Training sessions",
     ],
     cta: "Contact sales",
     highlighted: false,
@@ -226,7 +241,7 @@ const faqs = [
   {
     question: "How long does analysis take?",
     answer:
-      "Most game films are analyzed within 30-60 minutes, depending on length and quality. Pro and Team plans get priority processing for faster results.",
+      "Most game films are analyzed in under 30 minutes. Pro and Team plans get priority processing for even faster results.",
   },
   {
     question: "Can I analyze both offense and defense?",
@@ -282,8 +297,7 @@ export default function PricingPage() {
             AI-Powered Scouting for Every Budget
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-            Upload game film, get detailed scouting reports. All plans include a
-            14-day free trial.
+            Upload game film, get detailed scouting reports. Try your first game free — no credit card required.
           </p>
 
           {/* Billing toggle */}
@@ -318,7 +332,7 @@ export default function PricingPage() {
       {/* Pricing cards */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {plans.map((plan) => (
               <div
                 key={plan.name}
@@ -373,7 +387,9 @@ export default function PricingPage() {
                   href={
                     plan.name === "Team"
                       ? "/contact"
-                      : `/sign-up?priceId=${plan.priceId}`
+                      : plan.priceId
+                        ? `/sign-up?priceId=${plan.priceId}`
+                        : "/sign-up"
                   }
                   className={`block w-full text-center py-3 px-4 rounded-lg font-semibold transition-colors mb-6 ${
                     plan.highlighted
@@ -518,7 +534,7 @@ export default function PricingPage() {
             Ready to scout smarter?
           </h2>
           <p className="text-lg text-white/70 mb-8">
-            Start your 14-day free trial today. No credit card required.
+            Try your first game free. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

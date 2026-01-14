@@ -5,7 +5,8 @@ import { getUser } from '@/lib/db/queries';
 import { eq } from 'drizzle-orm';
 import { getPublicUrl, getDownloadPresignedUrl } from '@/lib/storage/r2';
 import { z } from 'zod';
-// Modal processing removed - using Gemini multi-agent analysis instead
+import { inngest } from '@/lib/inngest/client';
+// Using Inngest for reliable background job processing with retries
 
 // Schema for file uploads
 const fileUploadSchema = z.object({
@@ -101,25 +102,35 @@ export async function POST(request: NextRequest) {
       downloadUrl = await getDownloadPresignedUrl(fileData.key, 3600 * 4); // 4 hour expiry
     }
 
-    // Trigger Gemini analysis automatically
-    // This runs in the background - we don't wait for it
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000';
-    fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }).catch(err => {
-      console.error('Failed to trigger Gemini analysis:', err);
-    });
+    // Trigger analysis via Inngest (reliable background job with retries)
+    // This is durable - if it fails, Inngest will retry automatically
+    try {
+      await inngest.send({
+        name: 'game/uploaded',
+        data: {
+          gameId: updatedGame.id,
+          userId: user.id.toString(),
+          teamId: teamResult?.teamId || '',
+          videoUrl: downloadUrl,
+          sport: (updatedGame.sport as 'basketball' | 'football') || 'basketball',
+        },
+      });
+
+      console.log(`Inngest event sent for game ${updatedGame.id}`);
+    } catch (err) {
+      console.error('Failed to send Inngest event:', err);
+      // Don't fail the request - the game is created, user can retry analysis
+    }
 
     return NextResponse.json({
       game: updatedGame,
       message: isUrlUpload
-        ? 'Video URL received. Analysis starting automatically.'
-        : 'Upload complete. Analysis starting automatically.',
+        ? 'Video URL received. Analysis queued and will start shortly.'
+        : 'Upload complete. Analysis queued and will start shortly.',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Error completing upload:', error);
     return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });

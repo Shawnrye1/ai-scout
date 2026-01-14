@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Scout - Investor Pitch Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Light Mode (Default) */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-elevated: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+
+      /* Brand Colors - Matching AI Scout Website */
+      --brand-navy: #0f2d52;
+      --brand-navy-light: #1a4a7a;
+      --accent-orange: #ea580c;
+      --accent-orange-light: #f97316;
+      --accent-teal: #0d9488;
+      --success: #22c55e;
+
+      /* Gradients */
+      --gradient-primary: linear-gradient(135deg, #0f2d52 0%, #1a4a7a 100%);
+      --gradient-accent: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+      --gradient-mixed: linear-gradient(135deg, #0f2d52 0%, #1a4a7a 50%, #ea580c 100%);
+      --gradient-glow: radial-gradient(ellipse at center, rgba(15,45,82,0.12) 0%, transparent 70%);
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+    }
+
+    .dark {
+      --bg-primary: #09090b;
+      --bg-secondary: #0f0f12;
+      --bg-card: #18181b;
+      --bg-elevated: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border: #27272a;
+      --border-hover: #3f3f46;
+
+      --gradient-glow: radial-gradient(ellipse at center, rgba(15,45,82,0.2) 0%, transparent 70%);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Slide Base */
+    .slide {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      padding: 70px 120px;
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Background Effects */
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 800px;
+      height: 800px;
+      background: var(--gradient-glow);
+      pointer-events: none;
+    }
+
+    .slide::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* Top accent bar */
+    .slide .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient-mixed);
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 3.8rem;
+      font-weight: 800;
+      margin-bottom: 40px;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 .blue {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h1 .orange {
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h1 .mixed {
+      background: var(--gradient-mixed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 3px;
+      background: var(--gradient-mixed);
+      border-radius: 2px;
+    }
+
+    p {
+      font-size: 1.3rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .lead {
+      font-size: 1.6rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Lists */
+    ul {
+      list-style: none;
+      font-size: 1.25rem;
+      line-height: 2.4;
+      color: var(--text-secondary);
+    }
+
+    li {
+      position: relative;
+      padding-left: 32px;
+    }
+
+    li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 14px;
+      width: 12px;
+      height: 12px;
+      background: var(--gradient-primary);
+      border-radius: 3px;
+      transform: rotate(45deg);
+    }
+
+    li:nth-child(even)::before {
+      background: var(--gradient-accent);
+    }
+
+    li strong {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    /* Metrics Grid */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin: 40px 0;
+    }
+
+    .metric {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric:hover {
+      transform: translateY(-4px);
+      border-color: var(--brand-navy);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .metric:nth-child(even):hover {
+      border-color: var(--accent-orange);
+    }
+
+    .metric::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient-primary);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .metric:nth-child(even)::before {
+      background: var(--gradient-accent);
+    }
+
+    .metric:hover::before {
+      opacity: 1;
+    }
+
+    .metric-value {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .metric-value.blue {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-value.orange {
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    /* Quote */
+    .quote-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid;
+      border-image: var(--gradient-mixed) 1;
+      border-radius: 0 16px 16px 0;
+      padding: 36px 44px;
+      margin: 40px 0;
+      position: relative;
+      box-shadow: var(--shadow-md);
+    }
+
+    .quote-container::before {
+      content: '"';
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      font-size: 4rem;
+      background: var(--gradient-mixed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0.4;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+
+    .quote {
+      font-size: 1.5rem;
+      font-style: italic;
+      color: var(--text-primary);
+      padding-left: 20px;
+      line-height: 1.6;
+    }
+
+    .quote-author {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-style: normal;
+      font-weight: 600;
+      margin-top: 20px;
+      padding-left: 20px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: var(--gradient-primary);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge.orange {
+      background: var(--gradient-accent);
+    }
+
+    .badge.outline {
+      background: transparent;
+      border: 1px solid var(--brand-navy);
+      color: var(--brand-navy);
+    }
+
+    .badge.outline.orange {
+      border-color: var(--accent-orange);
+      color: var(--accent-orange);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 1.05rem;
+      margin: 24px 0;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 20px 28px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+    }
+
+    td {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    tr:hover td {
+      background: var(--bg-secondary);
+    }
+
+    .check {
+      color: var(--brand-navy);
+      font-weight: 700;
+      font-size: 1.3rem;
+    }
+
+    .x {
+      color: #ef4444;
+      font-size: 1.3rem;
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      gap: 32px;
+      margin: 40px 0;
+    }
+
+    .step {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 40px 32px;
+      border-radius: 20px;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .step:nth-child(1):hover { border-color: var(--brand-navy); }
+    .step:nth-child(2):hover { border-color: var(--accent-orange); }
+    .step:nth-child(3):hover { border-color: var(--brand-navy); }
+
+    .step-number {
+      width: 64px;
+      height: 64px;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 0 auto 20px;
+    }
+
+    .step:nth-child(1) .step-number { background: var(--gradient-primary); box-shadow: 0 8px 24px rgba(15,45,82,0.4); }
+    .step:nth-child(2) .step-number { background: var(--gradient-accent); box-shadow: 0 8px 24px rgba(234,88,12,0.3); }
+    .step:nth-child(3) .step-number { background: var(--gradient-primary); box-shadow: 0 8px 24px rgba(15,45,82,0.4); }
+
+    .step-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .step-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    /* Two Column */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      flex: 1;
+      align-items: start;
+    }
+
+    /* Feature Grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .feature:hover {
+      border-color: var(--brand-navy);
+      box-shadow: var(--shadow-md);
+    }
+
+    .feature:nth-child(even):hover {
+      border-color: var(--accent-orange);
+    }
+
+    .feature::before {
+      content: '✓';
+      color: var(--brand-navy);
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .feature:nth-child(even)::before {
+      color: var(--accent-orange);
+    }
+
+    /* Roadmap */
+    .roadmap {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 32px;
+      padding: 28px 36px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .roadmap-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    .roadmap-dot.blue { background: var(--brand-navy); box-shadow: 0 0 20px rgba(15,45,82,0.5); }
+    .roadmap-dot.orange { background: var(--accent-orange); box-shadow: 0 0 20px rgba(234,88,12,0.4); }
+    .roadmap-dot.muted { background: var(--text-muted); }
+
+    .roadmap-label {
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .roadmap-label.blue { color: var(--brand-navy); }
+    .roadmap-label.orange { color: var(--accent-orange); }
+    .roadmap-label.muted { color: var(--text-muted); }
+
+    .roadmap-arrow {
+      color: var(--text-muted);
+      font-size: 1.5rem;
+    }
+
+    /* Funding Bar */
+    .funding-bar {
+      display: flex;
+      height: 56px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 32px 0;
+      box-shadow: var(--shadow-md);
+    }
+
+    .funding-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* Why Now Cards */
+    .why-now {
+      display: flex;
+      gap: 24px;
+      margin-top: 28px;
+    }
+
+    .why-card {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+    }
+
+    .why-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .why-card:nth-child(1) { border-top: 3px solid var(--brand-navy); }
+    .why-card:nth-child(2) { border-top: 3px solid var(--accent-orange); }
+    .why-card:nth-child(3) { border-top: 3px solid var(--brand-navy); }
+
+    .why-card p {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    /* Growth Phases */
+    .phases {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+
+    .phase {
+      padding: 32px;
+      border-radius: 20px;
+      border: 2px solid;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .phase.blue {
+      background: rgba(15,45,82,0.05);
+      border-color: var(--brand-navy);
+    }
+
+    .phase.orange {
+      background: rgba(234,88,12,0.05);
+      border-color: var(--accent-orange);
+    }
+
+    .phase h2::before { display: none; }
+
+    .phase.blue h2 { color: var(--brand-navy); }
+    .phase.orange h2 { color: var(--accent-orange); }
+
+    .phase ul { color: var(--text-secondary); }
+    .phase.blue li::before { background: var(--brand-navy); }
+    .phase.orange li::before { background: var(--accent-orange); }
+
+    .phase-future {
+      margin-top: 24px;
+      padding: 24px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Title Slide */
+    .title-slide {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .title-slide::before {
+      width: 1200px;
+      height: 1200px;
+      top: -40%;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center, rgba(15,45,82,0.12) 0%, rgba(234,88,12,0.05) 50%, transparent 70%);
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 16px 48px rgba(15,45,82,0.4));
+    }
+
+    .title-slide h1 {
+      font-size: 6rem;
+      margin-bottom: 20px;
+    }
+
+    .tagline {
+      font-size: 2rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    .subtagline {
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      max-width: 600px;
+    }
+
+    .url-badge {
+      margin-top: 80px;
+      padding: 14px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      font-size: 1rem;
+      color: var(--text-muted);
+      display: inline-block;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Vision Slide */
+    .vision-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 60px;
+      text-align: center;
+      margin: 40px 0;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vision-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient-mixed);
+    }
+
+    .vision-block p {
+      font-size: 2rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .vision-item {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-bottom: 36px;
+      padding: 24px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .vision-item:nth-child(1) { border-left: 4px solid var(--brand-navy); }
+    .vision-item:nth-child(2) { border-left: 4px solid var(--accent-orange); }
+
+    .vision-icon {
+      font-size: 3rem;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border-radius: 16px;
+    }
+
+    .vision-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .vision-text {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    /* Contact Slide */
+    .contact-buttons {
+      display: flex;
+      gap: 20px;
+      margin-top: 50px;
+    }
+
+    .btn {
+      padding: 16px 36px;
+      border-radius: 40px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: 0 8px 24px rgba(15,45,82,0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(15,45,82,0.5);
+    }
+
+    .btn-secondary {
+      background: var(--gradient-accent);
+      color: white;
+      box-shadow: 0 8px 24px rgba(234,88,12,0.3);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(234,88,12,0.4);
+    }
+
+    /* Demo Slide */
+    .demo-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .demo-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 100px 160px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .demo-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient-mixed);
+    }
+
+    .demo-title {
+      font-size: 2.4rem;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .demo-url {
+      font-size: 1.3rem;
+      background: var(--gradient-mixed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+
+    /* Moat Box */
+    .moat-box {
+      margin-top: 28px;
+      padding: 24px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid;
+      border-image: var(--gradient-mixed) 1;
+      border-radius: 0 16px 16px 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .moat-box p {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+    }
+
+    .moat-box strong {
+      background: var(--gradient-mixed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 32px;
+      right: 48px;
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.3s ease;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--brand-navy);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      bottom: 32px;
+      right: 48px;
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .nav button {
+      width: 56px;
+      height: 56px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.4rem;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav button:hover {
+      background: var(--brand-navy);
+      border-color: var(--brand-navy);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 8px 24px rgba(15,45,82,0.4);
+    }
+
+    /* Progress */
+    .progress {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: var(--gradient-mixed);
+      transition: width 0.4s ease;
+      z-index: 100;
+    }
+
+    .slide-num {
+      position: fixed;
+      bottom: 40px;
+      left: 48px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .slide { padding: 50px 60px; }
+      h1 { font-size: 3rem; }
+      .title-slide h1 { font-size: 4.5rem; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .two-col { grid-template-columns: 1fr; gap: 40px; }
+      .steps { flex-direction: column; }
+      .features { grid-template-columns: repeat(2, 1fr); }
+      .phases { grid-template-columns: 1fr; }
+      .roadmap { flex-wrap: wrap; }
+    }
+
+    @media print {
+      .nav, .slide-num, .progress, .theme-toggle { display: none; }
+      .slide { page-break-after: always; display: block !important; height: auto; min-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <span id="theme-icon">☀️</span>
+  </button>
+
+  <!-- Slide 1: Title -->
+  <div class="slide title-slide active">
+    <div class="top-bar"></div>
+    <div class="logo">
+      <svg width="80" height="80" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="8" fill="#0f2d52" />
+        <circle cx="20" cy="16" r="4" stroke="white" stroke-width="2" fill="none" />
+        <path d="M12 28L20 20L28 28" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="12" cy="28" r="2" fill="white" />
+        <circle cx="28" cy="28" r="2" fill="white" />
+      </svg>
+    </div>
+    <h1><span class="mixed">AI Scout</span></h1>
+    <p class="tagline">AI-Powered Scouting Reports for Every Player</p>
+    <p class="subtagline">Upload game film. Get pro-level analysis in minutes.</p>
+    <p class="url-badge">ai-scout-jet.vercel.app</p>
+  </div>
+
+  <!-- Slide 2: Problem -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Coaches Are <span class="orange">Drowning</span> in Film</h1>
+    <p class="lead">The reality for <strong>500,000+</strong> high school and college coaches:</p>
+    <ul>
+      <li><strong>6+ hours</strong> spent manually reviewing each game</li>
+      <li><strong>Subjective evaluations</strong> that miss critical details</li>
+      <li><strong>No time left</strong> for coaching and player development</li>
+      <li><strong>Talented players overlooked</strong> — scouts can't watch every game</li>
+    </ul>
+    <div class="quote-container">
+      <p class="quote">I spend more time in front of a screen than on the court with my players.</p>
+      <p class="quote-author">— Every coach, everywhere</p>
+    </div>
+  </div>
+
+  <!-- Slide 3: Solution -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Film Analysis on <span class="blue">Autopilot</span></h1>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-title">Upload</div>
+        <div class="step-desc">Game film or Hudl/YouTube link</div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-title">Analyze</div>
+        <div class="step-desc">AI detects every player automatically</div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-title">Scout</div>
+        <div class="step-desc">Detailed reports in under 30 minutes</div>
+      </div>
+    </div>
+    <h2>What Coaches Get</h2>
+    <div class="features">
+      <div class="feature">Objective player grades (0-100)</div>
+      <div class="feature">Position-specific scouting</div>
+      <div class="feature">Actionable development areas</div>
+      <div class="feature">Video-linked key moments</div>
+      <div class="feature">Opponent tendencies & patterns</div>
+      <div class="feature">Share-ready PDF reports</div>
+      <div class="feature">Every player, every game</div>
+      <div class="feature">No manual tagging required</div>
+      <div class="feature">Works with Hudl, YouTube, Vimeo</div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Demo -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>See It <span class="mixed">In Action</span></h1>
+    <div class="demo-container">
+      <div class="demo-box">
+        <p class="demo-title">Live Product Demo</p>
+        <p class="demo-url">ai-scout-jet.vercel.app</p>
+      </div>
+    </div>
+    <p style="text-align: center; color: var(--text-muted); font-size: 1.1rem;">Works with YouTube, Hudl, Vimeo, or direct upload • No manual tagging required</p>
+  </div>
+
+  <!-- Slide 5: Technology -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>The <span class="blue">Technology</span></h1>
+    <div class="two-col">
+      <div>
+        <h2>Video Understanding</h2>
+        <ul>
+          <li><strong>Multi-modal AI</strong> for end-to-end video analysis</li>
+          <li><strong>Player detection</strong> & tracking across frames</li>
+          <li><strong>Jersey recognition</strong> for automatic player ID</li>
+          <li><strong>Play segmentation</strong> & event detection</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Intelligent Analysis</h2>
+        <ul>
+          <li><strong>Multi-agent architecture</strong> — specialized scouts</li>
+          <li><strong>Sport-specific</strong> evaluation models</li>
+          <li><strong>Self-improving</strong> accuracy over time</li>
+          <li><strong>Human-in-the-loop</strong> verification</li>
+        </ul>
+      </div>
+    </div>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <div class="roadmap-dot blue"></div>
+        <span class="roadmap-label blue">Now:</span>
+        <span>Basketball & Football</span>
+      </div>
+      <span class="roadmap-arrow">→</span>
+      <div class="roadmap-item">
+        <div class="roadmap-dot orange"></div>
+        <span class="roadmap-label orange">Next:</span>
+        <span>Soccer, Baseball, Volleyball</span>
+      </div>
+      <span class="roadmap-arrow">→</span>
+      <div class="roadmap-item">
+        <div class="roadmap-dot muted"></div>
+        <span class="roadmap-label muted">Future:</span>
+        <span>All team sports</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Traction -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Early <span class="orange">Traction</span></h1>
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-value blue">500+</div>
+        <div class="metric-label">Games Analyzed</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value orange">50+</div>
+        <div class="metric-label">Active Coaches</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value blue">10K+</div>
+        <div class="metric-label">Players Scouted</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value orange">90%+</div>
+        <div class="metric-label">Detection Accuracy</div>
+      </div>
+    </div>
+    <div class="quote-container">
+      <p class="quote">We used to spend 6 hours breaking down film after every game. AI Scout gives us better analysis in 10 minutes.</p>
+      <p class="quote-author">— Coach, Montverde Academy <span class="badge orange">97% time savings</span></p>
+    </div>
+  </div>
+
+  <!-- Slide 7: Market -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1><span class="blue">$4.2B</span> Sports Analytics Market</h1>
+    <table>
+      <tr>
+        <th>Segment</th>
+        <th>Market Size</th>
+        <th>Focus</th>
+      </tr>
+      <tr>
+        <td><strong>High School Sports</strong></td>
+        <td>500,000+ coaches</td>
+        <td><span class="badge">Primary</span></td>
+      </tr>
+      <tr>
+        <td>College Sports</td>
+        <td>50,000+ coaches</td>
+        <td><span class="badge outline">Secondary</span></td>
+      </tr>
+      <tr>
+        <td>Youth/Club Sports</td>
+        <td>45M participants</td>
+        <td>Expansion</td>
+      </tr>
+      <tr>
+        <td>Professional Scouts</td>
+        <td>10,000+ scouts</td>
+        <td>Future</td>
+      </tr>
+    </table>
+    <h2>Why Now?</h2>
+    <div class="why-now">
+      <div class="why-card">
+        <p><strong>Every game</strong> is now recorded</p>
+      </div>
+      <div class="why-card">
+        <p><strong>GPU costs</strong> dropped 80%</p>
+      </div>
+      <div class="why-card">
+        <p><strong>AI accuracy</strong> crossed threshold</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Business Model -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Simple <span class="orange">SaaS</span> Pricing</h1>
+    <table>
+      <tr>
+        <th>Plan</th>
+        <th>Price</th>
+        <th>Games/mo</th>
+        <th>Target Customer</th>
+      </tr>
+      <tr>
+        <td><strong>Free Trial</strong></td>
+        <td>$0</td>
+        <td>1</td>
+        <td>Try before you buy</td>
+      </tr>
+      <tr>
+        <td><strong>Starter</strong></td>
+        <td>$99/mo</td>
+        <td>5</td>
+        <td>Individual coaches</td>
+      </tr>
+      <tr>
+        <td><strong>Pro</strong></td>
+        <td>$249/mo</td>
+        <td>10</td>
+        <td>Varsity programs + Player Portal</td>
+      </tr>
+      <tr>
+        <td><strong>Team</strong></td>
+        <td>$499/mo</td>
+        <td>20</td>
+        <td>Athletic departments + API</td>
+      </tr>
+    </table>
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-value">$5</div>
+        <div class="metric-label">GPU cost/game</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value blue">80%</div>
+        <div class="metric-label">Gross Margin</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value orange">18:1</div>
+        <div class="metric-label">LTV:CAC</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">1 game</div>
+        <div class="metric-label">Free Trial</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Competition -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Competitive <span class="blue">Advantage</span></h1>
+    <table>
+      <tr>
+        <th>Feature</th>
+        <th>AI Scout</th>
+        <th>Hudl</th>
+        <th>Manual Review</th>
+      </tr>
+      <tr>
+        <td>Auto player detection</td>
+        <td class="check">✓</td>
+        <td class="x">✗</td>
+        <td class="x">✗</td>
+      </tr>
+      <tr>
+        <td>Individual player reports</td>
+        <td class="check">✓</td>
+        <td>Limited</td>
+        <td>Manual effort</td>
+      </tr>
+      <tr>
+        <td>Time to analysis</td>
+        <td class="check">&lt;30 min</td>
+        <td>N/A</td>
+        <td class="x">6+ hours</td>
+      </tr>
+      <tr>
+        <td>AI-generated insights</td>
+        <td class="check">✓</td>
+        <td class="x">✗</td>
+        <td class="x">✗</td>
+      </tr>
+      <tr>
+        <td>Price</td>
+        <td><strong>$99-499/mo</strong></td>
+        <td>$199-999/mo</td>
+        <td>Coach time</td>
+      </tr>
+    </table>
+    <div class="moat-box">
+      <p><strong>Our Moat:</strong> First-mover advantage • 500+ games of training data • Human-in-the-loop improvement • Sport-specific models</p>
+    </div>
+  </div>
+
+  <!-- Slide 10: Go-to-Market -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Growth <span class="mixed">Strategy</span></h1>
+    <div class="phases">
+      <div class="phase blue">
+        <span class="badge">Phase 1: Now</span>
+        <h2>Coach-Led Growth</h2>
+        <ul>
+          <li>Direct outreach to HS/college coaches</li>
+          <li>Free trial — first game free</li>
+          <li>Referral program (coaches tell coaches)</li>
+        </ul>
+      </div>
+      <div class="phase orange">
+        <span class="badge orange">Phase 2: Scale</span>
+        <h2>Athletic Department Sales</h2>
+        <ul>
+          <li>Multi-team deals</li>
+          <li>Conference partnerships</li>
+          <li>Integration with existing tools</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase-future">
+      <span class="badge outline">Phase 3: Platform</span>
+      <p style="margin-top: 16px; margin-bottom: 0;">Recruiting marketplace • Additional sports • International expansion</p>
+    </div>
+  </div>
+
+  <!-- Slide 11: The Ask -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>Raising <span class="mixed">$500K</span> Pre-Seed</h1>
+    <div class="funding-bar">
+      <div class="funding-segment" style="width: 50%; background: var(--gradient-primary);">Engineering 50%</div>
+      <div class="funding-segment" style="width: 25%; background: var(--gradient-accent);">GPU 25%</div>
+      <div class="funding-segment" style="width: 15%; background: var(--accent-teal);">Marketing 15%</div>
+      <div class="funding-segment" style="width: 10%; background: var(--bg-elevated);">Ops 10%</div>
+    </div>
+    <h2>Milestones to Series A</h2>
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-value blue">500</div>
+        <div class="metric-label">Paying Customers</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value orange">$50K</div>
+        <div class="metric-label">Monthly Revenue</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value blue">3+</div>
+        <div class="metric-label">Sports Supported</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value orange">10K</div>
+        <div class="metric-label">Games Analyzed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 12: Vision -->
+  <div class="slide">
+    <div class="top-bar"></div>
+    <h1>The Future of <span class="mixed">Sports Analytics</span></h1>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 900px; margin: 0 auto;">
+      <div class="vision-item">
+        <div class="vision-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div>
+          <p class="vision-label">Today</p>
+          <p class="vision-text">Coaches manually review film for hours</p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-icon">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="8" fill="#0f2d52"/>
+            <circle cx="20" cy="16" r="4" stroke="white" stroke-width="2" fill="none"/>
+            <path d="M12 28L20 20L28 28" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="28" r="2" fill="white"/>
+            <circle cx="28" cy="28" r="2" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <p class="vision-label">Tomorrow</p>
+          <p class="vision-text">Every player has an AI-generated scouting report</p>
+        </div>
+      </div>
+      <div class="vision-block">
+        <p>Democratize professional-level scouting<br>for every athlete, at every level, in every sport.</p>
+      </div>
+      <p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-top: 32px;">No talent goes unnoticed. No coach burns out on busywork.</p>
+    </div>
+  </div>
+
+  <!-- Slide 13: Contact -->
+  <div class="slide title-slide">
+    <div class="top-bar"></div>
+    <div class="logo">
+      <svg width="80" height="80" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="8" fill="#0f2d52" />
+        <circle cx="20" cy="16" r="4" stroke="white" stroke-width="2" fill="none" />
+        <path d="M12 28L20 20L28 28" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="12" cy="28" r="2" fill="white" />
+        <circle cx="28" cy="28" r="2" fill="white" />
+      </svg>
+    </div>
+    <h1 style="font-size: 4rem;"><span class="mixed">Thank You</span></h1>
+    <p style="font-size: 2rem; color: var(--text-primary); margin: 24px 0 8px;">Shawn Earl</p>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Founder & CEO, AI Scout</p>
+    <div class="contact-buttons">
+      <a href="https://ai-scout-jet.vercel.app" class="btn btn-primary">ai-scout-jet.vercel.app</a>
+      <a href="mailto:shawnrearl@icloud.com" class="btn btn-secondary">shawnrearl@icloud.com</a>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button onclick="prevSlide()" aria-label="Previous">←</button>
+    <button onclick="nextSlide()" aria-label="Next">→</button>
+  </div>
+
+  <div class="progress" id="progress"></div>
+  <div class="slide-num"><span id="current">1</span> / <span id="total">13</span></div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const progress = document.getElementById('progress');
+    let current = 0;
+
+    document.getElementById('total').textContent = slides.length;
+
+    // Theme based on time of day
+    function setThemeByTime() {
+      const hour = new Date().getHours();
+      const isDark = hour < 7 || hour >= 19; // Dark mode: 7pm - 7am
+      document.body.classList.toggle('dark', isDark);
+      document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
+    }
+
+    // Initialize theme
+    setThemeByTime();
+
+    function updateProgress() {
+      progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    }
+
+    function show(n) {
+      slides[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      document.getElementById('current').textContent = current + 1;
+      updateProgress();
+    }
+
+    function nextSlide() { show(current + 1); }
+    function prevSlide() { show(current - 1); }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+      if (e.key === 'Home') { e.preventDefault(); show(0); }
+      if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+      if (e.key === 'd' || e.key === 'D') { toggleTheme(); }
+    });
+
+    let touchX = 0;
+    document.addEventListener('touchstart', e => touchX = e.touches[0].clientX);
+    document.addEventListener('touchend', e => {
+      const diff = touchX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) diff > 0 ? nextSlide() : prevSlide();
+    });
+
+    updateProgress();
+  </script>
+</body>
+</html>
