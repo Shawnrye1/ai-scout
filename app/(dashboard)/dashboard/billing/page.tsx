@@ -24,24 +24,24 @@ interface Invoice {
 const plans = [
   {
     name: 'Starter',
-    price: 49,
-    gamesPerMonth: 10,
-    features: ['10 games/month', 'All scouting reports', 'Email support'],
+    price: 99,
+    gamesPerMonth: 5,
+    features: ['5 games/month', 'AI scouting reports', 'Player grades & tendencies', 'Email support'],
     priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
   },
   {
     name: 'Pro',
-    price: 149,
-    gamesPerMonth: 50,
-    features: ['50 games/month', 'Priority processing', 'Advanced metrics', 'PDF export'],
+    price: 249,
+    gamesPerMonth: 10,
+    features: ['10 games/month', 'Everything in Starter', 'Player Portal access', 'Priority support'],
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     highlighted: true,
   },
   {
     name: 'Team',
-    price: 299,
-    gamesPerMonth: -1,
-    features: ['Unlimited games', '10 coach accounts', 'API access', 'Dedicated support'],
+    price: 499,
+    gamesPerMonth: 20,
+    features: ['20 games/month', 'Everything in Pro', 'Multiple team members', 'API access'],
     priceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID,
   },
 ];

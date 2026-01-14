@@ -592,7 +592,7 @@ TEAM B (72)
               <p className="text-amber-700 mb-4">
                 {error || "You've reached your plan's game limit for this month. Upgrade to upload more games."}
               </p>
-              <Link href="/pricing">
+              <Link href="/dashboard/billing">
                 <Button className="bg-[#0f2d52] hover:bg-[#1a4a7a]">
                   View Upgrade Options
                 </Button>
