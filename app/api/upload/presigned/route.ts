@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { getUploadPresignedUrl, generateVideoKey } from '@/lib/storage/r2';
-import { assertCanUpload, UploadLimitError } from '@/lib/billing/limits';
+import { db } from '@/lib/db/drizzle';
+import { games } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 const presignedSchema = z.object({
@@ -24,8 +26,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = presignedSchema.parse(body);
 
-    // Check subscription limits before allowing upload
-    const limits = await assertCanUpload(user.id);
+    // Verify the game exists and belongs to the user
+    // (Limit check already done when game was created)
+    const game = await db.query.games.findFirst({
+      where: eq(games.id, data.gameId),
+    });
+
+    if (!game) {
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+    }
+
+    if (game.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     const key = generateVideoKey(data.gameId, data.filename);
     const uploadUrl = await getUploadPresignedUrl(key, data.contentType, 3600); // 1 hour expiry
@@ -34,20 +47,8 @@ export async function POST(request: NextRequest) {
       uploadUrl,
       key,
       expiresIn: 3600,
-      limits: {
-        gamesUsed: limits.gamesUsed,
-        gamesLimit: limits.gamesLimit,
-        remainingGames: limits.remainingGames,
-        maxVideoDurationMinutes: limits.maxVideoDurationMinutes,
-      },
     });
   } catch (error) {
-    if (error instanceof UploadLimitError) {
-      return NextResponse.json({
-        error: error.message,
-        code: 'LIMIT_REACHED',
-      }, { status: 403 });
-    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
