@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { db } from "@/lib/db/drizzle";
 import { games } from "@/lib/db/schema";
 import { getUser } from "@/lib/db/queries";
@@ -103,8 +104,7 @@ export async function POST(request: NextRequest) {
       downloadUrl = await getDownloadPresignedUrl(fileData.key, 3600 * 4); // 4 hour expiry
     }
 
-    // Trigger Gemini analysis automatically
-    // This runs in the background - we don't wait for it
+    // Trigger Gemini analysis automatically using after() to keep function alive
     // Use the request's origin to ensure correct URL in all environments (local, preview, production)
     const origin = request.headers.get("origin") || request.headers.get("host");
     const protocol = request.headers.get("x-forwarded-proto") || "https";
@@ -116,11 +116,29 @@ export async function POST(request: NextRequest) {
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
     );
 
-    fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    }).catch((err) => {
-      console.error("Failed to trigger Gemini analysis:", err);
+    // Use after() to ensure the background fetch completes even after response is sent
+    // This prevents Vercel from killing the function before the analysis trigger is sent
+    after(async () => {
+      try {
+        const response = await fetch(
+          `${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+        if (!response.ok) {
+          console.error(
+            `Failed to trigger Gemini analysis: ${response.status} ${response.statusText}`,
+          );
+        } else {
+          console.log(
+            `Gemini analysis triggered successfully for game ${updatedGame.id}`,
+          );
+        }
+      } catch (err) {
+        console.error("Failed to trigger Gemini analysis:", err);
+      }
     });
 
     return NextResponse.json({
