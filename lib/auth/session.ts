@@ -1,9 +1,21 @@
-import { compare, hash } from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
-import { NewUser } from '@/lib/db/schema';
+import { compare, hash } from "bcryptjs";
+import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
+import { NewUser } from "@/lib/db/schema";
 
-const key = new TextEncoder().encode(process.env.AUTH_SECRET);
+// Lazy initialization to avoid build-time errors
+let _key: Uint8Array | null = null;
+function getKey(): Uint8Array {
+  if (!_key) {
+    const secret = process.env.AUTH_SECRET;
+    if (!secret) {
+      throw new Error("AUTH_SECRET is not set");
+    }
+    _key = new TextEncoder().encode(secret);
+  }
+  return _key;
+}
+
 const SALT_ROUNDS = 10;
 
 export async function hashPassword(password: string) {
@@ -12,7 +24,7 @@ export async function hashPassword(password: string) {
 
 export async function comparePasswords(
   plainTextPassword: string,
-  hashedPassword: string
+  hashedPassword: string,
 ) {
   return compare(plainTextPassword, hashedPassword);
 }
@@ -24,21 +36,21 @@ type SessionData = {
 
 export async function signToken(payload: SessionData) {
   return await new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime('1 day from now')
-    .sign(key);
+    .setExpirationTime("1 day from now")
+    .sign(getKey());
 }
 
 export async function verifyToken(input: string) {
-  const { payload } = await jwtVerify(input, key, {
-    algorithms: ['HS256'],
+  const { payload } = await jwtVerify(input, getKey(), {
+    algorithms: ["HS256"],
   });
   return payload as SessionData;
 }
 
 export async function getSession() {
-  const session = (await cookies()).get('session')?.value;
+  const session = (await cookies()).get("session")?.value;
   if (!session) return null;
   return await verifyToken(session);
 }
@@ -50,10 +62,10 @@ export async function setSession(user: NewUser) {
     expires: expiresInOneDay.toISOString(),
   };
   const encryptedSession = await signToken(session);
-  (await cookies()).set('session', encryptedSession, {
+  (await cookies()).set("session", encryptedSession, {
     expires: expiresInOneDay,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
   });
 }

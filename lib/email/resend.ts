@@ -1,10 +1,18 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build-time errors
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AI Scout <noreply@aiscout.com>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const BRAND_COLOR = '#0f2d52';
+const FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL || "AI Scout <noreply@aiscout.com>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const BRAND_COLOR = "#0f2d52";
 
 // Shared email wrapper with AI Scout branding
 function emailWrapper(content: string) {
@@ -70,7 +78,7 @@ export async function sendEmail({
   subject: string;
   body: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM_EMAIL,
     to: Array.isArray(to) ? to : [to],
     subject,
@@ -79,10 +87,10 @@ export async function sendEmail({
 }
 
 export async function sendWelcomeEmail(email: string, name?: string) {
-  const displayName = name || 'Coach';
+  const displayName = name || "Coach";
   return sendEmail({
     to: email,
-    subject: 'Welcome to AI Scout!',
+    subject: "Welcome to AI Scout!",
     body: `
       <h1 style="color: #111827; font-size: 24px; margin: 0 0 16px 0;">Welcome, ${displayName}!</h1>
       <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -100,7 +108,7 @@ export async function sendWelcomeEmail(email: string, name?: string) {
       </div>
 
       <div style="text-align: center;">
-        ${button('Go to Dashboard', `${APP_URL}/home`)}
+        ${button("Go to Dashboard", `${APP_URL}/home`)}
       </div>
 
       <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
@@ -110,11 +118,14 @@ export async function sendWelcomeEmail(email: string, name?: string) {
   });
 }
 
-export async function sendPasswordResetEmail(email: string, resetToken: string) {
+export async function sendPasswordResetEmail(
+  email: string,
+  resetToken: string,
+) {
   const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`;
   return sendEmail({
     to: email,
-    subject: 'Reset your AI Scout password',
+    subject: "Reset your AI Scout password",
     body: `
       <h1 style="color: #111827; font-size: 24px; margin: 0 0 16px 0;">Reset Your Password</h1>
       <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -122,7 +133,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
       </p>
 
       <div style="text-align: center;">
-        ${button('Reset Password', resetUrl)}
+        ${button("Reset Password", resetUrl)}
       </div>
 
       <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
@@ -132,11 +143,14 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
   });
 }
 
-export async function sendVerificationEmail(email: string, verificationToken: string) {
+export async function sendVerificationEmail(
+  email: string,
+  verificationToken: string,
+) {
   const verifyUrl = `${APP_URL}/verify-email?token=${verificationToken}`;
   return sendEmail({
     to: email,
-    subject: 'Verify your AI Scout email',
+    subject: "Verify your AI Scout email",
     body: `
       <h1 style="color: #111827; font-size: 24px; margin: 0 0 16px 0;">Verify Your Email</h1>
       <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -144,7 +158,7 @@ export async function sendVerificationEmail(email: string, verificationToken: st
       </p>
 
       <div style="text-align: center;">
-        ${button('Verify Email', verifyUrl)}
+        ${button("Verify Email", verifyUrl)}
       </div>
 
       <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
@@ -158,7 +172,7 @@ export async function sendProcessingCompleteEmail(
   email: string,
   gameName: string,
   gameId: string,
-  stats: { players: number; plays: number }
+  stats: { players: number; plays: number },
 ) {
   const gameUrl = `${APP_URL}/game/${gameId}`;
   return sendEmail({
@@ -184,7 +198,7 @@ export async function sendProcessingCompleteEmail(
       </div>
 
       <div style="text-align: center;">
-        ${button('View Analysis', gameUrl)}
+        ${button("View Analysis", gameUrl)}
       </div>
 
       <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
@@ -194,7 +208,11 @@ export async function sendProcessingCompleteEmail(
   });
 }
 
-export async function sendProcessingFailedEmail(email: string, gameName: string, error: string) {
+export async function sendProcessingFailedEmail(
+  email: string,
+  gameName: string,
+  error: string,
+) {
   return sendEmail({
     to: email,
     subject: `Processing Failed: ${gameName}`,
@@ -215,13 +233,18 @@ export async function sendProcessingFailedEmail(email: string, gameName: string,
       </p>
 
       <div style="text-align: center;">
-        ${button('Upload Again', `${APP_URL}/games/new`)}
+        ${button("Upload Again", `${APP_URL}/games/new`)}
       </div>
     `,
   });
 }
 
-export async function sendInvitationEmail(email: string, teamName: string, inviterName: string, inviteId: number) {
+export async function sendInvitationEmail(
+  email: string,
+  teamName: string,
+  inviterName: string,
+  inviteId: number,
+) {
   const signUpUrl = `${APP_URL}/sign-up?inviteId=${inviteId}`;
   return sendEmail({
     to: email,
@@ -240,10 +263,10 @@ export async function sendInvitationEmail(email: string, teamName: string, invit
       </div>
 
       <div style="text-align: center;">
-        ${button('Accept Invitation', signUpUrl)}
+        ${button("Accept Invitation", signUpUrl)}
       </div>
     `,
   });
 }
 
-export { resend };
+export { getResend as resend };
