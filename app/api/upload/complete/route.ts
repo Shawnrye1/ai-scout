@@ -104,12 +104,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger Gemini analysis automatically (fire-and-forget)
-    // Use the request's origin to ensure correct URL in all environments
-    const origin = request.headers.get("origin") || request.headers.get("host");
-    const protocol = request.headers.get("x-forwarded-proto") || "https";
-    const baseUrl = origin?.startsWith("http")
-      ? origin
-      : `${protocol}://${origin || "localhost:3000"}`;
+    // Use VERCEL_URL (auto-set by Vercel) or fall back to env var / localhost
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     console.log(
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
