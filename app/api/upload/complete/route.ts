@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/drizzle';
-import { games } from '@/lib/db/schema';
-import { getUser } from '@/lib/db/queries';
-import { eq } from 'drizzle-orm';
-import { getPublicUrl, getDownloadPresignedUrl } from '@/lib/storage/r2';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db/drizzle";
+import { games } from "@/lib/db/schema";
+import { getUser } from "@/lib/db/queries";
+import { eq } from "drizzle-orm";
+import { getPublicUrl, getDownloadPresignedUrl } from "@/lib/storage/r2";
+import { z } from "zod";
 // Modal processing removed - using Gemini multi-agent analysis instead
 
 // Schema for file uploads
@@ -19,7 +19,7 @@ const fileUploadSchema = z.object({
 const urlUploadSchema = z.object({
   gameId: z.string().uuid(),
   videoUrl: z.string().url(),
-  videoSource: z.enum(['hudl', 'youtube', 'vimeo', 'direct']),
+  videoSource: z.enum(["hudl", "youtube", "vimeo", "direct"]),
 });
 
 // Combined schema - either file OR url
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -42,20 +42,20 @@ export async function POST(request: NextRequest) {
     });
 
     if (!game) {
-      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+      return NextResponse.json({ error: "Game not found" }, { status: 404 });
     }
 
     const teamResult = await db.query.teamMembers.findFirst({
       where: (tm, { eq }) => eq(tm.userId, user.id),
     });
 
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = process.env.NODE_ENV === "development";
     if (!isDev && game.teamId !== teamResult?.teamId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     // Check if this is a URL-based or file-based upload
-    const isUrlUpload = 'videoUrl' in data && 'videoSource' in data;
+    const isUrlUpload = "videoUrl" in data && "videoSource" in data;
 
     let updatedGame;
     let downloadUrl: string;
@@ -64,11 +64,12 @@ export async function POST(request: NextRequest) {
       // URL-based upload (Hudl, YouTube, Vimeo, direct link)
       const urlData = data as z.infer<typeof urlUploadSchema>;
 
-      [updatedGame] = await db.update(games)
+      [updatedGame] = await db
+        .update(games)
         .set({
           videoUrl: urlData.videoUrl,
           videoSource: urlData.videoSource,
-          status: 'queued',
+          status: "queued",
           processingProgress: 0,
           updatedAt: new Date(),
         })
@@ -84,13 +85,14 @@ export async function POST(request: NextRequest) {
       // Get public URL for the video
       const videoUrl = await getPublicUrl(fileData.key);
 
-      [updatedGame] = await db.update(games)
+      [updatedGame] = await db
+        .update(games)
         .set({
           videoKey: fileData.key,
-          videoUrl: typeof videoUrl === 'string' ? videoUrl : null,
+          videoUrl: typeof videoUrl === "string" ? videoUrl : null,
           videoSizeBytes: fileData.fileSize,
           videoDurationSeconds: fileData.duration,
-          status: 'queued',
+          status: "queued",
           processingProgress: 0,
           updatedAt: new Date(),
         })
@@ -103,25 +105,38 @@ export async function POST(request: NextRequest) {
 
     // Trigger Gemini analysis automatically
     // This runs in the background - we don't wait for it
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || 'http://localhost:3000';
+    // Use the request's origin to ensure correct URL in all environments (local, preview, production)
+    const origin = request.headers.get("origin") || request.headers.get("host");
+    const protocol = request.headers.get("x-forwarded-proto") || "https";
+    const baseUrl = origin?.startsWith("http")
+      ? origin
+      : `${protocol}://${origin || "localhost:3000"}`;
+
+    console.log(
+      `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
+    );
+
     fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }).catch(err => {
-      console.error('Failed to trigger Gemini analysis:', err);
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }).catch((err) => {
+      console.error("Failed to trigger Gemini analysis:", err);
     });
 
     return NextResponse.json({
       game: updatedGame,
       message: isUrlUpload
-        ? 'Video URL received. Analysis starting automatically.'
-        : 'Upload complete. Analysis starting automatically.',
+        ? "Video URL received. Analysis starting automatically."
+        : "Upload complete. Analysis starting automatically.",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
-    console.error('Error completing upload:', error);
-    return NextResponse.json({ error: 'Failed to complete upload' }, { status: 500 });
+    console.error("Error completing upload:", error);
+    return NextResponse.json(
+      { error: "Failed to complete upload" },
+      { status: 500 },
+    );
   }
 }
