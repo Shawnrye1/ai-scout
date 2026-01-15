@@ -16,6 +16,11 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+// Allow up to 5 minutes for video analysis (Vercel Pro max)
+// This is needed because Gemini analysis involves downloading video,
+// uploading to Gemini, running multiple agents, and storing results
+export const maxDuration = 300;
+
 /**
  * POST /api/games/[id]/analyze-gemini
  *
