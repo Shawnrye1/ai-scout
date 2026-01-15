@@ -113,11 +113,12 @@ export async function POST(request: NextRequest) {
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
     );
 
-    // Fire-and-forget: send the request but don't wait for response
+    // Fire-and-forget with keepalive to ensure request is sent before function terminates
     // The analyze-gemini endpoint will run independently with its own maxDuration
     fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      keepalive: true, // Critical: ensures request is dispatched even if this function terminates
     }).catch((err) => {
       console.error("Failed to trigger Gemini analysis:", err);
     });
