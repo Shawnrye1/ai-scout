@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db/drizzle";
 import { games } from "@/lib/db/schema";
 import { getUser } from "@/lib/db/queries";
@@ -113,25 +114,16 @@ export async function POST(request: NextRequest) {
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
     );
 
-    // Trigger analysis - await briefly to ensure request is dispatched
-    // Use AbortController to not wait for full response (which takes minutes)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s is enough to dispatch
-
-    try {
-      await fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
+    // Use waitUntil to ensure the analysis trigger completes even after response is sent
+    // This is the Vercel-recommended way to do fire-and-forget on serverless
+    waitUntil(
+      fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-      });
-    } catch (err: any) {
-      // AbortError is expected - we just want to ensure request was sent
-      if (err?.name !== "AbortError") {
+      }).catch((err) => {
         console.error("Failed to trigger Gemini analysis:", err);
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
+      }),
+    );
 
     return NextResponse.json({
       game: updatedGame,
