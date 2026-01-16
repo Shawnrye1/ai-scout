@@ -113,15 +113,25 @@ export async function POST(request: NextRequest) {
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
     );
 
-    // Fire-and-forget with keepalive to ensure request is sent before function terminates
-    // The analyze-gemini endpoint will run independently with its own maxDuration
-    fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true, // Critical: ensures request is dispatched even if this function terminates
-    }).catch((err) => {
-      console.error("Failed to trigger Gemini analysis:", err);
-    });
+    // Trigger analysis - await briefly to ensure request is dispatched
+    // Use AbortController to not wait for full response (which takes minutes)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s is enough to dispatch
+
+    try {
+      await fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+      });
+    } catch (err: any) {
+      // AbortError is expected - we just want to ensure request was sent
+      if (err?.name !== "AbortError") {
+        console.error("Failed to trigger Gemini analysis:", err);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     return NextResponse.json({
       game: updatedGame,
