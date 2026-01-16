@@ -1373,9 +1373,31 @@ ${boxScore}
   onProgress?.(50, "Phase 1 complete. Starting Phase 2: Player deep dive...");
 
   // Normalize jersey results - Gemini sometimes returns an array instead of object
+  // DEBUG: Log the raw jersey results structure
+  console.log("[DEBUG] jerseyResults type:", typeof jerseyResults);
+  console.log("[DEBUG] jerseyResults isArray:", Array.isArray(jerseyResults));
+  console.log(
+    "[DEBUG] jerseyResults:",
+    JSON.stringify(jerseyResults, null, 2).substring(0, 500),
+  );
+
   const jerseyData = Array.isArray(jerseyResults)
     ? jerseyResults[0]
     : jerseyResults;
+
+  console.log("[DEBUG] jerseyData type:", typeof jerseyData);
+  console.log(
+    "[DEBUG] jerseyData keys:",
+    jerseyData ? Object.keys(jerseyData) : "null",
+  );
+  console.log(
+    "[DEBUG] jerseyData.homeTeam:",
+    jerseyData?.homeTeam ? "exists" : "missing",
+  );
+  console.log(
+    "[DEBUG] jerseyData.homeTeam.players:",
+    jerseyData?.homeTeam?.players?.length || 0,
+  );
 
   // Extract team names
   const homeTeamName = jerseyData?.homeTeam?.teamName || "Home";
