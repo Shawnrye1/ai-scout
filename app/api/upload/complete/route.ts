@@ -105,10 +105,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger Gemini analysis automatically (fire-and-forget)
-    // Use VERCEL_URL (auto-set by Vercel) or fall back to env var / localhost
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // Prefer production URL, then deployment URL, then env var
+    const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     console.log(
       `Triggering Gemini analysis for game ${updatedGame.id} at ${baseUrl}`,
@@ -116,13 +118,25 @@ export async function POST(request: NextRequest) {
 
     // Use waitUntil to ensure the analysis trigger completes even after response is sent
     // This is the Vercel-recommended way to do fire-and-forget on serverless
+    const triggerUrl = `${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`;
+    console.log(`[upload/complete] Triggering analysis at: ${triggerUrl}`);
+
     waitUntil(
-      fetch(`${baseUrl}/api/games/${updatedGame.id}/analyze-gemini`, {
+      fetch(triggerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-      }).catch((err) => {
-        console.error("Failed to trigger Gemini analysis:", err);
-      }),
+      })
+        .then((res) => {
+          console.log(
+            `[upload/complete] Analysis trigger response: ${res.status}`,
+          );
+        })
+        .catch((err) => {
+          console.error(
+            "[upload/complete] Failed to trigger Gemini analysis:",
+            err,
+          );
+        }),
     );
 
     return NextResponse.json({
