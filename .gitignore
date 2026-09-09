@@ -39,3 +39,6 @@ next-env.d.ts
 # Docker
 postgres_data/
 .env*.local
+
+# Temporary worktrees the Agent tool creates under the checkout
+.claude/worktrees/
